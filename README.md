@@ -209,29 +209,12 @@ graph TB
 ```mermaid
 flowchart LR
     subgraph VoiceStructure[Single Voice DSP Chain]
-        Osc1[Oscillator 1]
-        Osc2[Oscillator 2]
-        Osc3[Oscillator 3]
-        Osc4[Oscillator 4]
-        Osc5[Oscillator 5]
-        Osc6[Oscillator 6]
-        Osc7[Oscillator 7]
-        Osc8[Oscillator 8]
-        
+        OscN[Osc 1..8<br/>Wavetable + VA]
         TrilinearMixer[Trilinear Mixer<br/>SIMD Optimized]
-        
         FilterSection[Dual Filters<br/>Serial/Parallel]
         VCA[VCA<br/>Envelope]
         
-        Osc1 --> TrilinearMixer
-        Osc2 --> TrilinearMixer
-        Osc3 --> TrilinearMixer
-        Osc4 --> TrilinearMixer
-        Osc5 --> TrilinearMixer
-        Osc6 --> TrilinearMixer
-        Osc7 --> TrilinearMixer
-        Osc8 --> TrilinearMixer
-        
+        OscN --> TrilinearMixer
         TrilinearMixer --> FilterSection
         FilterSection --> VCA
         VCA --> Output[Voice Output]
@@ -246,7 +229,7 @@ flowchart LR
     
     ModulationSources -.->|Modulation Matrix| TrilinearMixer
     ModulationSources -.->|Modulation Matrix| FilterSection
-    ModulationSources -.->|Modulation Matrix| Osc1
+    ModulationSources -.->|Modulation Matrix| OscN
 ```
 
 ### Signal Flow
