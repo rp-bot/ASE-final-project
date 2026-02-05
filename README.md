@@ -165,18 +165,12 @@ graph TB
     subgraph AudioThread[Audio Thread - High Priority]
         MIDI[MIDI Input]
         VoiceManager[Voice Manager<br/>16-Voice Polyphony]
-        Voice1[Voice 1]
-        Voice2[Voice 2]
-        VoiceN[Voice N...]
+        VoiceN[Voice 1..16]
         Mixer[Master Mixer]
         AudioOut[Audio Output]
         
         MIDI --> VoiceManager
-        VoiceManager --> Voice1
-        VoiceManager --> Voice2
         VoiceManager --> VoiceN
-        Voice1 --> Mixer
-        Voice2 --> Mixer
         VoiceN --> Mixer
         Mixer --> AudioOut
     end
@@ -201,7 +195,7 @@ graph TB
     AudioThread -->|Audio Samples<br/>FFT Data| RingBuffer
     RingBuffer -->|Latest Data| OpenGLContext
     MessageThread -->|XYZ Position| AtomicVars
-    AtomicVars -->|Read-Only| Voice1
+    AtomicVars -->|Read-Only| VoiceN
 ```
 
 ### Voice Architecture
