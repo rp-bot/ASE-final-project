@@ -234,39 +234,18 @@ flowchart TD
     
     Input --> VoiceAllocation[Voice Allocation]
     
-    VoiceAllocation --> OscBank[8-Oscillator Bank<br/>Wavetable + VA]
+    VoiceAllocation --> OscN[Osc 1..8<br/>Wavetable + VA]
     
-    OscBank --> Gain1[Gain 1<br/>Trilinear Coeff]
-    OscBank --> Gain2[Gain 2<br/>Trilinear Coeff]
-    OscBank --> Gain3[Gain 3<br/>Trilinear Coeff]
-    OscBank --> Gain4[Gain 4<br/>Trilinear Coeff]
-    OscBank --> Gain5[Gain 5<br/>Trilinear Coeff]
-    OscBank --> Gain6[Gain 6<br/>Trilinear Coeff]
-    OscBank --> Gain7[Gain 7<br/>Trilinear Coeff]
-    OscBank --> Gain8[Gain 8<br/>Trilinear Coeff]
+    OscN --> GainN[Gain 1..8<br/>Trilinear Coeff]
     
-    Gain1 --> Sum[Σ Mixed Signal]
-    Gain2 --> Sum
-    Gain3 --> Sum
-    Gain4 --> Sum
-    Gain5 --> Sum
-    Gain6 --> Sum
-    Gain7 --> Sum
-    Gain8 --> Sum
+    GainN --> Sum[Σ Mixed Signal]
     
     Sum --> Filter[Dual Filter Section<br/>LP, HP, BP, Notch]
     Filter --> Envelope[Amplitude Envelope]
     Envelope --> FX[Effects Chain<br/>Reverb, Delay]
     FX --> MasterOut[Master Output]
     
-    Position3D[3D Cursor Position] -.->|Calculate| Gain1
-    Position3D -.->|Calculate| Gain2
-    Position3D -.->|Calculate| Gain3
-    Position3D -.->|Calculate| Gain4
-    Position3D -.->|Calculate| Gain5
-    Position3D -.->|Calculate| Gain6
-    Position3D -.->|Calculate| Gain7
-    Position3D -.->|Calculate| Gain8
+    Position3D[3D Cursor Position] -.->|Calculate| GainN
 ```
 
 ### Technology Stack
