@@ -595,4 +595,4 @@ We welcome contributions from the community! Please read our detailed [CONTRIBUT
 **Next Milestone**: Alpha 0 Prototype (Week 3 - Mar 3, 2026)  
 **Target Release**: v1.0.0 (May 5, 2026)
 
-**Development Progress**: See [GitHub Projects Board](https://github.com/your-username/project/projects/1) for real-time status.
+**Development Progress**: See [GitHub Projects Board](https://github.com/users/rp-bot/projects/8) for real-time status.
