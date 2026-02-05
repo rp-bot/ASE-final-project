@@ -360,19 +360,19 @@ This project requires expertise across multiple domains: audio DSP, 3D graphics,
 
 | Feature / Module         | Lead Architect | DSP Eng 1 | DSP Eng 2 | DSP Eng 3 | Graphics/UX Dev |
 | ------------------------ | -------------- | --------- | --------- | --------- | --------------- |
-| **Plugin Skeleton**      | **R**          | C         | I         | I         | I               |
-| **Vector Mixer Core**    | A              | **R**     | C         | I         | I               |
-| **3D Cube Renderer**     | C              | I         | I         | I         | **R**           |
-| **Visualizers**          | C              | C         | I         | C         | **R**           |
-| **Thread Safety**        | **R**          | C         | C         | C         | C               |
-| **Trajectory Logic**     | C              | **R**     | C         | **R**     | **R**           |
-| **Filter Section**       | C              | C         | **R**     | C         | I               |
-| **Modulation Matrix**    | C              | C         | **R**     | C         | C               |
-| **Wavetable Engine**     | C              | **R**     | C         | C         | I               |
-| **Camera & Interaction** | I              | I         | I         | I         | **R**           |
-| **Preset Management**    | **R**          | C         | C         | C         | C               |
-| **SIMD Optimization**    | C              | **R**     | C         | I         | I               |
-| **Build & Release**      | **R**          | C         | C         | C         | I               |
+| **Plugin Skeleton**      | **A**          | C         | C         | C         | C               |
+| **Vector Mixer Core**    | **A**          | C         | C         | **R**     | I               |
+| **3D Cube Renderer**     | C              | I         | I         | **R**     | **A**           |
+| **Visualizers**          | C              | C         | I         | C         | **A**           |
+| **Thread Safety**        | **A**          | C         | **R**     | C         | C               |
+| **Trajectory Logic**     | C              | **R**     | C         | **A**     | **R**           |
+| **Filter Section**       | C              | C         | **A**     | **R**     | I               |
+| **Modulation Matrix**    | **A**          | C         | **R**     | C         | C               |
+| **Wavetable Engine**     | **A**          | **R**     | C         | C         | I               |
+| **Camera & Interaction** | I              | **R**     | I         | I         | **A**           |
+| **Preset Management**    | **A**          | C         | C         | **R**     | C               |
+| **SIMD Optimization**    | C              | **A**     | **R**     | I         | I               |
+| **Build & Release**      | **A**          | C         | C         | C         | I               |
 
 **Legend**:
 
