@@ -89,6 +89,9 @@ This plugin is designed for creative professionals who demand nuanced, expressiv
 
 At its core, this plugin provides an intuitive **three-dimensional sound design environment** where users manipulate a virtual cursor within a cubic space to blend eight distinct sound sources in real-time.
 
+![Draft_UI](https://github.com/user-attachments/assets/3691a59a-82ae-46f1-829c-334243fad29c)
+
+
 ### The "Glass Cube" Interface
 
 ```mermaid
