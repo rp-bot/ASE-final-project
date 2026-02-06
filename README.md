@@ -263,7 +263,7 @@ flowchart TD
 | Component             | Description                                              | Technology                              |
 | --------------------- | -------------------------------------------------------- | --------------------------------------- |
 | **Voice Manager**     | 16-voice polyphony with dynamic allocation               | JUCE Synthesiser class                  |
-| **Oscillator Engine** | Wavetable + Virtual Analog (Saw, Square, Triangle, Sine) | JUCE dsp::Oscillator, custom wavetable  |
+| **Oscillator Engine** | Virtual Analog Wavetable (Saw, Square, Triangle, Sine)   | JUCE dsp::Oscillator, custom wavetable  |
 | **Trilinear Mixer**   | 8-to-1 mixing with SIMD optimization                     | Custom C++ with juce::dsp::SIMDRegister |
 | **Filter Section**    | Dual filters (LP/HP/BP/Notch, 12/24 dB/oct)              | JUCE dsp::LadderFilter                  |
 | **Modulation Matrix** | Route 3D parameters to synthesis params                  | Custom parameter routing                |
@@ -331,7 +331,7 @@ Core algorithms powering the volumetric synthesis engine:
 
 **References**: "Real-Time Rendering" (Akenine-Möller, Haines), GLM documentation -->
 
-### 3. SIMD Optimization
+### 3. SIMD Optimization [REACH GOAL]
 
 **Purpose**: Vectorize trilinear mixer for 3-4x speedup.
 
