@@ -17,7 +17,6 @@
 - [GitHub Projects](#github-projects)
 - [Getting Started](#getting-started)
 - [Contributing](#contributing)
-- [References](#references)
 
 ---
 
