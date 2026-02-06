@@ -36,7 +36,7 @@ The technology was later refined by **Korg in the Wavestation**, which introduce
 
 In 2026, the synthesizer market faces a "magic triangle" of challenges: cost, quality, and innovation. While "3D" plugins exist in the market, they primarily focus on **spatial positioning** (stereo/surround panners) rather than **timbral generation** through spatial manipulation.
 
-For example, while **Anukari** demonstrates impressive 3D physics-based synthesis, it applies the 3D interface to mass-spring systems rather than vector synthesis. There currently exists **no volumetric vector synthesizer** that allows users to "fly" through a cube of sound, blending **eight distinct timbres** in real-time.
+For example, while [**Anukari**](https://anukari.com/) demonstrates impressive 3D physics-based synthesis, it applies the 3D interface to mass-spring systems rather than vector synthesis. There currently exists **no volumetric vector synthesizer** that allows users to "fly" through a cube of sound, blending **eight distinct timbres** in real-time.
 
 #### Strategic Opportunity
 
