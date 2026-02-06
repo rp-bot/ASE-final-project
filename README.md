@@ -306,7 +306,7 @@ Core algorithms powering the volumetric synthesis engine:
 
 **Method**: Given position $(x, y, z) \in [0, 1]^3$, gain for each oscillator is proportional to the volume of the opposite rectangular prism. For example: oscillator at $(0,0,0)$ has gain $g_{000} = (1-x)(1-y)(1-z)$. Implemented as three-stage linear interpolation (X→Y→Z) followed by SIMD-optimized multiply-accumulate. Sum of all 8 gains guaranteed to equal 1.0.
 
-**References**: [Wikipedia: Trilinear Interpolation](https://en.wikipedia.org/wiki/Trilinear_interpolation), SPIE "Three-Dimensional Lookup Table"
+**References**: [Wikipedia: Trilinear Interpolation](https://en.wikipedia.org/wiki/Trilinear_interpolation), ["Three-Dimensional Lookup Table With Interpolation"](https://spie.org/samples/PM159.pdf)
 
 ### 2. Tricubic Interpolation / Catmull-Rom Splines
 
@@ -314,7 +314,7 @@ Core algorithms powering the volumetric synthesis engine:
 
 **Method**: Pre-compute Catmull-Rom splines at high resolution (e.g., 1000 samples) and store in lookup table. Runtime uses cheap table interpolation instead of expensive per-sample polynomial evaluation.
 
-**References**: ResearchGate "Tricubic Interpolation of Discrete Surfaces", Taylor & Francis "Tricubic Interpolation"
+**References**: ["Tricubic interpolation of discrete surfaces for binary volumes"](https://ieeexplore.ieee.org/abstract/document/1260750), ["Tricubic Interpolation"](https://www.sciencedirect.com/science/chapter/edited-volume/pii/B9780125434577500243)
 
 <!-- ### 3. Signed Distance Field (SDF) Rendering
 
