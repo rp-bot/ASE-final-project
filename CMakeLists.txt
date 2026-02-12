@@ -108,9 +108,9 @@ juce_add_plugin("${PROJECT_NAME}"
     # COMPANY_WEBSITE                           # The address of a website related to this target in some way.
                                                 # The value is inherited from JUCE_COMPANY_WEBSITE.
     # COMPANY_EMAIL                             # An email address for this target's author. The value is inherited from JUCE_COMPANY_EMAIL.
-    PLUGIN_MANUFACTURER_CODE Manu               # A four-character manufacturer id with at least one upper-case character.
+    PLUGIN_MANUFACTURER_CODE OURS               # A four-character manufacturer id with at least one upper-case character.
                                                 # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case.
-    PLUGIN_CODE Dem0                            # A unique four-character plugin id with exactly one upper-case character.
+    PLUGIN_CODE VLMS                            # A unique four-character plugin id with exactly one upper-case character.
                                                 # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case.
 
     IS_SYNTH TRUE                              # Is this a synth or an effect?
