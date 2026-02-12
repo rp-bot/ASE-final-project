@@ -43,6 +43,9 @@
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeFiles
+Source/**/CMakeFiles
+Source/**/cmake_install.cmake
+Source/**/Makefile
 CMakeScripts
 Testing
 Makefile
