@@ -7,6 +7,7 @@ project(VolumetricSynth VERSION 0.0.1)
 
 ### Dependency versions ###
 set(LIB_JUCE_TAG "7.0.8")
+set(LIB_GLM_TAG "0.9.9.8")
 
 
 ### IDE Generator pre-config ###
@@ -40,7 +41,45 @@ FetchContent_Declare(juce
     SUBBUILD_DIR   "${FETCHCONTENT_BASE_DIR}/JUCE-Subbuild"
     BINARY_DIR     "${FETCHCONTENT_BASE_DIR}/JUCE-Build")
 
-FetchContent_MakeAvailable(juce)
+FetchContent_Declare(glm
+    GIT_REPOSITORY https://github.com/g-truc/glm.git
+    GIT_TAG        ${LIB_GLM_TAG}
+    GIT_SHALLOW    TRUE
+    GIT_CONFIG     advice.detachedHead=false
+    SOURCE_DIR     "${FETCHCONTENT_BASE_DIR}/glm"
+    SUBBUILD_DIR   "${FETCHCONTENT_BASE_DIR}/glm-Subbuild"
+    BINARY_DIR     "${FETCHCONTENT_BASE_DIR}/glm-Build")
+
+# Fetch GLM first so we can patch its CMakeLists.txt to fix deprecation warnings
+FetchContent_GetProperties(glm)
+if(NOT glm_POPULATED)
+    FetchContent_Populate(glm)
+    
+    # Fix GLM's CMakeLists.txt to use modern cmake_minimum_required syntax
+    # This eliminates deprecation warnings about CMake version requirements
+    file(READ "${glm_SOURCE_DIR}/CMakeLists.txt" glm_cmake_content)
+    
+    # Update cmake_minimum_required to use range syntax (e.g., "3.5...3.22")
+    # This tells CMake the project supports versions up to the current CMake version
+    string(REGEX REPLACE
+        "cmake_minimum_required\\(VERSION ([0-9]+\\.[0-9]+)\\)"
+        "cmake_minimum_required(VERSION \\1...${CMAKE_VERSION})"
+        glm_cmake_content
+        "${glm_cmake_content}")
+    
+    file(WRITE "${glm_SOURCE_DIR}/CMakeLists.txt" "${glm_cmake_content}")
+endif()
+
+FetchContent_MakeAvailable(juce glm)
+
+# GLM is header-only; add include directory if target doesn't exist
+FetchContent_GetProperties(glm)
+if(glm_POPULATED AND NOT TARGET glm::glm)
+    # GLM doesn't provide a CMake target in older versions, so add include directory manually
+    add_library(glm INTERFACE)
+    add_library(glm::glm ALIAS glm)
+    target_include_directories(glm INTERFACE "${glm_SOURCE_DIR}")
+endif()
 
 
 ### Plugin Project Setup ###
@@ -74,11 +113,11 @@ juce_add_plugin("${PROJECT_NAME}"
     PLUGIN_CODE Dem0                            # A unique four-character plugin id with exactly one upper-case character.
                                                 # GarageBand 10.3 requires the first letter to be upper-case, and the remaining letters to be lower-case.
 
-    IS_SYNTH FALSE                              # Is this a synth or an effect?
-    NEEDS_MIDI_INPUT FALSE                      # Does the plugin need midi input?
+    IS_SYNTH TRUE                              # Is this a synth or an effect?
+    NEEDS_MIDI_INPUT TRUE                      # Does the plugin need midi input?
     NEEDS_MIDI_OUTPUT FALSE                     # Does the plugin need midi output?
     IS_MIDI_EFFECT FALSE                        # Is this plugin a MIDI effect?
-    EDITOR_WANTS_KEYBOARD_FOCUS FALSE           # Does the editor need keyboard focus?
+    EDITOR_WANTS_KEYBOARD_FOCUS TRUE           # Does the editor need keyboard focus?
 
     # VST3_CATEGORIES                           # Should be one or more, separated by spaces, of the following:
                                                 # Fx, Instrument, Analyzer, Delay, Distortion, Drum, Dynamics, EQ, External,
@@ -91,7 +130,7 @@ juce_add_plugin("${PROJECT_NAME}"
                                                 # kAudioUnitType_MusicEffect, kAudioUnitType_OfflineEffect, kAudioUnitType_Output,
                                                 # kAudioUnitType_Panner
 
-    COPY_PLUGIN_AFTER_BUILD FALSE)              # Should the plugin be installed to a default location after building?
+    COPY_PLUGIN_AFTER_BUILD TRUE)              # Should the plugin be installed to a default location after building?
                                                 # NOTE: Writing to the default install locations might require administrator privileges on Windows.
 
 # Set the C++ language standard requirenment for the "shared code" library target.
@@ -139,8 +178,10 @@ target_compile_definitions("${PROJECT_NAME}"
 
 target_link_libraries("${PROJECT_NAME}"
     PRIVATE
-        # Assets                # If we'd created a binary data target, we'd link to it here
         juce::juce_audio_utils
+        juce::juce_dsp
+        juce::juce_opengl
+        glm::glm
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
