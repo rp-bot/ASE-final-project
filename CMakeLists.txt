@@ -144,6 +144,7 @@ set_target_properties(${project_targets} PROPERTIES CXX_EXTENSIONS OFF)
 
 # Add the subdirectory with source files.
 add_subdirectory(Source)
+add_subdirectory(Tests)
 
 # `juce_generate_juce_header` will create a JuceHeader.h for a given target, which will be generated
 # into your build tree. The include path for this header will be automatically added to the target.
