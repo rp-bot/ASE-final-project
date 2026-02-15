@@ -3,4 +3,6 @@ target_sources("${PROJECT_NAME}"
         ParameterIDs.h
         ParameterLayout.h
         ParameterManager.h
-        ParameterManager.cpp)
+        ParameterManager.cpp
+        Oscillator.h
+        Oscillator.cpp)
