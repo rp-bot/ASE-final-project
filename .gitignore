@@ -117,3 +117,5 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/C++,CMake,macos,windows
 
 .cache/
+
+.github/
