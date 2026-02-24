@@ -28,7 +28,7 @@ Tests/
 From the project root, configure and build the test target:
 
 ```bash
-# Configure (from a build directory, e.g. Build or build)
+# Configure (root directory)
 cmake -B build -S .
 
 # Build only the test executable
@@ -39,7 +39,7 @@ Run the tests (path may vary by generator and config — Debug/Release):
 
 ```bash
 # Linux/macOS (Debug)
-./build/VolumetricSynth_artefacts/Debug/Volumetric\ Synth\ Tests
+./build/Tests/VolumetricSynth_Tests_artefacts/Debug/VolumetricSynth_Tests
 
 # Or using ctest if the target is registered (optional)
 ctest --test-dir build -R VolumetricSynth_Tests --output-on-failure
