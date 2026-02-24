@@ -5,10 +5,16 @@ cmake_minimum_required(VERSION 3.22)
 project(VolumetricSynth VERSION 0.0.1)
 
 
-### Dependency versions ###
-set(LIB_JUCE_TAG "7.0.8")
-set(LIB_GLM_TAG "0.9.9.8")
+option(USE_JUCE_DEVELOP "Use JUCE develop commit needed for macOS 15" OFF)
 
+set(JUCE_STABLE_REF "7.0.8")
+set(JUCE_DEV_REF    "738cc12")   # pin to the exact commit you tested
+set(GLM_REF         "0.9.9.8")
+
+set(JUCE_GIT_REF "${JUCE_STABLE_REF}")
+if(USE_JUCE_DEVELOP)
+  set(JUCE_GIT_REF "${JUCE_DEV_REF}")
+endif()
 
 ### IDE Generator pre-config ###
 
@@ -34,7 +40,7 @@ set(FETCHCONTENT_BASE_DIR "${PROJECT_SOURCE_DIR}/Libs" CACHE PATH "External depe
 
 FetchContent_Declare(juce
     GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-    GIT_TAG        ${LIB_JUCE_TAG}
+    GIT_TAG        ${JUCE_GIT_REF}
     GIT_SHALLOW    TRUE
     GIT_CONFIG     advice.detachedHead=false    # Disable detached HEAD warning for fetching a specific tag
     SOURCE_DIR     "${FETCHCONTENT_BASE_DIR}/JUCE"
