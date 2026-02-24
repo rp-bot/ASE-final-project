@@ -150,6 +150,9 @@ set_target_properties(${project_targets} PROPERTIES CXX_EXTENSIONS OFF)
 
 # Add the subdirectory with source files.
 add_subdirectory(Source)
+
+target_include_directories("${PROJECT_NAME}" PRIVATE ${CMAKE_SOURCE_DIR}/Source)
+
 add_subdirectory(Tests)
 
 # `juce_generate_juce_header` will create a JuceHeader.h for a given target, which will be generated

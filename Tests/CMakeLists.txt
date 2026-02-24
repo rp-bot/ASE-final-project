@@ -8,6 +8,7 @@ target_sources(VolumetricSynth_Tests
     Main.cpp
     UnitTests/SampleTest.cpp
     UnitTests/Math3DTest.cpp
+    UnitTests/ScopedDenormalsTest.cpp
 )
 
 target_include_directories(VolumetricSynth_Tests
