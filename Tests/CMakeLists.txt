@@ -6,12 +6,21 @@ juce_add_console_app(VolumetricSynth_Tests
 target_sources(VolumetricSynth_Tests
     PRIVATE
     Main.cpp
+    UnitTests/AssertionsTest.cpp
     UnitTests/SampleTest.cpp
+    UnitTests/Math3DTest.cpp
+    UnitTests/ScopedDenormalsTest.cpp
+)
+
+target_include_directories(VolumetricSynth_Tests
+    PRIVATE
+    ${CMAKE_SOURCE_DIR}/Source
 )
 
 target_link_libraries(VolumetricSynth_Tests
     PRIVATE
     VolumetricSynth
+    glm::glm
     juce::juce_audio_plugin_client
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags

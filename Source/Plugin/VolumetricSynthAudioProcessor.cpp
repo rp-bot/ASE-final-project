@@ -1,5 +1,6 @@
 #include "VolumetricSynthAudioProcessor.h"
 #include "VolumetricSynthEditor.h"
+#include "Utils/ScopedDenormals.h"
 
 //==============================================================================
 VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
@@ -127,7 +128,7 @@ void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 {
     juce::ignoreUnused (midiMessages);
 
-    juce::ScopedNoDenormals noDenormals;
+    Utils::ScopedDenormals scopedDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
