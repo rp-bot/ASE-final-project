@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "../Parameters/ParameterManager.h"
+#include "../Threading/AtomicGuiState.h"
 
 //==============================================================================
 class VolumetricSynthAudioProcessor  : public juce::AudioProcessor
@@ -45,8 +46,17 @@ public:
     
     ParameterManager& getParameterManager() { return parameterManager; }
 
+    // ---- GUI state bridge (message thread write / audio thread read) ----
+    void setGuiCursorPosition (float x, float y, float z) noexcept;
+    void setGuiCursorPosition (glm::vec3 position) noexcept;
+    void setGuiTrajectoryActive (bool active) noexcept;
+
+    glm::vec3 getGuiCursorPosition() const noexcept;
+    bool isGuiTrajectoryActive() const noexcept;
+
 private:
     ParameterManager parameterManager;
+    Threading::AtomicGuiState atomicGuiState;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VolumetricSynthAudioProcessor)

@@ -2,4 +2,5 @@
 add_subdirectory(Plugin)
 add_subdirectory(Parameters)
 add_subdirectory(Utils)
+add_subdirectory(Threading)
 add_subdirectory(DSP)
