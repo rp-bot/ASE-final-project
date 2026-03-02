@@ -20,6 +20,31 @@ VolumetricSynthAudioProcessor::~VolumetricSynthAudioProcessor()
 {
 }
 
+void VolumetricSynthAudioProcessor::setGuiCursorPosition (float x, float y, float z) noexcept
+{
+    atomicGuiState.setCursorPosition (x, y, z);
+}
+
+void VolumetricSynthAudioProcessor::setGuiCursorPosition (glm::vec3 position) noexcept
+{
+    atomicGuiState.setCursorPosition (position);
+}
+
+void VolumetricSynthAudioProcessor::setGuiTrajectoryActive (bool active) noexcept
+{
+    atomicGuiState.setTrajectoryActive (active);
+}
+
+glm::vec3 VolumetricSynthAudioProcessor::getGuiCursorPosition() const noexcept
+{
+    return atomicGuiState.getCursorPosition();
+}
+
+bool VolumetricSynthAudioProcessor::isGuiTrajectoryActive() const noexcept
+{
+    return atomicGuiState.isTrajectoryActive();
+}
+
 //==============================================================================
 const juce::String VolumetricSynthAudioProcessor::getName() const
 {
@@ -127,6 +152,11 @@ void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
                                               juce::MidiBuffer& midiMessages)
 {
     juce::ignoreUnused (midiMessages);
+
+    // Read a lock-free GUI snapshot once per block.
+    const auto cursorPosition = getGuiCursorPosition();
+    const auto trajectoryActive = isGuiTrajectoryActive();
+    juce::ignoreUnused (cursorPosition, trajectoryActive);
 
     Utils::ScopedDenormals scopedDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();

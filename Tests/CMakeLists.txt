@@ -7,6 +7,7 @@ target_sources(VolumetricSynth_Tests
     PRIVATE
     Main.cpp
     UnitTests/AssertionsTest.cpp
+    UnitTests/AtomicGuiStateTest.cpp
     UnitTests/SampleTest.cpp
     UnitTests/Math3DTest.cpp
     UnitTests/ScopedDenormalsTest.cpp
