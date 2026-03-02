@@ -17,11 +17,34 @@ public:
                                int cornerIndex,
                                const juce::String& titleText,
                                juce::Colour accentColour);
+    ~OscillatorModuleComponent() override;
 
     void paint (juce::Graphics& g) override;
     void resized() override;
 
 private:
+    class AccentComboLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        void setAccent (juce::Colour newAccent) { accent = newAccent; }
+
+        void drawComboBox (juce::Graphics& g,
+                           int width,
+                           int height,
+                           bool /*isButtonDown*/,
+                           int /*buttonX*/,
+                           int /*buttonY*/,
+                           int /*buttonW*/,
+                           int /*buttonH*/,
+                           juce::ComboBox& /*box*/) override;
+
+        juce::Font getComboBoxFont (juce::ComboBox& box) override;
+        void positionComboBoxText (juce::ComboBox& box, juce::Label& label) override;
+
+    private:
+        juce::Colour accent { juce::Colours::white };
+    };
+
     class WaveformPreviewComponent : public juce::Component
     {
     public:
@@ -40,6 +63,7 @@ private:
 
     int corner { 0 };
     juce::Colour accent;
+    AccentComboLookAndFeel comboLookAndFeel;
     juce::Label titleLabel;
     juce::ComboBox waveformSelector;
     WaveformPreviewComponent waveformPreview;

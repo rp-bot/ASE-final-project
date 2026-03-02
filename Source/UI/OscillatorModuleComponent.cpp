@@ -29,6 +29,20 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
     waveformSelector.addItem ("Saw", 2);
     waveformSelector.addItem ("Square", 3);
     waveformSelector.addItem ("Triangle", 4);
+    comboLookAndFeel.setAccent (accent);
+    comboLookAndFeel.setColour (juce::PopupMenu::backgroundColourId, accent.darker (0.85f).withAlpha (0.95f));
+    comboLookAndFeel.setColour (juce::PopupMenu::textColourId, accent.brighter (0.25f));
+    comboLookAndFeel.setColour (juce::PopupMenu::highlightedBackgroundColourId, accent.withAlpha (0.45f));
+    comboLookAndFeel.setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
+    waveformSelector.setLookAndFeel (&comboLookAndFeel);
+    waveformSelector.setColour (juce::ComboBox::backgroundColourId, accent.withAlpha (0.15f));
+    waveformSelector.setColour (juce::ComboBox::outlineColourId, accent.withAlpha (0.75f));
+    waveformSelector.setColour (juce::ComboBox::textColourId, accent.brighter (0.25f));
+    waveformSelector.setColour (juce::ComboBox::arrowColourId, accent.brighter (0.35f));
+    waveformSelector.setColour (juce::PopupMenu::backgroundColourId, accent.darker (0.85f).withAlpha (0.95f));
+    waveformSelector.setColour (juce::PopupMenu::textColourId, accent.brighter (0.25f));
+    waveformSelector.setColour (juce::PopupMenu::highlightedBackgroundColourId, accent.withAlpha (0.45f));
+    waveformSelector.setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
     waveformSelector.onChange = [this] { updateWaveformPreviewFromSelector(); };
     addAndMakeVisible (waveformSelector);
 
@@ -54,6 +68,11 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
     }
 }
 
+OscillatorModuleComponent::~OscillatorModuleComponent()
+{
+    waveformSelector.setLookAndFeel (nullptr);
+}
+
 void OscillatorModuleComponent::paint (juce::Graphics& g)
 {
     g.setColour (accent.withAlpha (0.08f));
@@ -66,7 +85,6 @@ void OscillatorModuleComponent::resized()
 {
     auto inner = getLocalBounds().reduced (4);
     titleLabel.setBounds (inner.removeFromTop (16));
-    waveformSelector.setBounds (inner.removeFromTop (18));
     inner.removeFromTop (2);
 
     constexpr int knobGap = 4;
@@ -75,7 +93,11 @@ void OscillatorModuleComponent::resized()
     const auto cellWidth = (inner.getWidth() - (knobGap * (totalCells - 1))) / totalCells;
 
     auto previewArea = inner.removeFromLeft (cellWidth);
-    waveformPreview.setBounds (previewArea.reduced (0, 10));
+    auto waveUnit = previewArea.reduced (0, 2);
+    auto selectorArea = waveUnit.removeFromTop (20);
+    waveformSelector.setBounds (selectorArea);
+    waveUnit.removeFromTop (2);
+    waveformPreview.setBounds (waveUnit);
     inner.removeFromLeft (knobGap);
 
     for (int index = 0; index < knobCount; ++index)
@@ -163,5 +185,45 @@ void OscillatorModuleComponent::WaveformPreviewComponent::paint (juce::Graphics&
 
     g.setColour (accent.brighter (0.2f));
     g.strokePath (waveformPath, juce::PathStrokeType (1.4f));
+}
+
+void OscillatorModuleComponent::AccentComboLookAndFeel::drawComboBox (juce::Graphics& g,
+                                                                      int width,
+                                                                      int height,
+                                                                      bool,
+                                                                      int,
+                                                                      int,
+                                                                      int,
+                                                                      int,
+                                                                      juce::ComboBox&)
+{
+    const auto bounds = juce::Rectangle<float> (0.0f, 0.0f, static_cast<float> (width), static_cast<float> (height)).reduced (0.5f);
+    g.setColour (accent.withAlpha (0.15f));
+    g.fillRoundedRectangle (bounds, 3.0f);
+    g.setColour (accent.withAlpha (0.7f));
+    g.drawRoundedRectangle (bounds, 3.0f, 1.0f);
+
+    juce::Path arrow;
+    const auto cx = bounds.getRight() - 10.0f;
+    const auto cy = bounds.getCentreY();
+    arrow.startNewSubPath (cx - 4.0f, cy - 2.0f);
+    arrow.lineTo (cx + 4.0f, cy - 2.0f);
+    arrow.lineTo (cx, cy + 3.0f);
+    arrow.closeSubPath();
+    g.setColour (accent.brighter (0.35f));
+    g.fillPath (arrow);
+}
+
+juce::Font OscillatorModuleComponent::AccentComboLookAndFeel::getComboBoxFont (juce::ComboBox& box)
+{
+    juce::ignoreUnused (box);
+    return juce::Font (12.0f);
+}
+
+void OscillatorModuleComponent::AccentComboLookAndFeel::positionComboBoxText (juce::ComboBox& box, juce::Label& label)
+{
+    label.setBounds (1, 1, box.getWidth() - 18, box.getHeight() - 2);
+    label.setFont (getComboBoxFont (box));
+    label.setJustificationType (juce::Justification::centredLeft);
 }
 } // namespace UI
