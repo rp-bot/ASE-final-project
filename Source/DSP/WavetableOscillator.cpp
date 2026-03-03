@@ -1,6 +1,7 @@
 #include "WavetableOscillator.h"
+#include "WavetableBank.h"
+#include "UnisonOscillator.h"
 #include <iostream>
-
 
 namespace DSP {
 
