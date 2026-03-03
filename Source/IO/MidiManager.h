@@ -1,17 +1,25 @@
 #pragma once
 
-// #include <juce_audio_devices/midi_io>
-#include "juce_audio_devices/midi_io/juce_MidiDevices.h"
-#include <juce_audio_devices/juce_audio_devices.h>
-#include <string>
+// JUCE modules
+#include <juce_core/juce_core.h>           // String, uint8_t, etc.
+#include <juce_audio_basics/juce_audio_basics.h>   // MidiMessage
+#include <juce_audio_devices/juce_audio_devices.h> // MidiInput, MidiInputCallback
+
+// Standard library
 #include <vector>
-#include <JuceHeader.h>
-#include <functional>
+#include <string>
+#include <memory>
 
 struct MidiEvent
 {
     enum class Type { NoteOn, NoteOff, Other };
-    //TODO: ADD TO MIDI EVENT DEFINITION
+
+    Type type;
+    uint8_t channel; //instrument channel (0-15), having this just in case
+    uint8_t note; //0-127
+    uint8_t velocity; //0-127
+    uint32_t timestamp;
+
 };
 
 

@@ -4,7 +4,7 @@
 
 #include "MidiManager.h"
 
-std::vector<std::string> getInputDeviceNames() const
+std::vector<std::string> MidiManager::getInputDeviceNames() const
 {
     std::vector<std::string> names;
     for (auto& d : juce::MidiInput::getAvailableDevices())
@@ -12,7 +12,7 @@ std::vector<std::string> getInputDeviceNames() const
     return names;
 }
 
-bool openInput(int deviceIndex) {
+bool MidiManager::openInput(int deviceIndex) {
 
     // in case auto doesn't work, type = juce::Array<juce::MidiDeviceInfo>
     auto devices = juce::MidiInput::getAvailableDevices();
@@ -25,7 +25,6 @@ bool openInput(int deviceIndex) {
     closeMIDI();
 
     // save opened device to private ptr
-    // TODO: double check "this" is the correct keyword
     midiInput = juce::MidiInput::openDevice(devices[deviceIndex].identifier, this);
 
     if (midiInput == nullptr)
@@ -37,9 +36,9 @@ bool openInput(int deviceIndex) {
 
 }
 
-void closeMIDI()
+void MidiManager::closeMIDI()
 {
-    if (midiInput != NULL) {
+    if (midiInput != nullptr) {
         midiInput -> stop();
         midiInput = nullptr;
     }
