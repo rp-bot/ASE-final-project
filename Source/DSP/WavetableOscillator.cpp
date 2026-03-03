@@ -1,6 +1,9 @@
 #include "WavetableOscillator.h"
 #include <iostream>
 
+
+namespace DSP {
+
 float WavetableOscillator::processSample()
 {
 
@@ -11,8 +14,6 @@ if (m_phase >= 1.0f)
 return sample;
 
 }
-
-
 
 float WavetableOscillator::interpolateWavetable(float phase) const
 {
@@ -37,3 +38,4 @@ void WavetableOscillator::setFrequency(float frequencyHz)
         m_phaseIncrement = m_frequency / static_cast<float>(m_sampleRate);
 }
 
+}
