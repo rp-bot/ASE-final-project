@@ -1,11 +1,20 @@
-// In processSample():
+#include "WavetableOscillator.h"
+#include <iostream>
+
+float WavetableOscillator::processSample()
+{
+
 float sample = interpolateWavetable(m_phase);
 m_phase += m_phaseIncrement;
 if (m_phase >= 1.0f)
     m_phase -= 1.0f;  // Wrap to [0, 1)
 return sample;
 
-float interpolateWavetable(float phase) const
+}
+
+
+
+float WavetableOscillator::interpolateWavetable(float phase) const
 {
     const auto& wavetable = m_wavetableBank->getWavetable(m_wavetableIndex);
     int tableSize = wavetable.getNumSamples();
@@ -21,17 +30,10 @@ float interpolateWavetable(float phase) const
     return sample0 + fraction * (sample1 - sample0);
 }
 
-void setFrequency(float frequencyHz)
+void WavetableOscillator::setFrequency(float frequencyHz)
 {
     m_frequency = frequencyHz;
     if (m_sampleRate > 0.0)
         m_phaseIncrement = m_frequency / static_cast<float>(m_sampleRate);
 }
 
-private:
-    WavetableBank* m_wavetableBank;  // Non-owning pointer (owned elsewhere)
-    int m_wavetableIndex;
-    float m_phase;                    // Current phase [0.0, 1.0)
-    float m_phaseIncrement;           // Phase increment per sample
-    float m_frequency;                // Current frequency in Hz
-    double m_sampleRate;              // Sample rate (set by prepare())
