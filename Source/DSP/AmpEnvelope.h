@@ -22,6 +22,7 @@ namespace DSP
         
         // Process one sample, return envelope value [0.0, 1.0]
         float processSample();
+        void recalculateSamples();
         
         // Trigger envelope (note on)
         void noteOn();
@@ -65,6 +66,7 @@ namespace DSP
         int m_attackSamples;
         int m_decaySamples;
         int m_releaseSamples;
+        float m_releaseStartLevel;
         
         // Stage progress counters
         int m_stageSampleCount;
