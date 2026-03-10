@@ -1,5 +1,6 @@
 #include "VolumetricSynthAudioProcessor.h"
 #include "VolumetricSynthEditor.h"
+#include "Utils/ScopedDenormals.h"
 
 //==============================================================================
 VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
@@ -17,6 +18,31 @@ VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
 
 VolumetricSynthAudioProcessor::~VolumetricSynthAudioProcessor()
 {
+}
+
+void VolumetricSynthAudioProcessor::setGuiCursorPosition (float x, float y, float z) noexcept
+{
+    atomicGuiState.setCursorPosition (x, y, z);
+}
+
+void VolumetricSynthAudioProcessor::setGuiCursorPosition (glm::vec3 position) noexcept
+{
+    atomicGuiState.setCursorPosition (position);
+}
+
+void VolumetricSynthAudioProcessor::setGuiTrajectoryActive (bool active) noexcept
+{
+    atomicGuiState.setTrajectoryActive (active);
+}
+
+glm::vec3 VolumetricSynthAudioProcessor::getGuiCursorPosition() const noexcept
+{
+    return atomicGuiState.getCursorPosition();
+}
+
+bool VolumetricSynthAudioProcessor::isGuiTrajectoryActive() const noexcept
+{
+    return atomicGuiState.isTrajectoryActive();
 }
 
 //==============================================================================
@@ -127,7 +153,12 @@ void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 {
     juce::ignoreUnused (midiMessages);
 
-    juce::ScopedNoDenormals noDenormals;
+    // Read a lock-free GUI snapshot once per block.
+    const auto cursorPosition = getGuiCursorPosition();
+    const auto trajectoryActive = isGuiTrajectoryActive();
+    juce::ignoreUnused (cursorPosition, trajectoryActive);
+
+    Utils::ScopedDenormals scopedDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
@@ -168,17 +199,19 @@ juce::AudioProcessorEditor* VolumetricSynthAudioProcessor::createEditor()
 //==============================================================================
 void VolumetricSynthAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-    juce::ignoreUnused (destData);
+    const auto state = parameterManager.getAPVTS().copyState();
+    if (auto xml = state.createXml())
+        copyXmlToBinary (*xml, destData);
 }
 
 void VolumetricSynthAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
-    juce::ignoreUnused (data, sizeInBytes);
+    if (auto xmlState = getXmlFromBinary (data, sizeInBytes))
+    {
+        const auto valueTree = juce::ValueTree::fromXml (*xmlState);
+        if (valueTree.isValid())
+            parameterManager.getAPVTS().replaceState (valueTree);
+    }
 }
 
 //==============================================================================

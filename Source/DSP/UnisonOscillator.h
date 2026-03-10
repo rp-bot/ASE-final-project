@@ -15,6 +15,7 @@ namespace DSP {
         void prepare(float sampleRate);
 
     private:
+		// Each voice is an independent Oscillator instance
         std::vector<std::unique_ptr<Oscillator>> voices;
 
         int   numVoices = 1;
