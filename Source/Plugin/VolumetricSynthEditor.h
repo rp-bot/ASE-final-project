@@ -7,7 +7,8 @@
 #include <array>
 
 //==============================================================================
-class VolumetricSynthEditor  : public juce::AudioProcessorEditor
+class VolumetricSynthEditor  : public juce::AudioProcessorEditor,
+                               private juce::Timer
 {
 public:
     explicit VolumetricSynthEditor (VolumetricSynthAudioProcessor&);
@@ -18,6 +19,8 @@ public:
     void resized() override;
 
 private:
+    void timerCallback() override;
+
     static constexpr int modulesPerBank = 4;
     juce::Rectangle<int> topArea;
     juce::Rectangle<int> leftBankArea;

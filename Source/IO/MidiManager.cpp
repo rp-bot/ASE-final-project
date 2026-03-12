@@ -3,43 +3,84 @@
 //
 
 #include "MidiManager.h"
+#include "Audio/SynthEngine.h"
 
-std::vector<std::string> MidiManager::getInputDeviceNames() const
+namespace IO
 {
-    std::vector<std::string> names;
-    for (auto& d : juce::MidiInput::getAvailableDevices())
-        names.push_back(d.name.toStdString());
-    return names;
+
+MidiManager::MidiManager (Audio::SynthEngine& synthEngine) noexcept
+    : synthEngine_ (synthEngine)
+{
 }
 
-bool MidiManager::openInput(int deviceIndex) {
-
-    // in case auto doesn't work, type = juce::Array<juce::MidiDeviceInfo>
-    auto devices = juce::MidiInput::getAvailableDevices();
-
-    // cornercase checking + type casting unsigned int
-    if (deviceIndex < 0 || deviceIndex >= static_cast<int>(devices.size()))
-        return false;
-
-    // close opened midi device (if exists)
-    closeMIDI();
-
-    // save opened device to private ptr
-    midiInput = juce::MidiInput::openDevice(devices[deviceIndex].identifier, this);
-
-    if (midiInput == nullptr)
-        return false;
-
-    // start device
-    midiInput->start();
-    return true;
-
+void MidiManager::setMidiChannel (int channel) noexcept
+{
+    if (channel < 0 || channel > 16)
+        midiChannel_ = 0; // fallback to omni
+    else
+        midiChannel_ = channel;
 }
 
-void MidiManager::closeMIDI()
+bool MidiManager::channelMatches (int messageChannel) const noexcept
 {
-    if (midiInput != nullptr) {
-        midiInput -> stop();
-        midiInput = nullptr;
+    if (midiChannel_ == 0)
+        return true;
+
+    return messageChannel == midiChannel_;
+}
+
+void MidiManager::processMidiBuffer (const juce::MidiBuffer& midi)
+{
+    for (const auto metadata : midi)
+    {
+        const auto& msg = metadata.getMessage();
+        const int channel = msg.getChannel();
+
+        if (! channelMatches (channel))
+            continue;
+
+        if (msg.isNoteOn())
+        {
+            handleNoteOn (channel, msg.getNoteNumber(), msg.getFloatVelocity());
+        }
+        else if (msg.isNoteOff())
+        {
+            handleNoteOff (channel, msg.getNoteNumber(), msg.getFloatVelocity());
+        }
+        else if (msg.isPitchWheel())
+        {
+            handlePitchWheel (channel, msg.getPitchWheelValue());
+        }
+        else if (msg.isController())
+        {
+            handleController (channel, msg.getControllerNumber(), msg.getControllerValue());
+        }
+        else if (msg.isAllNotesOff() || msg.isAllSoundOff())
+        {
+            synthEngine_.allNotesOff();
+        }
     }
 }
+
+void MidiManager::handleNoteOn (int /*channel*/, int noteNumber, float velocity)
+{
+    synthEngine_.noteOn (noteNumber, velocity);
+}
+
+void MidiManager::handleNoteOff (int /*channel*/, int noteNumber, float /*velocity*/)
+{
+    synthEngine_.noteOff (noteNumber);
+}
+
+void MidiManager::handlePitchWheel (int /*channel*/, int value)
+{
+    synthEngine_.pitchWheelMoved (value);
+}
+
+void MidiManager::handleController (int /*channel*/, int controller, int value)
+{
+    synthEngine_.controllerMoved (controller, value);
+}
+
+} // namespace IO
+

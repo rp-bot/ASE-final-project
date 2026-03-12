@@ -1,47 +1,40 @@
 #pragma once
 
-// JUCE modules
-#include <juce_core/juce_core.h>           // String, uint8_t, etc.
-#include <juce_audio_basics/juce_audio_basics.h>   // MidiMessage
-#include <juce_audio_devices/juce_audio_devices.h> // MidiInput, MidiInputCallback
+#include <juce_audio_basics/juce_audio_basics.h>
 
-// Standard library
-#include <vector>
-#include <string>
-#include <memory>
-
-struct MidiEvent
+namespace Audio
 {
-    enum class Type { NoteOn, NoteOff, Other };
+    class SynthEngine;
+}
 
-    Type type;
-    uint8_t channel; //instrument channel (0-15), having this just in case
-    uint8_t note; //0-127
-    uint8_t velocity; //0-127
-    uint32_t timestamp;
-
-};
-
-
-
-class MidiManager : private juce::MidiInputCallback
+namespace IO
 {
-public:
+    /**
+     * MidiManager routes host-provided MIDI (from juce::MidiBuffer) into the audio engine.
+     *
+     * It does not open hardware MIDI devices; instead, VolumetricSynthAudioProcessor
+     * calls processMidiBuffer() each block with the DAW's MidiBuffer.
+     */
+    class MidiManager
+    {
+    public:
+        explicit MidiManager (Audio::SynthEngine& synthEngine) noexcept;
 
-    MidiManager() = default;
-    ~MidiManager() { closeMIDI(); }
+        /** Consume the host's MIDI buffer and forward decoded events into SynthEngine. */
+        void processMidiBuffer (const juce::MidiBuffer& midi);
 
-    // get input device names
-    // returns: vector of all input device names
-    std::vector<std::string> getInputDeviceNames() const; //const: ensures the midi devices not modified
+        /** 0 = omni, 1–16 = specific MIDI channel to listen on. */
+        void setMidiChannel (int channel) noexcept;
 
-    // opens device at specified deviceIndex based on avaliable devices list
-    // returns: bool (status for success)
-    bool openInput(int deviceIndex);
+    private:
+        Audio::SynthEngine& synthEngine_;
+        int midiChannel_ { 0 }; // 0 = omni
 
-    // closes saved midi device & set to null
-    void closeMIDI();
+        bool channelMatches (int messageChannel) const noexcept;
 
-private:
-    std::unique_ptr<juce::MidiInput> midiInput = nullptr;
-};
+        void handleNoteOn (int channel, int noteNumber, float velocity);
+        void handleNoteOff (int channel, int noteNumber, float velocity);
+        void handlePitchWheel (int channel, int value);
+        void handleController (int channel, int controller, int value);
+    };
+} // namespace IO

@@ -54,6 +54,7 @@ VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
     centerPanel->setTrajectoryActive (processorRef.isGuiTrajectoryActive());
 
     setSize (1220, 700);
+    startTimerHz (30);
 }
 
 VolumetricSynthEditor::~VolumetricSynthEditor()
@@ -72,7 +73,41 @@ void VolumetricSynthEditor::paint (juce::Graphics& g)
 
     g.setColour (juce::Colours::white);
     g.setFont (16.0f);
-    g.drawText ("Volumetric Synth", getLocalBounds().removeFromTop (24), juce::Justification::centred, false);
+
+    auto bounds = getLocalBounds();
+    auto titleArea = bounds.removeFromTop (24);
+    g.drawText ("Volumetric Synth", titleArea, juce::Justification::centred, false);
+
+    const int   lastNote    = processorRef.getLastMidiNote();
+    const float lastVel     = processorRef.getLastVelocity();
+    const int   lastPW      = processorRef.getLastPitchWheel();
+    const int   lastCC      = processorRef.getLastController();
+    const int   lastCCValue = processorRef.getLastControllerValue();
+
+    auto infoArea = bounds.removeFromTop (80);
+
+    g.setFont (13.0f);
+    juce::Rectangle<int> line = infoArea.removeFromTop (18);
+
+    juce::String noteText { "Last MIDI note: " };
+    noteText << (lastNote >= 0 ? juce::String (lastNote) : juce::String ("-"));
+    g.drawText (noteText, line, juce::Justification::centred, false);
+
+    line = infoArea.removeFromTop (18);
+    juce::String velText { "Last velocity: " };
+    velText << juce::String (lastVel, 2);
+    g.drawText (velText, line, juce::Justification::centred, false);
+
+    line = infoArea.removeFromTop (18);
+    juce::String pwText { "Last pitch wheel: " };
+    pwText << juce::String (lastPW);
+    g.drawText (pwText, line, juce::Justification::centred, false);
+
+    line = infoArea.removeFromTop (18);
+    juce::String ccText { "Last CC: " };
+    ccText << (lastCC >= 0 ? juce::String (lastCC) : juce::String ("-"));
+    ccText << "  value: " << juce::String (lastCCValue);
+    g.drawText (ccText, line, juce::Justification::centred, false);
 }
 
 void VolumetricSynthEditor::resized()
@@ -122,4 +157,9 @@ void VolumetricSynthEditor::resized()
     bottomLeftPanel.setBounds (bottomLeftArea.reduced (8));
     bottomCenterPanel.setBounds (bottomCenterArea.reduced (8));
     bottomRightPanel.setBounds (bottomRightArea.reduced (8));
+}
+
+void VolumetricSynthEditor::timerCallback()
+{
+    repaint();
 }
