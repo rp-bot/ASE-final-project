@@ -8,7 +8,7 @@
 
 //==============================================================================
 class VolumetricSynthEditor  : public juce::AudioProcessorEditor,
-                               private juce::Timer
+                               private juce::Timer  // DEBUG: editor timer used for temporary MIDI monitor repainting
 {
 public:
     explicit VolumetricSynthEditor (VolumetricSynthAudioProcessor&);

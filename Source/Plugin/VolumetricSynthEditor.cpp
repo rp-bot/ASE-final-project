@@ -78,6 +78,7 @@ void VolumetricSynthEditor::paint (juce::Graphics& g)
     auto titleArea = bounds.removeFromTop (24);
     g.drawText ("Volumetric Synth", titleArea, juce::Justification::centred, false);
 
+    // DEBUG: Temporary on-screen MIDI monitor for development; remove before release.
     const int   lastNote    = processorRef.getLastMidiNote();
     const float lastVel     = processorRef.getLastVelocity();
     const int   lastPW      = processorRef.getLastPitchWheel();
