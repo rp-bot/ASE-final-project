@@ -72,6 +72,7 @@ void VolumetricSynthEditor::paint (juce::Graphics& g)
 
     g.setColour (juce::Colours::white);
     g.setFont (16.0f);
+
     g.drawText ("Volumetric Synth", getLocalBounds().removeFromTop (24), juce::Justification::centred, false);
 }
 
