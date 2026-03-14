@@ -7,8 +7,7 @@
 #include <array>
 
 //==============================================================================
-class VolumetricSynthEditor  : public juce::AudioProcessorEditor,
-                               private juce::Timer  // DEBUG: editor timer used for temporary MIDI monitor repainting
+class VolumetricSynthEditor  : public juce::AudioProcessorEditor
 {
 public:
     explicit VolumetricSynthEditor (VolumetricSynthAudioProcessor&);
@@ -17,9 +16,6 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-
-private:
-    void timerCallback() override;
 
     static constexpr int modulesPerBank = 4;
     juce::Rectangle<int> topArea;
