@@ -22,7 +22,7 @@ namespace DSP {
         // create Oscillator instances
         for (auto& voice : voices) {
             if (!voice) {
-                voice = std::make_unique<Oscillator>();
+                voice = std::make_unique<WavetableOscillator>();
                 voice->prepare(sampleRate);
                 voice->setFrequency(frequency);
             }
