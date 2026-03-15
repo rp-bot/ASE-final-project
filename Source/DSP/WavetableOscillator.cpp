@@ -54,7 +54,9 @@ public:
     void WavetableOscillator::prepare(double sampleRate)
     {
         m_sampleRate = sampleRate;
-        
+        setFrequency(m_frequency); // recalculate phase increment with the new sample rate
+        m_phase = 0.0f; // reset phase to start of the waveform
+
     }
 
 private: 
