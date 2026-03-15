@@ -2,12 +2,12 @@
 
 #include "Oscillator.h"
 #include "WavetableOscillator.h"
+#include "WavetableBank.h"
 #include <vector>
 #include <memory>
 
 namespace DSP {
     class UnisonOscillator : public Oscillator {
-    
     public:
         // Override Oscillator class methods
         float processSample() override;
@@ -22,8 +22,12 @@ namespace DSP {
         void setStereoSpread(float amount);
         void setWavetable(int index);
 
+        /** Set the wavetable bank used by all voices. Must be called before or when creating voices. */
+        void setWavetableBank(WavetableBank* bank);
+
     private:
-        std::vector<std::unique_ptr<WavetableOscillator>> voices;
+        std::vector<std::unique_ptr<Oscillator>> voices;
+        WavetableBank* m_wavetableBank = nullptr;
 
         int   numVoices = 1;
         float detuneAmount = 0.0f;

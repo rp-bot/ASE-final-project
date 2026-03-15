@@ -1,77 +1,100 @@
-#include "WavetableOscillator.h" // our oscillator class definition
-#include "WavetableBank.h"       // holds the collection of stored waveforms
-#include <iostream>              // standard I/O (for debugging)
+#include "WavetableOscillator.h"
+#include "WavetableBank.h"
+#include <juce_core/juce_core.h>
+#include <algorithm>
 
-namespace DSP { // groups everything under the DSP (Digital Signal Processing) namespace
+namespace DSP {
 
-// Called once per audio sample to produce the next output value
+WavetableOscillator::WavetableOscillator(WavetableBank* wavetableBank)
+    : m_wavetableBank(wavetableBank)
+{
+}
 
 float WavetableOscillator::processSample()
-    {
+{
+    // Zero sample rate: don't process (issue: handle gracefully)
+    if (m_sampleRate <= 0.0)
+        return 0.0f;
 
-    float sample = interpolateWavetable(m_phase); // read the waveform value at the current position
-    m_phase += m_phaseIncrement;                  // advance the position through the waveform
+    float sample = interpolateWavetable(m_phase);
+    m_phase += m_phaseIncrement;
     if (m_phase >= 1.0f)
-        m_phase -= 1.0f;  // if we've gone past the end of one cycle, wrap back to the start
-    return sample;        // return the computed audio sample value
+        m_phase -= 1.0f;
+    return sample;
+}
 
-    }
+float WavetableOscillator::interpolateWavetable(float phase) const
+{
+    jassert(m_wavetableBank != nullptr);
+    if (m_wavetableBank == nullptr)
+        return 0.0f;
 
-    // Reads a smooth waveform value at a given phase (position 0.0–1.0 through the cycle)
-    //using phase to basically iterate through the buffer has many advantages to iterating through the buffer manually with a for loop or whatever
-    //so that's what we do here
-    float WavetableOscillator::interpolateWavetable(float phase) const
-    {
-        const auto& wavetable = m_wavetableBank->getWavetable(m_wavetableIndex); // grab the selected waveform (e.g. sine, saw, square)
-        int tableSize = wavetable.getNumSamples();                                // how many stored samples are in this waveform
-        
-        float position = phase * tableSize; // convert 0–1 phase into an actual index position in the table
-        int index0 = static_cast<int>(position);       // the sample just before our position (floor)
-        int index1 = (index0 + 1) % tableSize;         // the sample just after, wrapping around at the end
-        float fraction = position - index0;             // how far we are between those two samples (0.0–1.0)
-        
-        float sample0 = wavetable.getSample(0, index0); // value of the sample before
-        float sample1 = wavetable.getSample(0, index1); // value of the sample after
-        
-        return sample0 + fraction * (sample1 - sample0); // blend between the two samples for a smooth result (linear interpolation)
-    }
+    const int numWavetables = m_wavetableBank->getNumWavetables();
+    if (numWavetables == 0)
+        return 0.0f;
 
-    void WavetableOscillator::setWavetable(int index)
-    {
-        m_wavetableIndex = index;
-    }
+    const int safeIndex = std::clamp(m_wavetableIndex, 0, numWavetables - 1);
+    const auto& wavetable = m_wavetableBank->getWavetable(safeIndex);
+    const int tableSize = wavetable.getNumSamples();
+    if (tableSize == 0)
+        return 0.0f;
 
-    void WavetableOscillator::setWavetableBank(WavetableBank* bank)
-    {
-        m_wavetableBank = bank;
-    }
+    const float position = phase * static_cast<float>(tableSize);
+    const int index0 = static_cast<int>(position);
+    const int index1 = (index0 + 1) % tableSize;
+    const float fraction = position - static_cast<float>(index0);
 
-    void WavetableOscillator::setPhase(float phase)
-    {
-        m_phase = phase;
-    }
+    const float sample0 = wavetable.getSample(0, index0);
+    const float sample1 = wavetable.getSample(0, index1);
+    return sample0 + fraction * (sample1 - sample0);
+}
 
-    // Updates the oscillator's pitch by computing how fast to step through the waveform
-    void WavetableOscillator::setFrequency(float frequencyHz)
-    {
-        m_frequency = frequencyHz; // store the desired frequency in Hz (e.g. 440 = A4)
-        if (m_sampleRate > 0.0)
-            m_phaseIncrement = m_frequency / static_cast<float>(m_sampleRate); // how much to advance per sample: higher freq = bigger steps
-    }
+void WavetableOscillator::setWavetable(int index)
+{
+    jassert(m_wavetableBank != nullptr);
+    if (m_wavetableBank == nullptr)
+        return;
+    const int numWavetables = m_wavetableBank->getNumWavetables();
+    m_wavetableIndex = (numWavetables > 0) ? std::clamp(index, 0, numWavetables - 1) : 0;
+}
 
-    void WavetableOscillator::prepare(double sampleRate)
-    {
-        m_sampleRate = sampleRate;
-        setFrequency(m_frequency); // recalculate phase increment with the new sample rate
-        m_phase = 0.0f; // reset phase to start of the waveform
+int WavetableOscillator::getCurrentWavetableIndex() const
+{
+    return m_wavetableIndex;
+}
 
-    }
+float WavetableOscillator::getPhase() const
+{
+    return m_phase;
+}
 
-    void WavetableOscillator::reset()
-    {
-        m_phase = 0.0f;
-        m_phaseIncrement = 0.0f;
-    }
+void WavetableOscillator::setWavetableBank(WavetableBank* bank)
+{
+    m_wavetableBank = bank;
+}
+
+void WavetableOscillator::setPhase(float phase)
+{
+    m_phase = phase;
+}
+
+void WavetableOscillator::setFrequency(float frequencyHz)
+{
+    m_frequency = frequencyHz;
+    if (m_sampleRate > 0.0)
+        m_phaseIncrement = m_frequency / static_cast<float>(m_sampleRate);
+}
+
+void WavetableOscillator::prepare(double sampleRate)
+{
+    m_sampleRate = sampleRate;
+    setFrequency(m_frequency);
+}
+
+void WavetableOscillator::reset()
+{
+    m_phase = 0.0f;
+}
 
 }
 

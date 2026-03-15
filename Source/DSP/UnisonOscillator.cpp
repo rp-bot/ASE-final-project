@@ -16,15 +16,22 @@ namespace DSP {
         }
     }
 
+    void UnisonOscillator::setWavetableBank(WavetableBank* bank) {
+        m_wavetableBank = bank;
+        for (auto& voice : voices) {
+            auto* wt = dynamic_cast<WavetableOscillator*>(voice.get());
+            if (wt) wt->setWavetableBank(bank);
+        }
+    }
+
     void UnisonOscillator::setNumVoices(int n) {
-        numVoices = std::max(1, n); // at least 1 voice 
+        numVoices = std::max(1, n);
 
         voices.resize(numVoices);
 
-        // create Oscillator instances
         for (auto& voice : voices) {
             if (!voice) {
-                voice = std::make_unique<WavetableOscillator>();
+                voice = std::make_unique<WavetableOscillator>(m_wavetableBank);
                 voice->prepare(sampleRate);
                 voice->setFrequency(frequency);
             }
@@ -48,12 +55,14 @@ namespace DSP {
 
     void UnisonOscillator::setWavetable(int index) {
         for (auto& voice : voices) {
-            if (voice) voice->setWavetable(index);
+            auto* wt = dynamic_cast<WavetableOscillator*>(voice.get());
+            if (wt) wt->setWavetable(index);
         }
     }
 
-    void UnisonOscillator::setStereoSpread(float Amount) {
-		// This is a placeholder.
+    void UnisonOscillator::setStereoSpread(float amount) {
+        stereoSpread = amount;
+        // Stereo panning is applied in processSample(float&, float&).
     }
 
     float UnisonOscillator::processSample() {
