@@ -6,4 +6,6 @@ target_sources("${PROJECT_NAME}"
         WavetableOscillator.cpp
         WavetableBank.h
         WavetableBank.cpp
+        UnisonOscillator.h
+        UnisonOscillator.cpp
         )

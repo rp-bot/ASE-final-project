@@ -1,14 +1,12 @@
 #include "WavetableOscillator.h" // our oscillator class definition
 #include "WavetableBank.h"       // holds the collection of stored waveforms
-#include "UnisonOscillator.h"    // used for layering multiple oscillators together
 #include <iostream>              // standard I/O (for debugging)
 
 namespace DSP { // groups everything under the DSP (Digital Signal Processing) namespace
 
 // Called once per audio sample to produce the next output value
 
-public:
-    float WavetableOscillator::processSample()
+float WavetableOscillator::processSample()
     {
 
     float sample = interpolateWavetable(m_phase); // read the waveform value at the current position
@@ -43,9 +41,14 @@ public:
         m_wavetableIndex = index;
     }
 
+    void WavetableOscillator::setWavetableBank(WavetableBank* bank)
+    {
+        m_wavetableBank = bank;
+    }
+
     void WavetableOscillator::setPhase(float phase)
     {
-        m_phase = 0.0f; // reset phase to the start of the waveform
+        m_phase = phase;
     }
 
     // Updates the oscillator's pitch by computing how fast to step through the waveform
@@ -64,20 +67,13 @@ public:
 
     }
 
-private: 
-    float phase = 0.0f;           // current position in the waveform cycle (0.0–1.0)
-    float phaseIncrement = 0.0f;    // how much to advance the phase each sample
-    int wavetableIndex = 0;        // which waveform we're currently using
-    WavetableBank* m_wavetableBank; // pointer to the bank of waveforms we can use
+    void WavetableOscillator::reset()
+    {
+        m_phase = 0.0f;
+        m_phaseIncrement = 0.0f;
+    }
+
 }
-/*
-currently wondering:
-    is the "return sample0 + fraction * (sample1 - sample0);" line the output?
-    how to get the right waveform type from Oscillator.cpp/.h
-
-
-
-*/
 
 
 
