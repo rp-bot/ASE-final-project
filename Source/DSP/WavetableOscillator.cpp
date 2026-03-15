@@ -43,6 +43,11 @@ public:
         m_wavetableIndex = index;
     }
 
+    void WavetableOscillator::setPhase(float phase)
+    {
+        m_phase = 0.0f; // reset phase to the start of the waveform
+    }
+
     // Updates the oscillator's pitch by computing how fast to step through the waveform
     void WavetableOscillator::setFrequency(float frequencyHz)
     {

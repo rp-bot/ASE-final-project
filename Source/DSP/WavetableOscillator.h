@@ -1,10 +1,10 @@
-#include <iostream>
+#include "Oscillator.h"
 #include <WavetableBank.h>
 
 namespace DSP
 {
 
-    class WavetableOscillator
+    class WavetableOscillator : public Oscillator
     {
 
     float processSample();

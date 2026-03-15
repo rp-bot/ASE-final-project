@@ -15,7 +15,7 @@ namespace DSP {
         void prepare(float sampleRate);
 
     private:
-        std::vector<std::unique_ptr<Oscillator>> voices;
+        std::vector<std::unique_ptr<WavetableOscillator>> voices;
 
         int   numVoices = 1;
         float detune;
