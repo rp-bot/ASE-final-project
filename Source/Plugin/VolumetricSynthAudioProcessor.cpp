@@ -1,5 +1,6 @@
 #include "VolumetricSynthAudioProcessor.h"
 #include "VolumetricSynthEditor.h"
+#include "Parameters/ParameterIDs.h"
 #include "Utils/ScopedDenormals.h"
 #include "Audio/SynthEngine.h"
 #include "IO/MidiManager.h"
@@ -18,10 +19,37 @@ VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
        synthEngine (std::make_unique<Audio::SynthEngine>()),
        midiManager (std::make_unique<IO::MidiManager> (*synthEngine))
 {
+    auto& apvts = parameterManager.getAPVTS();
+    apvts.addParameterListener (ParameterIDs::cursorX, this);
+    apvts.addParameterListener (ParameterIDs::cursorY, this);
+    apvts.addParameterListener (ParameterIDs::cursorZ, this);
+    syncCursorParamsToGuiState();
 }
 
 VolumetricSynthAudioProcessor::~VolumetricSynthAudioProcessor()
 {
+    auto& apvts = parameterManager.getAPVTS();
+    apvts.removeParameterListener (ParameterIDs::cursorX, this);
+    apvts.removeParameterListener (ParameterIDs::cursorY, this);
+    apvts.removeParameterListener (ParameterIDs::cursorZ, this);
+}
+
+void VolumetricSynthAudioProcessor::parameterChanged (const juce::String& parameterID, float /*newValue*/)
+{
+    if (parameterID == ParameterIDs::cursorX || parameterID == ParameterIDs::cursorY || parameterID == ParameterIDs::cursorZ)
+        syncCursorParamsToGuiState();
+}
+
+void VolumetricSynthAudioProcessor::syncCursorParamsToGuiState()
+{
+    auto& apvts = parameterManager.getAPVTS();
+    auto* px = apvts.getRawParameterValue (ParameterIDs::cursorX);
+    auto* py = apvts.getRawParameterValue (ParameterIDs::cursorY);
+    auto* pz = apvts.getRawParameterValue (ParameterIDs::cursorZ);
+    const float x = (px != nullptr) ? px->load() : 0.5f;
+    const float y = (py != nullptr) ? py->load() : 0.5f;
+    const float z = (pz != nullptr) ? pz->load() : 0.5f;
+    atomicGuiState.setCursorPosition (x, y, z);
 }
 
 void VolumetricSynthAudioProcessor::setGuiCursorPosition (float x, float y, float z) noexcept
@@ -220,7 +248,10 @@ void VolumetricSynthAudioProcessor::setStateInformation (const void* data, int s
     {
         const auto valueTree = juce::ValueTree::fromXml (*xmlState);
         if (valueTree.isValid())
+        {
             parameterManager.getAPVTS().replaceState (valueTree);
+            syncCursorParamsToGuiState();
+        }
     }
 }
 
