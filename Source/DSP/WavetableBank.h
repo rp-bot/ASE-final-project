@@ -1,5 +1,5 @@
 #pragma once
-#include <juce_dsp/juce_dsp.h>
+#include <juce_dsp/juce_dsp.h\
 namespace DSP
 {
     enum class WaveformType
