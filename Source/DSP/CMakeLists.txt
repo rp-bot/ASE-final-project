@@ -8,4 +8,6 @@ target_sources("${PROJECT_NAME}"
         WavetableBank.cpp
         UnisonOscillator.h
         UnisonOscillator.cpp
+        TrilinearMixer8.h
+        TrilinearMixer8.cpp
         )
