@@ -1,4 +1,11 @@
 target_sources("${PROJECT_NAME}"
     PRIVATE
         Oscillator.h
-        Oscillator.cpp)
+        Oscillator.cpp
+        WavetableOscillator.h
+        WavetableOscillator.cpp
+        WavetableBank.h
+        WavetableBank.cpp
+        UnisonOscillator.h
+        UnisonOscillator.cpp
+        )

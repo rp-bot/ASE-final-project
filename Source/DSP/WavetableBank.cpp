@@ -54,7 +54,7 @@ void WavetableBank::loadWavetable(const juce::File& file)
 //GENERATE DEFAULT WAVETABLE
 void WavetableBank::generateDefaultWavetable(uint index, WaveformType type, int tableSize)
 {
-    juce::AudioBuffer<float> buffer(0, tableSize);
+    juce::AudioBuffer<float> buffer(1, tableSize);
     switch (type)
     {
         case WaveformType::Sine:
@@ -90,7 +90,7 @@ int WavetableBank::getNumWavetables() const
 //ADD A WAVETABLE 
 void WavetableBank::addWavetable(juce::AudioBuffer<float>&& buffer)
 {
-    wavetables[index] = std::move(buffer);
+    wavetables.push_back(std::move(buffer));
 }
 
 //CLEAR ALL WAVETABLES
