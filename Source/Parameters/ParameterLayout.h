@@ -15,6 +15,19 @@ public:
                                                                  juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
                                                                  0.5f));
 
+        layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::cursorX,
+                                                                 "Cursor X",
+                                                                 juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f),
+                                                                 0.5f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::cursorY,
+                                                                 "Cursor Y",
+                                                                 juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f),
+                                                                 0.5f));
+        layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::cursorZ,
+                                                                 "Cursor Z",
+                                                                 juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f),
+                                                                 0.5f));
+
         for (int corner = 0; corner < 8; ++corner)
         {
             const auto cornerName = "Corner " + juce::String (corner + 1) + " ";
