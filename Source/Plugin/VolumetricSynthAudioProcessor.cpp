@@ -216,9 +216,6 @@ void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 
     buffer.clear();
 
-    if (midiManager != nullptr)
-        midiManager->processMidiBuffer (midiMessages);
-
     if (synthEngine != nullptr)
         synthEngine->processBlock (buffer, midiMessages);
 }

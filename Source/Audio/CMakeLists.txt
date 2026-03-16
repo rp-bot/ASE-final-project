@@ -2,6 +2,8 @@ target_sources("${PROJECT_NAME}"
     PRIVATE
         SynthEngine.h
         SynthEngine.cpp
+        VoiceManager.h
+        VoiceManager.cpp
         SynthSound.h
         SynthSound.cpp
         SynthVoice.h

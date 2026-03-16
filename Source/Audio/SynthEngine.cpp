@@ -2,107 +2,122 @@
 
 namespace Audio
 {
-
-SynthEngine::SynthEngine(Threading::AtomicGuiState* guiState) noexcept
-    : m_guiState(guiState)
-{
-}
-
-SynthEngine::~SynthEngine()
-{
-    // Do not clear voices/sounds here; the audio thread may still be in renderNextBlock.
-    // Let m_synthesiser destructor clean up when this object is destroyed.
-}
-
-void SynthEngine::prepare(double sampleRate, int samplesPerBlock) noexcept
-{
-    sampleRate_ = sampleRate;
-    blockSize_ = samplesPerBlock;
-
-    if (!m_voicesAdded)
+    SynthEngine::SynthEngine(Threading::AtomicGuiState* guiState) noexcept
+        : m_voiceManager(guiState)
     {
-        if (m_wavetableBank == nullptr)
-            m_wavetableBank = std::make_unique<DSP::WavetableBank>();
-
-        constexpr int tableSize = 2048;
-        while (m_wavetableBank->getNumWavetables() < 8)
-            m_wavetableBank->addWavetable(juce::AudioBuffer<float>(1, tableSize));
-        static constexpr DSP::WaveformType types[8] = {
-            DSP::WaveformType::Sine, DSP::WaveformType::Sawtooth, DSP::WaveformType::Square, DSP::WaveformType::Triangle,
-            DSP::WaveformType::Sine, DSP::WaveformType::Sawtooth, DSP::WaveformType::Square, DSP::WaveformType::Triangle
-        };
-        for (uint32_t i = 0; i < 8; ++i)
-            m_wavetableBank->generateDefaultWavetable(i, types[i], tableSize);
-
-        m_synthesiser.addSound(new SynthSound());
-        m_synthesiser.addVoice(new SynthVoice(m_wavetableBank.get(), m_guiState));
-        m_voicesAdded = true;
     }
 
-    m_synthesiser.setCurrentPlaybackSampleRate(sampleRate);
-    if (auto* v = m_synthesiser.getVoice(0))
-        static_cast<SynthVoice*>(v)->prepare(sampleRate, samplesPerBlock);
-}
+    void SynthEngine::prepare(double sampleRate, int samplesPerBlock) noexcept
+    {
+        m_sampleRate = sampleRate;
+        m_blockSize = samplesPerBlock;
+        m_voiceManager.prepare(sampleRate, samplesPerBlock);
+    }
 
-void SynthEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) noexcept
-{
-    m_synthesiser.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
-}
+    void SynthEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) noexcept
+    {
+        for (const auto metadata : midiMessages)
+        {
+            const auto msg = metadata.getMessage();
+            const int channel = msg.getChannel();
+            if (msg.isNoteOn())
+            {
+                lastMidiNote_.store(msg.getNoteNumber(), std::memory_order_relaxed);
+                lastVelocity_.store(msg.getFloatVelocity(), std::memory_order_relaxed);
+                m_voiceManager.noteOn(channel, msg.getNoteNumber(), msg.getFloatVelocity());
+            }
+            else if (msg.isNoteOff())
+            {
+                m_voiceManager.noteOff(channel, msg.getNoteNumber(), msg.getFloatVelocity(), true);
+            }
+            else if (msg.isPitchWheel())
+            {
+                lastPitchWheel_.store(msg.getPitchWheelValue(), std::memory_order_relaxed);
+                m_voiceManager.getSynthesiser().handlePitchWheel(channel, msg.getPitchWheelValue());
+            }
+            else if (msg.isController())
+            {
+                lastController_.store(msg.getControllerNumber(), std::memory_order_relaxed);
+                lastControllerValue_.store(msg.getControllerValue(), std::memory_order_relaxed);
+                m_voiceManager.getSynthesiser().handleController(channel, msg.getControllerNumber(), msg.getControllerValue());
+            }
+            else if (msg.isAllNotesOff() || msg.isAllSoundOff())
+            {
+                m_voiceManager.allNotesOff(true);
+            }
+        }
 
-void SynthEngine::processBlock(juce::AudioBuffer<float>& buffer) noexcept
-{
-    buffer.clear();
-}
+        buffer.clear();
+        m_voiceManager.renderNextBlock(buffer, 0, buffer.getNumSamples());
+    }
 
-void SynthEngine::noteOn (int midiNoteNumber, float velocity) noexcept
-{
-    lastMidiNote_.store (midiNoteNumber, std::memory_order_relaxed);
-    lastVelocity_.store (velocity, std::memory_order_relaxed);
-}
+    void SynthEngine::processBlock(juce::AudioBuffer<float>& buffer) noexcept
+    {
+        buffer.clear();
+    }
 
-void SynthEngine::noteOff (int midiNoteNumber) noexcept
-{
-    juce::ignoreUnused (midiNoteNumber);
-}
+    void SynthEngine::noteOn(int midiChannel, int midiNoteNumber, float velocity) noexcept
+    {
+        lastMidiNote_.store(midiNoteNumber, std::memory_order_relaxed);
+        lastVelocity_.store(velocity, std::memory_order_relaxed);
+        m_voiceManager.noteOn(midiChannel, midiNoteNumber, velocity);
+    }
 
-void SynthEngine::allNotesOff() noexcept
-{
-}
+    void SynthEngine::noteOff(int midiChannel, int midiNoteNumber, float velocity, bool allowTailOff) noexcept
+    {
+        m_voiceManager.noteOff(midiChannel, midiNoteNumber, velocity, allowTailOff);
+    }
 
-void SynthEngine::pitchWheelMoved (int value) noexcept
-{
-    lastPitchWheel_.store (value, std::memory_order_relaxed);
-}
+    void SynthEngine::allNotesOff(bool allowTailOff) noexcept
+    {
+        m_voiceManager.allNotesOff(allowTailOff);
+    }
 
-void SynthEngine::controllerMoved (int controllerNumber, int value) noexcept
-{
-    lastController_.store (controllerNumber, std::memory_order_relaxed);
-    lastControllerValue_.store (value, std::memory_order_relaxed);
-}
+    void SynthEngine::pitchWheelMoved(int value) noexcept
+    {
+        lastPitchWheel_.store(value, std::memory_order_relaxed);
+        m_voiceManager.getSynthesiser().handlePitchWheel(0, value);
+    }
 
-int SynthEngine::getLastMidiNote() const noexcept
-{
-    return lastMidiNote_.load (std::memory_order_relaxed);
-}
+    void SynthEngine::controllerMoved(int controllerNumber, int value) noexcept
+    {
+        lastController_.store(controllerNumber, std::memory_order_relaxed);
+        lastControllerValue_.store(value, std::memory_order_relaxed);
+        m_voiceManager.getSynthesiser().handleController(0, controllerNumber, value);
+    }
 
-float SynthEngine::getLastVelocity() const noexcept
-{
-    return lastVelocity_.load (std::memory_order_relaxed);
-}
+    VoiceManager& SynthEngine::getVoiceManager() noexcept
+    {
+        return m_voiceManager;
+    }
 
-int SynthEngine::getLastPitchWheel() const noexcept
-{
-    return lastPitchWheel_.load (std::memory_order_relaxed);
-}
+    const VoiceManager& SynthEngine::getVoiceManager() const noexcept
+    {
+        return m_voiceManager;
+    }
 
-int SynthEngine::getLastController() const noexcept
-{
-    return lastController_.load (std::memory_order_relaxed);
-}
+    int SynthEngine::getLastMidiNote() const noexcept
+    {
+        return lastMidiNote_.load(std::memory_order_relaxed);
+    }
 
-int SynthEngine::getLastControllerValue() const noexcept
-{
-    return lastControllerValue_.load (std::memory_order_relaxed);
-}
+    float SynthEngine::getLastVelocity() const noexcept
+    {
+        return lastVelocity_.load(std::memory_order_relaxed);
+    }
 
-} // namespace Audio
+    int SynthEngine::getLastPitchWheel() const noexcept
+    {
+        return lastPitchWheel_.load(std::memory_order_relaxed);
+    }
+
+    int SynthEngine::getLastController() const noexcept
+    {
+        return lastController_.load(std::memory_order_relaxed);
+    }
+
+    int SynthEngine::getLastControllerValue() const noexcept
+    {
+        return lastControllerValue_.load(std::memory_order_relaxed);
+    }
+}
