@@ -2,33 +2,38 @@
 
 #include <atomic>
 #include <juce_audio_basics/juce_audio_basics.h>
+#include "VoiceManager.h"
+#include "../Threading/AtomicGuiState.h"
 
 namespace Audio
 {
-    /** Minimal synth engine facade.
-        For now this just consumes MIDI and produces silence, but it provides
-        the API that MidiManager and the processor expect.
+    /** Top-level synth engine: owns VoiceManager, parses MIDI in processBlock,
+        delegates note on/off and rendering to VoiceManager.
     */
     class SynthEngine
     {
     public:
-        SynthEngine() = default;
+        explicit SynthEngine(Threading::AtomicGuiState* guiState) noexcept;
         ~SynthEngine() = default;
 
-        void prepare (double sampleRate, int samplesPerBlock) noexcept;
+        void prepare(double sampleRate, int samplesPerBlock) noexcept;
 
-        /** Render the next audio block. Currently writes silence. */
-        void processBlock (juce::AudioBuffer<float>& buffer) noexcept;
+        /** Parse MIDI, update voices, clear buffer, render via VoiceManager. */
+        void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) noexcept;
 
-        // MIDI event entry points
-        void noteOn (int midiNoteNumber, float velocity) noexcept;
-        void noteOff (int midiNoteNumber) noexcept;
-        void allNotesOff() noexcept;
+        /** Legacy: clear buffer only (silence). */
+        void processBlock(juce::AudioBuffer<float>& buffer) noexcept;
 
-        void pitchWheelMoved (int value) noexcept;
-        void controllerMoved (int controllerNumber, int value) noexcept;
+        void noteOn(int midiChannel, int midiNoteNumber, float velocity) noexcept;
+        void noteOff(int midiChannel, int midiNoteNumber, float velocity, bool allowTailOff = true) noexcept;
+        void allNotesOff(bool allowTailOff = true) noexcept;
 
-        /** Last MIDI note number received via noteOn, or -1 if none. */
+        void pitchWheelMoved(int value) noexcept;
+        void controllerMoved(int controllerNumber, int value) noexcept;
+
+        VoiceManager& getVoiceManager() noexcept;
+        const VoiceManager& getVoiceManager() const noexcept;
+
         int getLastMidiNote() const noexcept;
         float getLastVelocity() const noexcept;
         int getLastPitchWheel() const noexcept;
@@ -36,16 +41,17 @@ namespace Audio
         int getLastControllerValue() const noexcept;
 
     private:
-        double sampleRate_ { 44100.0 };
-        int blockSize_ { 0 };
+        double m_sampleRate { 44100.0 };
+        int m_blockSize { 0 };
+
+        VoiceManager m_voiceManager;
 
         std::atomic<int>   lastMidiNote_        { -1 };
         std::atomic<float> lastVelocity_        { 0.0f };
-        std::atomic<int>   lastPitchWheel_      { 0 };
+        std::atomic<int>   lastPitchWheel_     { 0 };
         std::atomic<int>   lastController_      { -1 };
         std::atomic<int>   lastControllerValue_ { 0 };
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SynthEngine)
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SynthEngine)
     };
 }
-

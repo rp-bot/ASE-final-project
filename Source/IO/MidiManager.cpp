@@ -62,14 +62,14 @@ void MidiManager::processMidiBuffer (const juce::MidiBuffer& midi)
     }
 }
 
-void MidiManager::handleNoteOn (int /*channel*/, int noteNumber, float velocity)
+void MidiManager::handleNoteOn (int channel, int noteNumber, float velocity)
 {
-    synthEngine_.noteOn (noteNumber, velocity);
+    synthEngine_.noteOn (channel, noteNumber, velocity);
 }
 
-void MidiManager::handleNoteOff (int /*channel*/, int noteNumber, float /*velocity*/)
+void MidiManager::handleNoteOff (int channel, int noteNumber, float velocity)
 {
-    synthEngine_.noteOff (noteNumber);
+    synthEngine_.noteOff (channel, noteNumber, velocity, true);
 }
 
 void MidiManager::handlePitchWheel (int /*channel*/, int value)
