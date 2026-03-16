@@ -3,4 +3,6 @@ target_sources("${PROJECT_NAME}"
         SynthEngine.h
         SynthEngine.cpp
         SynthSound.h
-        SynthSound.cpp)
+        SynthSound.cpp
+        SynthVoice.h
+        SynthVoice.cpp)

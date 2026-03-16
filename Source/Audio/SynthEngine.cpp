@@ -3,16 +3,54 @@
 namespace Audio
 {
 
-void SynthEngine::prepare (double sampleRate, int samplesPerBlock) noexcept
+SynthEngine::SynthEngine(Threading::AtomicGuiState* guiState) noexcept
+    : m_guiState(guiState)
+{
+}
+
+SynthEngine::~SynthEngine()
+{
+    // Do not clear voices/sounds here; the audio thread may still be in renderNextBlock.
+    // Let m_synthesiser destructor clean up when this object is destroyed.
+}
+
+void SynthEngine::prepare(double sampleRate, int samplesPerBlock) noexcept
 {
     sampleRate_ = sampleRate;
     blockSize_ = samplesPerBlock;
-    juce::ignoreUnused (sampleRate_, blockSize_);
+
+    if (!m_voicesAdded)
+    {
+        if (m_wavetableBank == nullptr)
+            m_wavetableBank = std::make_unique<DSP::WavetableBank>();
+
+        constexpr int tableSize = 2048;
+        while (m_wavetableBank->getNumWavetables() < 8)
+            m_wavetableBank->addWavetable(juce::AudioBuffer<float>(1, tableSize));
+        static constexpr DSP::WaveformType types[8] = {
+            DSP::WaveformType::Sine, DSP::WaveformType::Sawtooth, DSP::WaveformType::Square, DSP::WaveformType::Triangle,
+            DSP::WaveformType::Sine, DSP::WaveformType::Sawtooth, DSP::WaveformType::Square, DSP::WaveformType::Triangle
+        };
+        for (uint32_t i = 0; i < 8; ++i)
+            m_wavetableBank->generateDefaultWavetable(i, types[i], tableSize);
+
+        m_synthesiser.addSound(new SynthSound());
+        m_synthesiser.addVoice(new SynthVoice(m_wavetableBank.get(), m_guiState));
+        m_voicesAdded = true;
+    }
+
+    m_synthesiser.setCurrentPlaybackSampleRate(sampleRate);
+    if (auto* v = m_synthesiser.getVoice(0))
+        static_cast<SynthVoice*>(v)->prepare(sampleRate, samplesPerBlock);
 }
 
-void SynthEngine::processBlock (juce::AudioBuffer<float>& buffer) noexcept
+void SynthEngine::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) noexcept
 {
-    // For now, produce silence. Future work will route oscillators, filters, etc.
+    m_synthesiser.renderNextBlock(buffer, midiMessages, 0, buffer.getNumSamples());
+}
+
+void SynthEngine::processBlock(juce::AudioBuffer<float>& buffer) noexcept
+{
     buffer.clear();
 }
 

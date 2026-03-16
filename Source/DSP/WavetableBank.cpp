@@ -4,6 +4,10 @@
 namespace DSP
 {
 
+WavetableBank::WavetableBank() = default;
+
+WavetableBank::~WavetableBank() = default;
+
 //WAVE GENERATORS
 void WavetableBank::generateSineWave(juce::AudioBuffer<float>& buffer)
 {

@@ -16,7 +16,7 @@ VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
                      #endif
                        ),
        parameterManager (*this),
-       synthEngine (std::make_unique<Audio::SynthEngine>()),
+       synthEngine (std::make_unique<Audio::SynthEngine> (&atomicGuiState)),
        midiManager (std::make_unique<IO::MidiManager> (*synthEngine))
 {
     auto& apvts = parameterManager.getAPVTS();
@@ -209,7 +209,7 @@ void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 {
     Utils::ScopedDenormals scopedDenormals;
 
-    // Read GUI snapshot once per block (position/trajectory currently unused by engine).
+    // Read GUI snapshot once per block (cursor drives mixer gains in SynthVoice).
     const auto cursorPosition = getGuiCursorPosition();
     const auto trajectoryActive = isGuiTrajectoryActive();
     juce::ignoreUnused (cursorPosition, trajectoryActive);
@@ -220,7 +220,7 @@ void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
         midiManager->processMidiBuffer (midiMessages);
 
     if (synthEngine != nullptr)
-        synthEngine->processBlock (buffer);
+        synthEngine->processBlock (buffer, midiMessages);
 }
 
 //==============================================================================
