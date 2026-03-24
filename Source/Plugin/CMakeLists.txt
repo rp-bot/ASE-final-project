@@ -3,4 +3,4 @@ target_sources("${PROJECT_NAME}"
         VolumetricSynthEditor.h
         VolumetricSynthEditor.cpp
         VolumetricSynthAudioProcessor.h
-        VolumetricSynthAudioProcessor.cpp)
+        VolumetricSynthAudioProcessor.cpp "../DSP/DualFilter.cpp")
