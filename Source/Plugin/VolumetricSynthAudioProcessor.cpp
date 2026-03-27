@@ -16,28 +16,73 @@ VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
                      #endif
                        ),
        parameterManager (*this),
-       synthEngine (std::make_unique<Audio::SynthEngine> (&atomicGuiState)),
+       cornerParamReader (std::make_unique<CornerParamReader> (parameterManager.getAPVTS())),
+       synthEngine (std::make_unique<Audio::SynthEngine> (&atomicGuiState, cornerParamReader.get())),
        midiManager (std::make_unique<IO::MidiManager> (*synthEngine))
 {
     auto& apvts = parameterManager.getAPVTS();
+
+    // Cursor listeners
     apvts.addParameterListener (ParameterIDs::cursorX, this);
     apvts.addParameterListener (ParameterIDs::cursorY, this);
     apvts.addParameterListener (ParameterIDs::cursorZ, this);
+
+    // Corner parameter listeners (all 8 corners × 6 params)
+    for (int i = 0; i < 8; ++i)
+    {
+        apvts.addParameterListener (ParameterIDs::cornerLevel(i), this);
+        apvts.addParameterListener (ParameterIDs::cornerDetune(i), this);
+        apvts.addParameterListener (ParameterIDs::cornerWaveform(i), this);
+        apvts.addParameterListener (ParameterIDs::cornerCoarse(i), this);
+        apvts.addParameterListener (ParameterIDs::cornerFine(i), this);
+        apvts.addParameterListener (ParameterIDs::cornerPan(i), this);
+    }
+
     syncCursorParamsToGuiState();
+    syncCornerParamsToEngine();
 }
 
 VolumetricSynthAudioProcessor::~VolumetricSynthAudioProcessor()
 {
     auto& apvts = parameterManager.getAPVTS();
+
     apvts.removeParameterListener (ParameterIDs::cursorX, this);
     apvts.removeParameterListener (ParameterIDs::cursorY, this);
     apvts.removeParameterListener (ParameterIDs::cursorZ, this);
+
+    for (int i = 0; i < 8; ++i)
+    {
+        apvts.removeParameterListener (ParameterIDs::cornerLevel(i), this);
+        apvts.removeParameterListener (ParameterIDs::cornerDetune(i), this);
+        apvts.removeParameterListener (ParameterIDs::cornerWaveform(i), this);
+        apvts.removeParameterListener (ParameterIDs::cornerCoarse(i), this);
+        apvts.removeParameterListener (ParameterIDs::cornerFine(i), this);
+        apvts.removeParameterListener (ParameterIDs::cornerPan(i), this);
+    }
 }
 
 void VolumetricSynthAudioProcessor::parameterChanged (const juce::String& parameterID, float /*newValue*/)
 {
     if (parameterID == ParameterIDs::cursorX || parameterID == ParameterIDs::cursorY || parameterID == ParameterIDs::cursorZ)
+    {
         syncCursorParamsToGuiState();
+        return;
+    }
+
+    // Check if changed parameter belongs to any corner
+    for (int i = 0; i < 8; ++i)
+    {
+        if (parameterID == ParameterIDs::cornerLevel(i)
+         || parameterID == ParameterIDs::cornerDetune(i)
+         || parameterID == ParameterIDs::cornerWaveform(i)
+         || parameterID == ParameterIDs::cornerCoarse(i)
+         || parameterID == ParameterIDs::cornerFine(i)
+         || parameterID == ParameterIDs::cornerPan(i))
+        {
+            syncCornerParamsToEngine();
+            return;
+        }
+    }
 }
 
 void VolumetricSynthAudioProcessor::syncCursorParamsToGuiState()
@@ -50,6 +95,13 @@ void VolumetricSynthAudioProcessor::syncCursorParamsToGuiState()
     const float y = (py != nullptr) ? py->load() : 0.5f;
     const float z = (pz != nullptr) ? pz->load() : 0.5f;
     atomicGuiState.setCursorPosition (x, y, z);
+}
+
+void VolumetricSynthAudioProcessor::syncCornerParamsToEngine()
+{
+    // CornerParamReadr has atmic ptr. send signal for engine for updating params //TODO: double check
+    if (synthEngine != nullptr)
+        synthEngine->onCornerParamsChanged();
 }
 
 void VolumetricSynthAudioProcessor::setGuiCursorPosition (float x, float y, float z) noexcept

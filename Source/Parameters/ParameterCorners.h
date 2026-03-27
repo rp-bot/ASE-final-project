@@ -7,8 +7,7 @@
 
 
 // struct for storing corner params
-struct CornerParams
-{
+struct CornerParams {
     DSP::WaveformType waveform = DSP::WaveformType::Sine; // default to sine
     // int waveform = 0; // order from ParameterLayout: "Sine", "Saw", "Square", "Triangle"
     float level = 0.0f;
@@ -47,8 +46,7 @@ public:
 
     // get corner param of specific corner (0-7)
     // load(): lock free atomic ptr read
-    CornerParams getCorner(int i) const
-    {
+    CornerParams getCorner(int i) const {
         return {
             static_cast<DSP::WaveformType>(static_cast<int>(m_waveform[i]->load())),
             m_level[i]->load(),
