@@ -11,6 +11,7 @@ target_sources(VolumetricSynth_Tests
     UnitTests/SampleTest.cpp
     UnitTests/Math3DTest.cpp
     UnitTests/ScopedDenormalsTest.cpp
+    UnitTests/DualFilterTest.cpp
     UnitTests/TrilinearMixer8Test.cpp
 )
 
