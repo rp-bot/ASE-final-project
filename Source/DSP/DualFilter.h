@@ -1,5 +1,6 @@
 #pragma once
-#include <JuceHeader.h>
+#include <juce_audio_basics/juce_audio_basics.h>
+#include <juce_dsp/juce_dsp.h>
 
 namespace DSP
 {
@@ -74,11 +75,18 @@ namespace DSP
 
         double m_sampleRate{ 44100.0 };
         int m_blockSize{ 512 };
+        int m_numChannels{ 2 };
+        bool m_isPrepared{ false };
 
         juce::AudioBuffer<float> m_parallelBuffer;
+        juce::AudioBuffer<float> m_notchScratchBuffer;
 
         void updateFilter1();
         void updateFilter2();
+        void processSingleFilter(juce::dsp::AudioBlock<float>& block,
+                                 juce::dsp::LadderFilter<float>& filter,
+                                 FilterMode mode,
+                                 FilterSlope slope);
 
         static juce::dsp::LadderFilterMode convertMode(FilterMode mode, FilterSlope slope);
     };

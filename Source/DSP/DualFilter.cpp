@@ -22,7 +22,9 @@ namespace DSP
                 return is24 ? Mode::BPF24 : Mode::BPF12;
 
             case FilterMode::Notch:
-                return is24 ? Mode::Notch : Mode::Notch;
+                // JUCE LadderFilter has no dedicated notch mode in this version.
+                // Notch processing uses BPF internally and mixes it as dry - bandpass.
+                return is24 ? Mode::BPF24 : Mode::BPF12;
         }
 
         return Mode::LPF24;
@@ -32,11 +34,20 @@ namespace DSP
     {
         m_sampleRate = spec.sampleRate;
         m_blockSize = (int)spec.maximumBlockSize;
+        m_numChannels = (int)spec.numChannels;
+        m_isPrepared = true;
 
         m_filter1.prepare(spec);
         m_filter2.prepare(spec);
 
         m_parallelBuffer.setSize(
+            (int)spec.numChannels,
+            (int)spec.maximumBlockSize,
+            false,
+            false,
+            true
+        );
+        m_notchScratchBuffer.setSize(
             (int)spec.numChannels,
             (int)spec.maximumBlockSize,
             false,
@@ -55,7 +66,7 @@ namespace DSP
         juce::dsp::ProcessSpec spec;
 
         spec.sampleRate = sampleRate;
-        spec.maximumBlockSize = blockSize;
+        spec.maximumBlockSize = (juce::uint32)juce::jmax(0, blockSize);
         spec.numChannels = 2;
 
         prepare(spec);
@@ -81,6 +92,44 @@ namespace DSP
         m_filter2.setResonance(m_resonance);
     }
 
+    void DualFilter::processSingleFilter(juce::dsp::AudioBlock<float>& block,
+                                         juce::dsp::LadderFilter<float>& filter,
+                                         FilterMode mode,
+                                         FilterSlope slope)
+    {
+        if (mode != FilterMode::Notch)
+        {
+            filter.process(juce::dsp::ProcessContextReplacing<float>(block));
+            return;
+        }
+
+        const auto numChannels = (int)block.getNumChannels();
+        const auto numSamples = (int)block.getNumSamples();
+
+        if (m_notchScratchBuffer.getNumChannels() < numChannels ||
+            m_notchScratchBuffer.getNumSamples() < numSamples)
+        {
+            jassertfalse;
+            return;
+        }
+
+        auto bandPassBlock = juce::dsp::AudioBlock<float>(m_notchScratchBuffer)
+            .getSubsetChannelBlock(0, (size_t)numChannels)
+            .getSubBlock(0, (size_t)numSamples);
+
+        bandPassBlock.copyFrom(block);
+        filter.setMode(convertMode(FilterMode::BandPass, slope));
+        filter.process(juce::dsp::ProcessContextReplacing<float>(bandPassBlock));
+
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            auto* dry = block.getChannelPointer((size_t)ch);
+            auto* bp = bandPassBlock.getChannelPointer((size_t)ch);
+            for (int i = 0; i < numSamples; ++i)
+                dry[i] -= (2.0f * bp[i]);
+        }
+    }
+
     void DualFilter::setCutoff(float cutoffHz)
     {
         float maxFreq = (float)(m_sampleRate * 0.49);
@@ -93,7 +142,7 @@ namespace DSP
 
     void DualFilter::setResonance(float resonance)
     {
-        m_resonance = juce::jlimit(0.1f, 10.0f, resonance);
+        m_resonance = juce::jlimit(0.0f, 1.0f, resonance);
 
         m_filter1.setResonance(m_resonance);
         m_filter2.setResonance(m_resonance);
@@ -155,31 +204,41 @@ namespace DSP
 
     void DualFilter::processBlock(juce::dsp::AudioBlock<float>& block)
     {
+        if (!m_isPrepared)
+        {
+            jassertfalse;
+            return;
+        }
+
         if (block.getNumSamples() == 0)
             return;
 
         if (m_serialMode)
         {
-            m_filter1.process(juce::dsp::ProcessContextReplacing<float>(block));
-            m_filter2.process(juce::dsp::ProcessContextReplacing<float>(block));
+            processSingleFilter(block, m_filter1, m_mode1, m_slope1);
+            processSingleFilter(block, m_filter2, m_mode2, m_slope2);
         }
         else
         {
             auto numChannels = (int)block.getNumChannels();
             auto numSamples = (int)block.getNumSamples();
 
-            if (m_parallelBuffer.getNumChannels() != numChannels ||
+            // Real-time safety: never allocate in process.
+            if (m_parallelBuffer.getNumChannels() < numChannels ||
                 m_parallelBuffer.getNumSamples() < numSamples)
             {
-                m_parallelBuffer.setSize(numChannels, numSamples, false, false, true);
+                jassertfalse;
+                return;
             }
 
-            juce::dsp::AudioBlock<float> parallelBlock(m_parallelBuffer);
+            auto parallelBlock = juce::dsp::AudioBlock<float>(m_parallelBuffer)
+                .getSubsetChannelBlock(0, (size_t)numChannels)
+                .getSubBlock(0, (size_t)numSamples);
 
             parallelBlock.copyFrom(block);
 
-            m_filter1.process(juce::dsp::ProcessContextReplacing<float>(block));
-            m_filter2.process(juce::dsp::ProcessContextReplacing<float>(parallelBlock));
+            processSingleFilter(block, m_filter1, m_mode1, m_slope1);
+            processSingleFilter(parallelBlock, m_filter2, m_mode2, m_slope2);
 
             block.add(parallelBlock);
             block.multiplyBy(0.5f);
