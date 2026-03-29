@@ -4,10 +4,13 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include "LabeledPanel.h"
+// TRILINEAR MIXER VISUALIZATION
+#include "TrilinearMixerGainsView.h"
 
 namespace UI
 {
-class CenterControlPanel : public juce::Component
+class CenterControlPanel : public juce::Component,
+                           private juce::AudioProcessorValueTreeState::Listener
 {
 public:
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -15,6 +18,7 @@ public:
     using TrajectoryChangedCallback = std::function<void (bool)>;
 
     explicit CenterControlPanel (juce::AudioProcessorValueTreeState& apvts);
+    ~CenterControlPanel() override;
 
     void setCursorChangedCallback (CursorChangedCallback callback);
     void setTrajectoryChangedCallback (TrajectoryChangedCallback callback);
@@ -26,10 +30,14 @@ public:
     void resized() override;
 
 private:
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
     static void configureRotarySlider (juce::Slider& slider, juce::Label& label, const juce::String& text);
     void updateCursorFromSliders();
+    void updateReadoutAndGainsFromParams();
 
-    LabeledPanel viewPanel { "3D view placeholder" };
+    juce::AudioProcessorValueTreeState* apvtsPtr { nullptr };
+    LabeledPanel viewPanel { "Mixer gains" };  // TRILINEAR MIXER VISUALIZATION: revert to "3D view placeholder" if removing
+    TrilinearMixerGainsView mixerGainsView;   // TRILINEAR MIXER VISUALIZATION
     juce::Slider xSlider;
     juce::Slider ySlider;
     juce::Slider zSlider;
@@ -41,6 +49,9 @@ private:
     juce::ToggleButton trajectoryToggle;
     juce::Label cursorReadoutLabel;
     std::unique_ptr<SliderAttachment> gainAttachment;
+    std::unique_ptr<SliderAttachment> cursorXAttachment;
+    std::unique_ptr<SliderAttachment> cursorYAttachment;
+    std::unique_ptr<SliderAttachment> cursorZAttachment;
     CursorChangedCallback onCursorChanged;
     TrajectoryChangedCallback onTrajectoryChanged;
 };

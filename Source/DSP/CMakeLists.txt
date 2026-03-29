@@ -1,4 +1,15 @@
 target_sources("${PROJECT_NAME}"
     PRIVATE
+        AmpEnvelope.h
+        AmpEnvelope.cpp
         Oscillator.h
-        Oscillator.cpp)
+        Oscillator.cpp
+        WavetableOscillator.h
+        WavetableOscillator.cpp
+        WavetableBank.h
+        WavetableBank.cpp
+        UnisonOscillator.h
+        UnisonOscillator.cpp
+        TrilinearMixer8.h
+        TrilinearMixer8.cpp
+        )

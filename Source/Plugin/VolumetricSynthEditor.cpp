@@ -36,10 +36,6 @@ VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
     }
 
     centerPanel = std::make_unique<UI::CenterControlPanel> (apvts);
-    centerPanel->setCursorChangedCallback ([this] (float x, float y, float z)
-    {
-        processorRef.setGuiCursorPosition (x, y, z);
-    });
     centerPanel->setTrajectoryChangedCallback ([this] (bool isActive)
     {
         processorRef.setGuiTrajectoryActive (isActive);
@@ -49,8 +45,6 @@ VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
     addAndMakeVisible (bottomCenterPanel);
     addAndMakeVisible (bottomRightPanel);
 
-    const auto currentCursor = processorRef.getGuiCursorPosition();
-    centerPanel->setCursorPosition (currentCursor.x, currentCursor.y, currentCursor.z);
     centerPanel->setTrajectoryActive (processorRef.isGuiTrajectoryActive());
 
     setSize (1220, 700);
@@ -72,6 +66,7 @@ void VolumetricSynthEditor::paint (juce::Graphics& g)
 
     g.setColour (juce::Colours::white);
     g.setFont (16.0f);
+
     g.drawText ("Volumetric Synth", getLocalBounds().removeFromTop (24), juce::Justification::centred, false);
 }
 

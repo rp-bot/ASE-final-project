@@ -4,9 +4,12 @@
 namespace UI
 {
 CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvts)
+    : apvtsPtr (&apvts)
 {
     viewPanel.setFilledBackground (true);
     addAndMakeVisible (viewPanel);
+    // TRILINEAR MIXER VISUALIZATION
+    addAndMakeVisible (mixerGainsView);
 
     configureRotarySlider (xSlider, xLabel, "X");
     configureRotarySlider (ySlider, yLabel, "Y");
@@ -27,6 +30,14 @@ CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvt
     addAndMakeVisible (gainLabel);
 
     gainAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::gain, gainSlider);
+    cursorXAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::cursorX, xSlider);
+    cursorYAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::cursorY, ySlider);
+    cursorZAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::cursorZ, zSlider);
+
+    apvts.addParameterListener (ParameterIDs::cursorX, this);
+    apvts.addParameterListener (ParameterIDs::cursorY, this);
+    apvts.addParameterListener (ParameterIDs::cursorZ, this);
+    updateReadoutAndGainsFromParams();
 
     trajectoryToggle.setButtonText ("Trajectory");
     trajectoryToggle.onClick = [this]
@@ -38,6 +49,38 @@ CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvt
 
     cursorReadoutLabel.setJustificationType (juce::Justification::centredLeft);
     addAndMakeVisible (cursorReadoutLabel);
+}
+
+CenterControlPanel::~CenterControlPanel()
+{
+    if (apvtsPtr != nullptr)
+    {
+        apvtsPtr->removeParameterListener (ParameterIDs::cursorX, this);
+        apvtsPtr->removeParameterListener (ParameterIDs::cursorY, this);
+        apvtsPtr->removeParameterListener (ParameterIDs::cursorZ, this);
+    }
+}
+
+void CenterControlPanel::parameterChanged (const juce::String& parameterID, float /*newValue*/)
+{
+    if (parameterID == ParameterIDs::cursorX || parameterID == ParameterIDs::cursorY || parameterID == ParameterIDs::cursorZ)
+        updateReadoutAndGainsFromParams();
+}
+
+void CenterControlPanel::updateReadoutAndGainsFromParams()
+{
+    if (apvtsPtr == nullptr)
+        return;
+    auto* px = apvtsPtr->getRawParameterValue (ParameterIDs::cursorX);
+    auto* py = apvtsPtr->getRawParameterValue (ParameterIDs::cursorY);
+    auto* pz = apvtsPtr->getRawParameterValue (ParameterIDs::cursorZ);
+    const float x = (px != nullptr) ? px->load() : 0.5f;
+    const float y = (py != nullptr) ? py->load() : 0.5f;
+    const float z = (pz != nullptr) ? pz->load() : 0.5f;
+    cursorReadoutLabel.setText ("Cursor: " + juce::String (x, 2) + ", " + juce::String (y, 2) + ", " + juce::String (z, 2),
+                                juce::dontSendNotification);
+    // TRILINEAR MIXER VISUALIZATION
+    mixerGainsView.setPosition (x, y, z);
 }
 
 void CenterControlPanel::setCursorChangedCallback (CursorChangedCallback callback)
@@ -55,7 +98,7 @@ void CenterControlPanel::setCursorPosition (float x, float y, float z)
     xSlider.setValue (x, juce::dontSendNotification);
     ySlider.setValue (y, juce::dontSendNotification);
     zSlider.setValue (z, juce::dontSendNotification);
-    updateCursorFromSliders();
+    updateCursorFromSliders(); // updates readout and gains view only; params are source of truth
 }
 
 void CenterControlPanel::setTrajectoryActive (bool isActive)
@@ -72,7 +115,11 @@ void CenterControlPanel::paint (juce::Graphics& g)
 void CenterControlPanel::resized()
 {
     auto inner = getLocalBounds().reduced (8);
-    viewPanel.setBounds (inner.removeFromTop (juce::roundToInt (inner.getHeight() * 0.45f)));
+    auto viewArea = inner.removeFromTop (juce::roundToInt (inner.getHeight() * 0.45f));
+    constexpr int titleHeight = 22;
+    viewPanel.setBounds (viewArea.removeFromTop (titleHeight));
+    // TRILINEAR MIXER VISUALIZATION (if removing, give full viewArea to viewPanel instead)
+    mixerGainsView.setBounds (viewArea.reduced (2));
     inner.removeFromTop (6);
 
     auto controlsArea = inner.removeFromTop (juce::roundToInt (inner.getHeight() * 0.62f));
@@ -116,7 +163,8 @@ void CenterControlPanel::updateCursorFromSliders()
 
     cursorReadoutLabel.setText ("Cursor: " + juce::String (x, 2) + ", " + juce::String (y, 2) + ", " + juce::String (z, 2),
                                 juce::dontSendNotification);
-
+    // TRILINEAR MIXER VISUALIZATION
+    mixerGainsView.setPosition (x, y, z);
     if (onCursorChanged)
         onCursorChanged (x, y, z);
 }

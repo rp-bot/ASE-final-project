@@ -1,4 +1,10 @@
 target_sources("${PROJECT_NAME}"
     PRIVATE
+        SynthEngine.h
+        SynthEngine.cpp
+        VoiceManager.h
+        VoiceManager.cpp
         SynthSound.h
-        SynthSound.cpp)
+        SynthSound.cpp
+        SynthVoice.h
+        SynthVoice.cpp)

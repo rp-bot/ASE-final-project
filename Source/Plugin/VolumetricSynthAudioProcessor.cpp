@@ -1,6 +1,9 @@
 #include "VolumetricSynthAudioProcessor.h"
 #include "VolumetricSynthEditor.h"
+#include "Parameters/ParameterIDs.h"
 #include "Utils/ScopedDenormals.h"
+#include "Audio/SynthEngine.h"
+#include "IO/MidiManager.h"
 
 //==============================================================================
 VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
@@ -12,12 +15,41 @@ VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        ),
-       parameterManager (*this)
+       parameterManager (*this),
+       synthEngine (std::make_unique<Audio::SynthEngine> (&atomicGuiState)),
+       midiManager (std::make_unique<IO::MidiManager> (*synthEngine))
 {
+    auto& apvts = parameterManager.getAPVTS();
+    apvts.addParameterListener (ParameterIDs::cursorX, this);
+    apvts.addParameterListener (ParameterIDs::cursorY, this);
+    apvts.addParameterListener (ParameterIDs::cursorZ, this);
+    syncCursorParamsToGuiState();
 }
 
 VolumetricSynthAudioProcessor::~VolumetricSynthAudioProcessor()
 {
+    auto& apvts = parameterManager.getAPVTS();
+    apvts.removeParameterListener (ParameterIDs::cursorX, this);
+    apvts.removeParameterListener (ParameterIDs::cursorY, this);
+    apvts.removeParameterListener (ParameterIDs::cursorZ, this);
+}
+
+void VolumetricSynthAudioProcessor::parameterChanged (const juce::String& parameterID, float /*newValue*/)
+{
+    if (parameterID == ParameterIDs::cursorX || parameterID == ParameterIDs::cursorY || parameterID == ParameterIDs::cursorZ)
+        syncCursorParamsToGuiState();
+}
+
+void VolumetricSynthAudioProcessor::syncCursorParamsToGuiState()
+{
+    auto& apvts = parameterManager.getAPVTS();
+    auto* px = apvts.getRawParameterValue (ParameterIDs::cursorX);
+    auto* py = apvts.getRawParameterValue (ParameterIDs::cursorY);
+    auto* pz = apvts.getRawParameterValue (ParameterIDs::cursorZ);
+    const float x = (px != nullptr) ? px->load() : 0.5f;
+    const float y = (py != nullptr) ? py->load() : 0.5f;
+    const float z = (pz != nullptr) ? pz->load() : 0.5f;
+    atomicGuiState.setCursorPosition (x, y, z);
 }
 
 void VolumetricSynthAudioProcessor::setGuiCursorPosition (float x, float y, float z) noexcept
@@ -43,6 +75,31 @@ glm::vec3 VolumetricSynthAudioProcessor::getGuiCursorPosition() const noexcept
 bool VolumetricSynthAudioProcessor::isGuiTrajectoryActive() const noexcept
 {
     return atomicGuiState.isTrajectoryActive();
+}
+
+int VolumetricSynthAudioProcessor::getLastMidiNote() const noexcept
+{
+    return synthEngine != nullptr ? synthEngine->getLastMidiNote() : -1;
+}
+
+float VolumetricSynthAudioProcessor::getLastVelocity() const noexcept
+{
+    return synthEngine != nullptr ? synthEngine->getLastVelocity() : 0.0f;
+}
+
+int VolumetricSynthAudioProcessor::getLastPitchWheel() const noexcept
+{
+    return synthEngine != nullptr ? synthEngine->getLastPitchWheel() : 0;
+}
+
+int VolumetricSynthAudioProcessor::getLastController() const noexcept
+{
+    return synthEngine != nullptr ? synthEngine->getLastController() : -1;
+}
+
+int VolumetricSynthAudioProcessor::getLastControllerValue() const noexcept
+{
+    return synthEngine != nullptr ? synthEngine->getLastControllerValue() : 0;
 }
 
 //==============================================================================
@@ -113,9 +170,8 @@ void VolumetricSynthAudioProcessor::changeProgramName (int index, const juce::St
 //==============================================================================
 void VolumetricSynthAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
-    juce::ignoreUnused (sampleRate, samplesPerBlock);
+    if (synthEngine != nullptr)
+        synthEngine->prepare (sampleRate, samplesPerBlock);
 }
 
 void VolumetricSynthAudioProcessor::releaseResources()
@@ -151,38 +207,17 @@ bool VolumetricSynthAudioProcessor::isBusesLayoutSupported (const BusesLayout& l
 void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
                                               juce::MidiBuffer& midiMessages)
 {
-    juce::ignoreUnused (midiMessages);
+    Utils::ScopedDenormals scopedDenormals;
 
-    // Read a lock-free GUI snapshot once per block.
+    // Read GUI snapshot once per block (cursor drives mixer gains in SynthVoice).
     const auto cursorPosition = getGuiCursorPosition();
     const auto trajectoryActive = isGuiTrajectoryActive();
     juce::ignoreUnused (cursorPosition, trajectoryActive);
 
-    Utils::ScopedDenormals scopedDenormals;
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
+    buffer.clear();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
-
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
-        juce::ignoreUnused (channelData);
-        // ..do something to the data...
-    }
+    if (synthEngine != nullptr)
+        synthEngine->processBlock (buffer, midiMessages);
 }
 
 //==============================================================================
@@ -210,7 +245,10 @@ void VolumetricSynthAudioProcessor::setStateInformation (const void* data, int s
     {
         const auto valueTree = juce::ValueTree::fromXml (*xmlState);
         if (valueTree.isValid())
+        {
             parameterManager.getAPVTS().replaceState (valueTree);
+            syncCursorParamsToGuiState();
+        }
     }
 }
 

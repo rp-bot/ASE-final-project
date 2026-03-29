@@ -17,7 +17,6 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
-private:
     static constexpr int modulesPerBank = 4;
     juce::Rectangle<int> topArea;
     juce::Rectangle<int> leftBankArea;

@@ -6,6 +6,8 @@ namespace DSP
     public:
         virtual ~Oscillator() = default;
 
+        virtual void prepare(double sampleRate) {} // default empty implementation, can be overridden by derived classes
+        
         // Generate next sample
         virtual float processSample() = 0;
         

@@ -1,11 +1,23 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <memory>
 #include "../Parameters/ParameterManager.h"
 #include "../Threading/AtomicGuiState.h"
 
+namespace Audio
+{
+    class SynthEngine;
+}
+
+namespace IO
+{
+    class MidiManager;
+}
+
 //==============================================================================
-class VolumetricSynthAudioProcessor  : public juce::AudioProcessor
+class VolumetricSynthAudioProcessor  : public juce::AudioProcessor,
+                                      private juce::AudioProcessorValueTreeState::Listener
 {
 public:
     //==============================================================================
@@ -54,10 +66,21 @@ public:
     glm::vec3 getGuiCursorPosition() const noexcept;
     bool isGuiTrajectoryActive() const noexcept;
 
+    int getLastMidiNote() const noexcept;
+    float getLastVelocity() const noexcept;
+    int getLastPitchWheel() const noexcept;
+    int getLastController() const noexcept;
+    int getLastControllerValue() const noexcept;
+
 private:
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
+    void syncCursorParamsToGuiState();
+
     ParameterManager parameterManager;
     Threading::AtomicGuiState atomicGuiState;
-    
+    std::unique_ptr<Audio::SynthEngine> synthEngine;
+    std::unique_ptr<IO::MidiManager> midiManager;
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VolumetricSynthAudioProcessor)
 };
