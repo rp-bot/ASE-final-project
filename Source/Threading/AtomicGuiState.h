@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <glm/glm.hpp>
+#include "Parameters/ParameterCorners.h"
 
 namespace Threading
 {
@@ -15,6 +16,11 @@ namespace Threading
     public:
         AtomicGuiState();
         ~AtomicGuiState() = default;
+
+        void syncFromAPVTS(juce::AudioProcessorValueTreeState& apvts) noexcept;
+        CornerParams getCorner(int index) const noexcept;
+        void setCorner(int index, const CornerParams& params) noexcept;
+
 
         // ---- Writers (message thread only) ----
         void setCursorPosition (float x, float y, float z);
@@ -30,5 +36,18 @@ namespace Threading
         std::atomic<float> m_cursorY;
         std::atomic<float> m_cursorZ;
         std::atomic<bool>  m_trajectoryActive;
+
+        struct AtomicCorner
+        {
+            std::atomic<int> waveform { 0 };
+            std::atomic<float> level { 0.0f };
+            std::atomic<float> detune { 0.0f };
+            std::atomic<float> coarse { 0.0f };
+            std::atomic<float> fine { 0.0f };
+            std::atomic<float> pan { 0.0f };
+        };
+
+        std::array<AtomicCorner, 8> m_corners;
+
     };
 }

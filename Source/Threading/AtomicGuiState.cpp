@@ -23,6 +23,51 @@ AtomicGuiState::AtomicGuiState()
 {
 }
 
+void AtomicGuiState::syncFromAPVTS(juce::AudioProcessorValueTreeState& apvts) noexcept
+{
+    for (int i = 0; i < 8; ++i) { //NOTE: ASSUMING WE ARE KEEPING 8; TODO: REPLACE WITH GLOBAL LATER
+        const auto waveform = apvts.getRawParameterValue(ParameterIDs::cornerWaveform(i))->load();
+        const auto level = apvts.getRawParameterValue(ParameterIDs::cornerLevel(i))->load();
+        const auto detune = apvts.getRawParameterValue(ParameterIDs::cornerDetune(i))->load();
+        const auto coarse = apvts.getRawParameterValue(ParameterIDs::cornerCoarse(i))->load();
+        const auto fine = apvts.getRawParameterValue(ParameterIDs::cornerFine(i))->load();
+        const auto pan= apvts.getRawParameterValue(ParameterIDs::cornerPan(i))->load();
+
+        auto& c = m_corners[i];
+
+        c.waveform.store(static_cast<int>(waveform), std::memory_order_relaxed);
+        c.level.store(level, std::memory_order_relaxed);
+        c.detune.store(detune, std::memory_order_relaxed);
+        c.coarse.store(coarse, std::memory_order_relaxed);
+        c.fine.store(fine, std::memory_order_relaxed);
+        c.pan.store(pan, std::memory_order_relaxed);
+    }
+}
+
+CornerParams AtomicGuiState::getCorner(int index) const noexcept
+{
+    const auto& c = m_corners[index];
+    return {
+        static_cast<DSP::WaveformType>(c.waveform.load(std::memory_order_relaxed)),
+        c.level.load(std::memory_order_relaxed),
+        c.detune.load(std::memory_order_relaxed),
+        c.coarse.load(std::memory_order_relaxed),
+        c.fine.load(std::memory_order_relaxed),
+        c.pan.load(std::memory_order_relaxed)
+    };
+}
+
+void AtomicGuiState::setCorner(int index, const CornerParams& p) noexcept
+{
+    auto& c = m_corners[index];
+    c.waveform.store(static_cast<int>(p.waveform), std::memory_order_relaxed);
+    c.level.store(p.level, std::memory_order_relaxed);
+    c.detune.store(p.detune,std::memory_order_relaxed);
+    c.coarse.store(p.coarse,std::memory_order_relaxed);
+    c.fine.store(p.fine,std::memory_order_relaxed);
+    c.pan.store(p.pan, std::memory_order_relaxed);
+}
+
 void AtomicGuiState::setCursorPosition (float x, float y, float z)
 {
     m_cursorX.store (clampUnit (x), std::memory_order_relaxed);

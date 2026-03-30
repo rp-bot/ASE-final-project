@@ -86,4 +86,8 @@ namespace DSP
                 outputBuffer.setSample(1, idx, sum);
         }
     }
+
+    Threading::AtomicGuiState *TrilinearMixer8::getGuiState() const {
+        return m_guiState;
+    }
 }

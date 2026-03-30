@@ -53,6 +53,8 @@ namespace DSP
         /** Get current gains (for visualization or debugging). */
         GainArray getCurrentGains() const;
 
+        Threading::AtomicGuiState* getGuiState() const;
+
     private:
         std::array<float, 8> m_gains;
         Threading::AtomicGuiState* m_guiState;

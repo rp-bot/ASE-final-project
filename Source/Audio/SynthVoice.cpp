@@ -46,7 +46,7 @@ namespace Audio
         m_currentPitchWheelPosition = currentPitchWheelPosition;
         m_isActive = true;
 
-        updateOscillatorFrequency();
+        // updateOscillatorFrequency();
         for (auto& osc : m_oscillators)
             osc->reset();
         m_envelope.noteOn();
@@ -66,7 +66,7 @@ namespace Audio
     void SynthVoice::pitchWheelMoved(int newPitchWheelValue)
     {
         m_currentPitchWheelPosition = newPitchWheelValue;
-        updateOscillatorFrequency();
+        // updateOscillatorFrequency();
     }
 
     void SynthVoice::controllerMoved(int /*controllerNumber*/, int /*newControllerValue*/)
@@ -76,6 +76,7 @@ namespace Audio
     void SynthVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
     {
         Utils::ScopedDenormals scopedDenormals;
+        Threading::AtomicGuiState* guiState = m_mixer.getGuiState();
 
         const int maxSamples = m_oscillatorOutputs.getNumSamples();
         if (numSamples <= 0 || maxSamples <= 0)
@@ -84,12 +85,55 @@ namespace Audio
         if (m_mixerOutput.getNumSamples() < numSamples)
             return;
 
+        // for (int s = 0; s < numSamples; ++s)
+        // {
+        //     for (size_t i = 0; i < 8; ++i)
+        //     {
+        //         if (m_oscillators[i] != nullptr)
+        //             m_oscillatorOutputs.setSample(static_cast<int>(i), s, m_oscillators[i]->processSample());
+        //     }
+        // }
+
+        // Apply corner params once per block
+        if (guiState != nullptr)
+        {
+            const float bendSemitones = 2.0f * (m_currentPitchWheelPosition - 8192) / 8192.0f; // just copying from the other pitchwheel implementation
+            const double baseFreq = juce::MidiMessage::getMidiNoteInHertz(m_midiNote);
+
+            for (size_t i = 0; i < 8; ++i) // TODO: can replace constant 8 with global
+            {
+                if (m_oscillators[i] == nullptr)
+                    continue;
+
+                const CornerParams cp = guiState->getCorner(static_cast<int>(i));
+
+                // Waveform: switch wavetable slot
+                static_cast<DSP::WavetableOscillator*>(m_oscillators[i].get())
+                    ->setWavetable(static_cast<int>(cp.waveform));
+
+                // Frequency: pitch wheel + coarse (semitones) + fine (semitone fraction) + detune (semitones, ±1 range)
+                const float totalSemitones = bendSemitones + cp.coarse + cp.fine + cp.detune;
+                const float oscFreq = static_cast<float>(baseFreq * std::pow(2.0, static_cast<double>(totalSemitones) / 12.0));
+                m_oscillators[i]->setFrequency(oscFreq);
+            }
+        }
+
+        // Render each oscillator, scaling by its corner level
         for (int s = 0; s < numSamples; ++s)
         {
             for (size_t i = 0; i < 8; ++i)
             {
-                if (m_oscillators[i] != nullptr)
-                    m_oscillatorOutputs.setSample(static_cast<int>(i), s, m_oscillators[i]->processSample());
+                if (m_oscillators[i] == nullptr)
+                    continue;
+
+                const float raw = m_oscillators[i]->processSample();
+
+                // Scale by corner level if guiState available, otherwise pass through
+                const float level = (guiState != nullptr)
+                    ? guiState->getCorner(static_cast<int>(i)).level
+                    : 1.0f;
+
+                m_oscillatorOutputs.setSample(static_cast<int>(i), s, raw * level);
             }
         }
 

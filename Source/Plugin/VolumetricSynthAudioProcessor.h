@@ -75,13 +75,13 @@ public:
 
 private:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
-    void syncCursorParamsToGuiState();
 
-    void syncCornerParamsToEngine();
+    void syncParamsToGuiState();
+    void syncCursorParamsToGuiState();
+    void syncCornerParamsToGuiState();
 
     ParameterManager parameterManager;
     Threading::AtomicGuiState atomicGuiState;
-    std::unique_ptr<CornerParamReader> cornerParamReader; //needs to be constructed before synth engine
     std::unique_ptr<Audio::SynthEngine> synthEngine;
     std::unique_ptr<IO::MidiManager> midiManager;
 
