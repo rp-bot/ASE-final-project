@@ -41,6 +41,45 @@ void TrilinearCube::newOpenGLContextCreated()
     juce::gl::glEnable (juce::gl::GL_DEPTH_TEST);
     juce::gl::glEnable (juce::gl::GL_BLEND);
     juce::gl::glBlendFunc (juce::gl::GL_SRC_ALPHA, juce::gl::GL_ONE_MINUS_SRC_ALPHA);
+
+    auto shader = std::make_unique<juce::OpenGLShaderProgram> (openGLContext);
+
+    const char* vertexShader = R"(
+        varying vec3 vPosition;
+        void main()
+        {
+            vPosition = gl_Vertex.xyz;
+            gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+        }
+    )";
+
+    const char* fragmentShader = R"(
+        varying vec3 vPosition;
+        uniform float uTime;
+        void main()
+        {
+            vec3 base = vec3 (0.10, 0.45, 1.00);
+            float pulse = 0.5 + 0.5 * sin (uTime * 2.0 + dot (vPosition, vec3 (2.0, 2.0, 2.0)));
+            float depthGlow = 0.35 + 0.65 * (1.0 - abs (vPosition.z));
+            vec3 colour = base * (0.65 + 0.35 * pulse) * depthGlow;
+            float alpha = 0.22 + 0.18 * pulse;
+            gl_FragColor = vec4 (colour, alpha);
+        }
+    )";
+
+    if (shader->addVertexShader (juce::OpenGLHelpers::translateVertexShaderToV3 (vertexShader))
+        && shader->addFragmentShader (juce::OpenGLHelpers::translateFragmentShaderToV3 (fragmentShader))
+        && shader->link())
+    {
+        timeUniform = std::make_unique<juce::OpenGLShaderProgram::Uniform> (*shader, "uTime");
+        shaderProgram = std::move (shader);
+    }
+    else
+    {
+        shaderProgram.reset();
+        timeUniform.reset();
+        jassertfalse;
+    }
 }
 
 void TrilinearCube::renderOpenGL()
@@ -65,7 +104,13 @@ void TrilinearCube::renderOpenGL()
     juce::gl::glRotatef (rotationX, 1.0f, 0.0f, 0.0f);
     juce::gl::glRotatef (rotationY, 0.0f, 1.0f, 0.0f);
 
-    juce::gl::glColor4f (0.35f, 0.65f, 1.0f, 0.2f);
+    if (shaderProgram != nullptr)
+    {
+        shaderProgram->use();
+        if (timeUniform != nullptr)
+            timeUniform->set (static_cast<float> (juce::Time::getMillisecondCounterHiRes() * 0.001));
+    }
+
     juce::gl::glBegin (juce::gl::GL_QUADS);
     // Front
     juce::gl::glVertex3f (-1.0f, -1.0f,  1.0f); juce::gl::glVertex3f ( 1.0f, -1.0f,  1.0f);
@@ -87,6 +132,7 @@ void TrilinearCube::renderOpenGL()
     juce::gl::glVertex3f ( 1.0f, -1.0f,  1.0f); juce::gl::glVertex3f (-1.0f, -1.0f,  1.0f);
     juce::gl::glEnd();
 
+    juce::gl::glUseProgram (0);
     juce::gl::glColor4f (0.8f, 0.9f, 1.0f, 0.9f);
     juce::gl::glLineWidth (1.5f);
     juce::gl::glBegin (juce::gl::GL_LINES);
@@ -121,5 +167,7 @@ void TrilinearCube::renderOpenGL()
 
 void TrilinearCube::openGLContextClosing()
 {
+    timeUniform.reset();
+    shaderProgram.reset();
 }
 } // namespace UI

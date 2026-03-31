@@ -28,6 +28,10 @@ private:
     void openGLContextClosing() override;
 
     juce::OpenGLContext openGLContext;
+    std::unique_ptr<juce::OpenGLShaderProgram> shaderProgram;
+    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> timeUniform;
+    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> resolutionUniform;
+    std::unique_ptr<juce::OpenGLShaderProgram::Uniform> mouseUniform;
     juce::Vector3D<float> cursor;
     juce::Point<int> lastDragPosition;
     float rotationX = 0.0f;
