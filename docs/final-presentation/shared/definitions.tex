@@ -1,0 +1,231 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% colors
+\definecolor{gtgold}{rgb}{0.701961, 0.639216, 0.411765} %0e7eed {rgb}{0.88,0.66,1,0.06} [234, 170, 0]/256 %96caff
+\definecolor{darkgray}{rgb}{0.329412, 0.345098, 0.352941}
+\definecolor{lightblue}{HTML}{0e7eed}
+\definecolor{highlight}{rgb}{0, 0, 1} %_less!40
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% relative paths
+\graphicspath{{../graph/}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% units
+\setlength{\unitlength}{1mm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% math
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\atan}{atan}
+\DeclareMathOperator*{\arcsinh}{arcsinh}
+\DeclareMathOperator*{\sign}{sign}
+\DeclareMathOperator*{\tcdf}{tcdf}
+\DeclareMathOperator*{\si}{sinc}
+\DeclareMathOperator*{\princarg}{princarg}
+\DeclareMathOperator*{\arccosh}{arccosh}
+\DeclareMathOperator*{\hwr}{HWR}
+\DeclareMathOperator*{\flip}{flip}
+\DeclareMathOperator*{\sinc}{sinc}
+\DeclareMathOperator*{\floor}{floor}
+\newcommand{\e}{{e}}
+\DeclareMathOperator{\E}{\mathcal{E}}
+\newcommand{\jom}{\mathrm{j}\omega}
+\newcommand{\jOm}{\mathrm{j}\Omega}
+\newcommand   {\mat}[1]    		
+{\boldsymbol{\uppercase{#1}}}		%bold
+\renewcommand {\vec}[1]    		{\boldsymbol{\lowercase{#1}}}		%bold
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% media9
+\newcommand{\includeaudio}[1]{
+\href{run:audio/#1.mp3}{\includegraphics[width=5mm, height=5mm]{graph/SpeakerIcon}}}
+\newcommand{\includeaudiofile}[1]{
+\href{run:audio/#1}{\includegraphics[width=5mm, height=5mm]{graph/SpeakerIcon}}}
+
+\newcommand{\includeanimation}[4]{{\begin{center}
+                        \animategraphics[autoplay,loop,scale=.7]{#4}{animation/#1-}{#2}{#3}        
+                        \end{center}
+                        \addreference{matlab source: \href{https://github.com/alexanderlerch/MUSI-6202/blob/main/matlab/animate#1.m}{matlab/animate#1.m}}}
+                        \inserticon{video}}
+
+\newcommand{\includeanimationnomatlab}[5]{{\begin{center}
+                        \animategraphics[autoplay,loop,scale=.7]{#4}{animation/#1-}{#2}{#3}        
+                        \end{center}
+                        \addreference{#5}}
+                        \inserticon{video}}
+                        
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% other commands
+\newcommand{\question}[1]{%\vspace{-4mm}
+                          \setbeamercovered{invisible}
+                          \begin{columns}[T]
+                            \column{.9\textwidth}
+                                #1
+                            \column{.1\textwidth}
+                                \vspace{-6mm}
+                                \begin{flushright}
+                                     \includegraphics[width=.9\columnwidth]{icon/question_mark}
+                                \end{flushright}
+                                \vspace{6mm}
+                          \end{columns}\pause\vspace{-12mm}}
+
+\newcommand{\toremember}[1]{
+                        \inserticon{lightbulb}
+                        }
+
+\newcommand{\matlabexercise}[1]{%\vspace{-4mm}
+                          \setbeamercovered{invisible}
+                          \begin{columns}[T]
+                            \column{.8\textwidth}
+                                matlab exercise: #1
+                            \column{.2\textwidth}
+                                \begin{flushright}
+                                     \includegraphics[scale=.5]{graph/logo_matlab}
+                                \end{flushright}
+                                %\vspace{6mm}
+                          \end{columns}}
+
+\newcommand{\addreference}[1]{  
+                  
+                    \begin{textblock*}{\baselineskip }(.98\paperwidth,.5\textheight) %(1.15\textwidth,.4\textheight)
+                         \begin{minipage}[b][.5\paperheight][b]{1cm}%
+                            \vfill%
+                             \rotatebox{90}{\tiny {#1}}
+                        \end{minipage}
+                   \end{textblock*}
+                    }
+                    
+\newcommand{\figwithmatlab}[1]{
+                    \begin{figure}
+                        \centering
+                        \includegraphics[scale=.7]{#1}
+                        %\label{fig:#1}
+                    \end{figure}
+                    
+                    \addreference{matlab source: \href{https://github.com/alexanderlerch/MUSI-6202/blob/main/matlab/plot#1.m}{plot#1.m}}}
+\newcommand{\figwithref}[2]{
+                    \begin{figure}
+                        \centering
+                        \includegraphics[scale=.7]{#1}
+                        \label{fig:#1}
+                    \end{figure}
+                    
+                    \addreference{#2}} 
+
+\newcommand{\figwithrefscale}[3]{
+                    \begin{figure}
+                        \centering
+                        \includegraphics[scale=#3]{#1}
+                        \label{fig:#1}
+                    \end{figure}
+                    
+                    \addreference{#2}} 
+                                    
+\newcommand{\inserticon}[1]{
+                    \begin{textblock*}{100mm}(14.5cm,7.5cm)
+                        \includegraphics[height=.8cm,keepaspectratio]{icon/#1}
+                    \end{textblock*}}            
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% counters
+\newcounter{i}
+\newcounter{j}
+\newcounter{iXOffset}
+\newcounter{iYOffset}
+\newcounter{iXBlockSize}
+\newcounter{iYBlockSize}
+\newcounter{iYBlockSizeDiv2}
+\newcounter{iXBlockSizeDiv2}
+\newcounter{iDistance}
+
+\newcommand{\IEEELink}{https://ieeexplore.ieee.org/servlet/opac?bknumber=9965970}
+
+
+\tikzset{
+    % Process nodes: all processes (train, normalize, fit, test, evaluate) use this style.
+    procnode/.style={
+        rectangle, 
+        draw, 
+        fill=green!30, 
+        font=\tiny,
+        rounded corners, 
+        text width=4em, 
+        align=center, 
+        minimum height=2em
+    },
+    testnode/.style={
+        rectangle, 
+        draw, 
+        fill=red!30, 
+        font=\tiny,
+        text width=4em, 
+        align=center, 
+        minimum height=2em
+    },
+    trainnode/.style={
+        rectangle, 
+        draw, 
+        fill=blue!30, 
+        font=\tiny,
+        text width=4em, 
+        align=center, 
+        minimum height=2em
+    },
+    % Predictor node: a special node with a different shape.
+    predictornode/.style={
+        ellipse, 
+        draw, 
+        fill=orange!30, 
+        font=\tiny,
+        minimum width=4em, 
+        align=center, 
+        minimum height=2em
+    },
+    % Prediction node: same shape as a process but with a different color.
+    prednode/.style={
+        rectangle, 
+        draw, 
+        fill=yellow!30, 
+        font=\tiny,
+        text width=4em, 
+        align=center, 
+        minimum height=2em
+    },
+    vertical lines/.style={
+    dashed,    % can also be "solid"
+    line width=0.5pt,
+    color=blue % or any other color
+  },
+  vertical lines onsets/.style={
+    dashed,    % can also be "solid"
+    line width=0.5pt,
+    color=red % or any other color
+  },
+  label box/.style={
+    fill=white,          % White background color
+    text=black,          % Text color
+    draw=black,          % Thin border around the box
+    rounded corners=1pt, % Rounded corners
+    inner sep=1pt,        % Padding between text & box edge
+    font=\large 
+  },
+  window/.style={
+    fill=red!20,    % semi-transparent red fill
+    draw=red,       % red outline
+    line width=1pt
+  },
+    arrow/.style={
+        ->, 
+        >=stealth, 
+        thick
+    }
+}

@@ -1,0 +1,26 @@
+\section{Module Overview}
+
+\begin{frame}\frametitle{Module Overview}
+\begin{columns}[T,totalwidth=\textwidth]
+    \column{0.56\textwidth}
+    \begin{itemize}
+        \item \texttt{DSP/}: \texttt{DualFilter}, \texttt{TrilinearMixer8}, oscillation and envelope logic.
+        \item \texttt{Plugin/}: processor/editor lifecycle and parameter plumbing.
+        \item \texttt{UI/}: mixer gain views and controls tied to DSP state.
+        \item \texttt{Tests/}: unit coverage for \texttt{DualFilter}, \texttt{TrilinearMixer8}, and math utilities.
+        \item \textbf{Flow:} MIDI/Input $\rightarrow$ Voice/DSP path $\rightarrow$ Mixer/Filter/Envelope $\rightarrow$ Output + UI feedback.
+    \end{itemize}
+
+    \column{0.44\textwidth}
+    \textbf{Block Diagram Placeholder}
+    \vspace{0.8ex}
+
+    \fbox{
+        \parbox[c][0.58\textheight][c]{0.95\linewidth}{
+            \centering
+
+            and place it here.
+        }
+    }
+\end{columns}
+\end{frame}
