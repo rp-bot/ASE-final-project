@@ -16,6 +16,8 @@ public:
 
     // data input/output
     void setCursorPosition (float x, float y, float z);
+    void mouseDown (const juce::MouseEvent& event) override;
+    void mouseDrag (const juce::MouseEvent& event) override;
 
     std::function<void(float,float,float)> onCursorChanged;
 
@@ -27,6 +29,9 @@ private:
 
     juce::OpenGLContext openGLContext;
     juce::Vector3D<float> cursor;
+    juce::Point<int> lastDragPosition;
+    float rotationX = 0.0f;
+    float rotationY = 35.0f;
 };
 
 }

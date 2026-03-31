@@ -18,6 +18,24 @@ void TrilinearCube::setCursorPosition (float x, float y, float z)
     cursor.z = juce::jlimit (0.0f, 1.0f, z);
 }
 
+void TrilinearCube::mouseDown (const juce::MouseEvent& event)
+{
+    lastDragPosition = event.getPosition();
+}
+
+void TrilinearCube::mouseDrag (const juce::MouseEvent& event)
+{
+    const auto position = event.getPosition();
+    const int dx = position.x - lastDragPosition.x;
+    const int dy = position.y - lastDragPosition.y;
+    lastDragPosition = position;
+
+    constexpr float sensitivity = 0.5f;
+    rotationY += static_cast<float> (dx) * sensitivity;
+    rotationX += static_cast<float> (dy) * sensitivity;
+    rotationX = juce::jlimit (-89.0f, 89.0f, rotationX);
+}
+
 void TrilinearCube::newOpenGLContextCreated()
 {
     juce::gl::glEnable (juce::gl::GL_DEPTH_TEST);
@@ -44,8 +62,8 @@ void TrilinearCube::renderOpenGL()
     juce::gl::glMatrixMode (juce::gl::GL_MODELVIEW);
     juce::gl::glLoadIdentity();
     juce::gl::glTranslatef (0.0f, 0.0f, -4.0f);
-    // juce::gl::glRotatef (25.0f, 1.0f, 0.0f, 0.0f);
-    juce::gl::glRotatef (35.0f, 0.0f, 1.0f, 0.0f);
+    juce::gl::glRotatef (rotationX, 1.0f, 0.0f, 0.0f);
+    juce::gl::glRotatef (rotationY, 0.0f, 1.0f, 0.0f);
 
     juce::gl::glColor4f (0.35f, 0.65f, 1.0f, 0.2f);
     juce::gl::glBegin (juce::gl::GL_QUADS);
