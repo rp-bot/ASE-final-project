@@ -92,7 +92,9 @@ void TrilinearCube::renderOpenGL()
     const int viewportX = (viewportWidth - squareSize) / 2;
     const int viewportY = (viewportHeight - squareSize) / 2;
     juce::gl::glViewport (viewportX, viewportY, squareSize, squareSize);
-    juce::OpenGLHelpers::clear (juce::Colours::transparentBlack);
+    // juce::OpenGLHelpers::clear (juce::Colours::transparentBlack);
+    juce::OpenGLHelpers::clear (juce::Colour(0xff323e44));
+
 
     juce::gl::glMatrixMode (juce::gl::GL_PROJECTION);
     juce::gl::glLoadIdentity();
