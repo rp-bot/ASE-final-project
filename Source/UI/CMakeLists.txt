@@ -8,4 +8,6 @@ target_sources("${PROJECT_NAME}"
         CenterControlPanel.cpp
         # TRILINEAR MIXER VISUALIZATION (remove these two lines when removing visualization)
         TrilinearMixerGainsView.h
-        TrilinearMixerGainsView.cpp)
+        TrilinearMixerGainsView.cpp
+        TrilinearCube.h
+        TrilinearCube.cpp)
