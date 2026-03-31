@@ -1,4 +1,5 @@
 #include "TrilinearCube.h"
+#include <cmath>
 
 namespace UI
 {
@@ -9,6 +10,7 @@ TrilinearCube::TrilinearCube()
     openGLContext.attachTo (*this);
 
     setCursorPosition (0.5f, 0.5f, 0.5f);
+    lastFrameTimeSeconds = juce::Time::getMillisecondCounterHiRes() * 0.001;
 }
 
 void TrilinearCube::setCursorPosition (float x, float y, float z)
@@ -20,6 +22,9 @@ void TrilinearCube::setCursorPosition (float x, float y, float z)
 
 void TrilinearCube::mouseDown (const juce::MouseEvent& event)
 {
+    isDragging = true;
+    angularVelX = 0.0f;
+    angularVelY = 0.0f;
     lastDragPosition = event.getPosition();
 }
 
@@ -31,9 +36,17 @@ void TrilinearCube::mouseDrag (const juce::MouseEvent& event)
     lastDragPosition = position;
 
     constexpr float sensitivity = 0.5f;
+    constexpr float velScale = 28.0f;
     rotationY += static_cast<float> (dx) * sensitivity;
     rotationX += static_cast<float> (dy) * sensitivity;
     rotationX = juce::jlimit (-89.0f, 89.0f, rotationX);
+    angularVelY = static_cast<float> (dx) * sensitivity * velScale;
+    angularVelX = static_cast<float> (dy) * sensitivity * velScale;
+}
+
+void TrilinearCube::mouseUp (const juce::MouseEvent&)
+{
+    isDragging = false;
 }
 
 void TrilinearCube::newOpenGLContextCreated()
@@ -84,6 +97,26 @@ void TrilinearCube::newOpenGLContextCreated()
 
 void TrilinearCube::renderOpenGL()
 {
+    const double nowSec = juce::Time::getMillisecondCounterHiRes() * 0.001;
+    float dt = static_cast<float> (nowSec - lastFrameTimeSeconds);
+    lastFrameTimeSeconds = nowSec;
+    if (dt > 0.05f)
+        dt = 0.05f;
+
+    if (! isDragging)
+    {
+        rotationY += angularVelY * dt;
+        rotationX += angularVelX * dt;
+        rotationX = juce::jlimit (-89.0f, 89.0f, rotationX);
+        const float decay = std::exp (-3.5f * dt);
+        angularVelX *= decay;
+        angularVelY *= decay;
+        if (std::abs (angularVelX) < 0.02f)
+            angularVelX = 0.0f;
+        if (std::abs (angularVelY) < 0.02f)
+            angularVelY = 0.0f;
+    }
+
     const auto area = getLocalBounds();
     const float scale = static_cast<float> (openGLContext.getRenderingScale());
     const int viewportWidth = juce::roundToInt (scale * static_cast<float> (area.getWidth()));

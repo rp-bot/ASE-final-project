@@ -18,6 +18,7 @@ public:
     void setCursorPosition (float x, float y, float z);
     void mouseDown (const juce::MouseEvent& event) override;
     void mouseDrag (const juce::MouseEvent& event) override;
+    void mouseUp (const juce::MouseEvent& event) override;
 
     std::function<void(float,float,float)> onCursorChanged;
 
@@ -34,6 +35,10 @@ private:
     juce::Point<int> lastDragPosition;
     float rotationX = 0.0f;
     float rotationY = 35.0f;
+    bool isDragging = false;
+    float angularVelX = 0.0f;
+    float angularVelY = 0.0f;
+    double lastFrameTimeSeconds = 0.0;
 };
 
 }
