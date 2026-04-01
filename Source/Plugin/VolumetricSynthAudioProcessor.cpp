@@ -19,7 +19,7 @@ VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
                      #endif
                        ),
        parameterManager (*this),
-       synthEngine (std::make_unique<Audio::SynthEngine> (&atomicGuiState)),
+       synthEngine (std::make_unique<Audio::SynthEngine> (&atomicGuiState, &parameterManager.getAPVTS())),
        midiManager (std::make_unique<IO::MidiManager> (*synthEngine))
 {
     auto& apvts = parameterManager.getAPVTS();

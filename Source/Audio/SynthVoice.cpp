@@ -1,59 +1,134 @@
 #include "SynthVoice.h"
 #include "SynthSound.h"
+#include "../Utils/Math3D.h"
 #include "../Utils/ScopedDenormals.h"
-#include <juce_audio_basics/juce_audio_basics.h>
 #include <cmath>
 
 namespace Audio
 {
-    SynthVoice::SynthVoice(DSP::WavetableBank* wavetableBank, Threading::AtomicGuiState* guiState)
-        : m_mixer(guiState)
+    namespace
+    {
+        void blendAmpAtCursor (const ParameterSnapshot& snap, float& attack, float& decay, float& sustain,
+                               float& release, float& level, float& velSens) noexcept
+        {
+            const glm::vec3 c = Utils::clampToUnitCube (snap.cursor);
+            const auto w = Utils::trilinearWeights (c);
+            attack = decay = release = level = velSens = 0.0f;
+            sustain = 0.0f;
+            for (int i = 0; i < NUM_OSCS; ++i)
+            {
+                const auto& o = snap.osc[static_cast<size_t> (i)];
+                const float wi = w[static_cast<size_t> (i)];
+                attack += wi * o.ampAttack;
+                decay += wi * o.ampDecay;
+                sustain += wi * o.ampSustain;
+                release += wi * o.ampRelease;
+                level += wi * o.ampLevel;
+                velSens += wi * o.ampVelSens;
+            }
+        }
+
+        float keyTrackedCutoffHz (float baseHz, float keyTrack, int midiNote) noexcept
+        {
+            const float semis = keyTrack * static_cast<float> (midiNote - 69);
+            const float hz = baseHz * std::pow (2.0f, semis / 12.0f);
+            return juce::jlimit (40.0f, 19000.0f, hz);
+        }
+
+        float resonanceFromNormalized (float q01) noexcept
+        {
+            return juce::jmap (juce::jlimit (0.0f, 1.0f, q01), 0.5f, 2.2f);
+        }
+    } // namespace
+
+    SynthVoice::SynthVoice (DSP::WavetableBank* wavetableBank)
     {
         for (size_t i = 0; i < 8; ++i)
         {
-            m_oscillators[i] = std::make_unique<DSP::WavetableOscillator>(wavetableBank);
-            static_cast<DSP::WavetableOscillator*>(m_oscillators[i].get())->setWavetable(static_cast<int>(i));
+            m_oscillators[i] = std::make_unique<DSP::WavetableOscillator> (wavetableBank);
+            static_cast<DSP::WavetableOscillator*> (m_oscillators[i].get())->setWavetable (static_cast<int> (i));
         }
     }
 
     SynthVoice::~SynthVoice() = default;
 
-    void SynthVoice::prepare(double sampleRate, int blockSize)
+    void SynthVoice::setParameterSnapshot (const ParameterSnapshot* snapshot) noexcept
+    {
+        m_snapshot = snapshot;
+    }
+
+    void SynthVoice::prepare (double sampleRate, int blockSize)
     {
         m_sampleRate = sampleRate;
 
-        m_oscillatorOutputs.setSize(8, blockSize);
-        m_mixerOutput.setSize(1, blockSize);
+        m_oscillatorOutputs.setSize (8, blockSize);
+        m_mixerOutput.setSize (2, blockSize);
 
-        for (auto& osc : m_oscillators)
-            osc->prepare(sampleRate);
-        m_mixer.prepare(sampleRate);
-        m_envelope.prepare(sampleRate);
+        const juce::dsp::ProcessSpec spec { sampleRate, 1, 1 };
+        for (size_t i = 0; i < 8; ++i)
+        {
+            if (m_oscillators[i] != nullptr)
+                m_oscillators[i]->prepare (sampleRate);
+            m_filters[i].prepare (spec);
+            m_filters[i].setType (juce::dsp::StateVariableTPTFilterType::lowpass);
+            m_filters[i].setResonance (1.0f / std::sqrt (2.0f));
+            m_cutoffSmoothers[i].reset (sampleRate, 0.02);
+            m_cutoffSmoothers[i].setCurrentAndTargetValue (4000.0f);
+        }
 
-        m_envelope.setADSR(0.01f, 0.1f, 0.7f, 0.3f);
+        m_mixer.prepare (sampleRate);
+        m_envelope.prepare (sampleRate);
+        m_envelope.setADSR (0.01f, 0.1f, 0.7f, 0.3f);
     }
 
-    bool SynthVoice::canPlaySound(juce::SynthesiserSound* sound)
+    bool SynthVoice::canPlaySound (juce::SynthesiserSound* sound)
     {
-        return dynamic_cast<SynthSound*>(sound) != nullptr;
+        return dynamic_cast<SynthSound*> (sound) != nullptr;
     }
 
-    void SynthVoice::startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound* /*sound*/,
-                              int currentPitchWheelPosition)
+    void SynthVoice::applyAmpEnvelopeFromSnapshot()
+    {
+        if (m_snapshot == nullptr)
+            return;
+
+        float a = 0.01f, d = 0.1f, s = 0.7f, r = 0.3f, lvl = 1.0f, vs = 0.5f;
+        blendAmpAtCursor (*m_snapshot, a, d, s, r, lvl, vs);
+        m_blendedAmpLevel = juce::jlimit (0.0f, 1.0f, lvl);
+        m_blendedVelSens = juce::jlimit (0.0f, 1.0f, vs);
+        m_envelope.setADSR (juce::jmax (0.0005f, a), juce::jmax (0.0005f, d), juce::jlimit (0.0f, 1.0f, s),
+                            juce::jmax (0.0005f, r));
+    }
+
+    void SynthVoice::startNote (int midiNoteNumber, float velocity, juce::SynthesiserSound* /*sound*/,
+                                int currentPitchWheelPosition)
     {
         m_midiNote = midiNoteNumber;
         m_currentVelocity = velocity;
         m_currentPitchWheelPosition = currentPitchWheelPosition;
         m_isActive = true;
 
-        // updateOscillatorFrequency();
         for (auto& osc : m_oscillators)
-            osc->reset();
+            if (osc != nullptr)
+                osc->reset();
+
+        for (size_t i = 0; i < 8; ++i)
+        {
+            m_filters[i].reset();
+            if (m_snapshot != nullptr)
+            {
+                const auto& o = m_snapshot->osc[i];
+                const float fc = keyTrackedCutoffHz (o.filterCutoffHz, o.filterKeyTrack, m_midiNote);
+                m_cutoffSmoothers[i].setCurrentAndTargetValue (fc);
+            }
+        }
+
+        applyAmpEnvelopeFromSnapshot();
         m_envelope.noteOn();
     }
 
-    void SynthVoice::stopNote(float /*velocity*/, bool allowTailOff)
+    void SynthVoice::stopNote (float /*velocity*/, bool allowTailOff)
     {
+        applyAmpEnvelopeFromSnapshot();
         m_envelope.noteOff();
         if (!allowTailOff)
         {
@@ -63,62 +138,73 @@ namespace Audio
         }
     }
 
-    void SynthVoice::pitchWheelMoved(int newPitchWheelValue)
+    void SynthVoice::pitchWheelMoved (int newPitchWheelValue)
     {
         m_currentPitchWheelPosition = newPitchWheelValue;
-        // updateOscillatorFrequency();
     }
 
-    void SynthVoice::controllerMoved(int /*controllerNumber*/, int /*newControllerValue*/)
+    void SynthVoice::controllerMoved (int /*controllerNumber*/, int /*newControllerValue*/)
     {
     }
 
-    void SynthVoice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
+    void SynthVoice::updateOscillatorFrequencies()
+    {
+        if (m_snapshot == nullptr)
+            return;
+
+        const float bendSemitones = 2.0f * static_cast<float> (m_currentPitchWheelPosition - 8192) / 8192.0f;
+        const double baseFreq = juce::MidiMessage::getMidiNoteInHertz (m_midiNote);
+
+        for (size_t i = 0; i < 8; ++i)
+        {
+            if (m_oscillators[i] == nullptr)
+                continue;
+
+            const auto& o = m_snapshot->osc[i];
+            static_cast<DSP::WavetableOscillator*> (m_oscillators[i].get())
+                ->setWavetable (juce::jlimit (0, 3, o.waveform));
+
+            const float totalSemitones = bendSemitones + o.coarse + o.fine + o.detune;
+            const float oscFreq =
+                static_cast<float> (baseFreq * std::pow (2.0, static_cast<double> (totalSemitones) / 12.0));
+            m_oscillators[i]->setFrequency (oscFreq);
+        }
+    }
+
+    void SynthVoice::renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
     {
         Utils::ScopedDenormals scopedDenormals;
-        Threading::AtomicGuiState* guiState = m_mixer.getGuiState();
 
         const int maxSamples = m_oscillatorOutputs.getNumSamples();
         if (numSamples <= 0 || maxSamples <= 0)
             return;
-        numSamples = std::min(numSamples, maxSamples);
-        if (m_mixerOutput.getNumSamples() < numSamples)
+        numSamples = juce::jmin (numSamples, maxSamples);
+        if (m_mixerOutput.getNumSamples() < numSamples || m_mixerOutput.getNumChannels() < 2)
             return;
 
-        // for (int s = 0; s < numSamples; ++s)
-        // {
-        //     for (size_t i = 0; i < 8; ++i)
-        //     {
-        //         if (m_oscillators[i] != nullptr)
-        //             m_oscillatorOutputs.setSample(static_cast<int>(i), s, m_oscillators[i]->processSample());
-        //     }
-        // }
-
-        // Apply corner params once per block
-        if (guiState != nullptr)
+        if (m_snapshot != nullptr)
         {
-            const float bendSemitones = 2.0f * (m_currentPitchWheelPosition - 8192) / 8192.0f; // just copying from the other pitchwheel implementation
-            const double baseFreq = juce::MidiMessage::getMidiNoteInHertz(m_midiNote);
+            applyAmpEnvelopeFromSnapshot();
+            updateOscillatorFrequencies();
 
-            for (size_t i = 0; i < 8; ++i) // TODO: can replace constant 8 with global
+            for (size_t i = 0; i < 8; ++i)
             {
-                if (m_oscillators[i] == nullptr)
-                    continue;
-
-                const CornerParams cp = guiState->getCorner(static_cast<int>(i));
-
-                // Waveform: switch wavetable slot
-                static_cast<DSP::WavetableOscillator*>(m_oscillators[i].get())
-                    ->setWavetable(static_cast<int>(cp.waveform));
-
-                // Frequency: pitch wheel + coarse (semitones) + fine (semitone fraction) + detune (semitones, ±1 range)
-                const float totalSemitones = bendSemitones + cp.coarse + cp.fine + cp.detune;
-                const float oscFreq = static_cast<float>(baseFreq * std::pow(2.0, static_cast<double>(totalSemitones) / 12.0));
-                m_oscillators[i]->setFrequency(oscFreq);
+                const auto& o = m_snapshot->osc[i];
+                const float fc = keyTrackedCutoffHz (o.filterCutoffHz, o.filterKeyTrack, m_midiNote);
+                m_cutoffSmoothers[i].setTargetValue (fc);
+                m_filters[i].setResonance (resonanceFromNormalized (o.filterResonance));
             }
         }
 
-        // Render each oscillator, scaling by its corner level
+        std::array<float, 8> pan {};
+        if (m_snapshot != nullptr)
+        {
+            for (int i = 0; i < NUM_OSCS; ++i)
+                pan[static_cast<size_t> (i)] = m_snapshot->osc[static_cast<size_t> (i)].pan;
+        }
+
+        const glm::vec3 cursor = m_snapshot != nullptr ? m_snapshot->cursor : glm::vec3 (0.5f, 0.5f, 0.5f);
+
         for (int s = 0; s < numSamples; ++s)
         {
             for (size_t i = 0; i < 8; ++i)
@@ -126,31 +212,42 @@ namespace Audio
                 if (m_oscillators[i] == nullptr)
                     continue;
 
-                const float raw = m_oscillators[i]->processSample();
-
-                // Scale by corner level if guiState available, otherwise pass through
-                const float level = (guiState != nullptr)
-                    ? guiState->getCorner(static_cast<int>(i)).level
-                    : 1.0f;
-
-                m_oscillatorOutputs.setSample(static_cast<int>(i), s, raw * level);
+                float sample = m_oscillators[i]->processSample();
+                float level = 1.0f;
+                float drive = 0.0f;
+                if (m_snapshot != nullptr)
+                {
+                    const auto& o = m_snapshot->osc[i];
+                    level = o.level;
+                    drive = o.filterDrive;
+                }
+                sample *= level;
+                const float driven = std::tanh (sample * (1.0f + drive * 4.0f));
+                const float fc = m_cutoffSmoothers[i].getNextValue();
+                m_filters[i].setCutoffFrequency (fc);
+                const float filtered = m_filters[i].processSample (0, driven);
+                m_oscillatorOutputs.setSample (static_cast<int> (i), s, filtered);
             }
         }
 
-        m_mixer.processBlock(m_oscillatorOutputs, m_mixerOutput, 0, numSamples);
+        m_mixer.processBlock (m_oscillatorOutputs, m_mixerOutput, 0, numSamples, cursor, pan);
 
-        const int numChannels = std::min(outputBuffer.getNumChannels(), 2);
-        constexpr float kHeadroomGain = 0.02f;  // ~-34 dB; audible, headroom for 8 oscillators
+        const int numChannels = juce::jmin (outputBuffer.getNumChannels(), 2);
+        constexpr float kHeadroomGain = 0.02f;
+        const float velScale =
+            juce::jlimit (0.0f, 1.0f, (1.0f - m_blendedVelSens) + m_blendedVelSens * m_currentVelocity);
+
         for (int s = 0; s < numSamples; ++s)
         {
             const float envVal = m_envelope.processSample();
-            const float mixed = m_mixerOutput.getSample(0, s);
-            const float gain = kHeadroomGain * mixed * envVal * m_currentVelocity;
+            const float mixedL = m_mixerOutput.getSample (0, s);
+            const float mixedR = m_mixerOutput.getNumChannels() > 1 ? m_mixerOutput.getSample (1, s) : mixedL;
+            const float gain = kHeadroomGain * envVal * velScale * m_blendedAmpLevel;
 
             const int outIndex = startSample + s;
-            outputBuffer.addSample(0, outIndex, gain);
+            outputBuffer.addSample (0, outIndex, mixedL * gain);
             if (numChannels >= 2)
-                outputBuffer.addSample(1, outIndex, gain);
+                outputBuffer.addSample (1, outIndex, mixedR * gain);
 
             if (!m_envelope.isActive())
             {
@@ -158,19 +255,6 @@ namespace Audio
                 m_isActive = false;
                 break;
             }
-        }
-    }
-
-    void SynthVoice::updateOscillatorFrequency()
-    {
-        const double baseFreq = juce::MidiMessage::getMidiNoteInHertz(m_midiNote);
-        const float bendSemitones = 2.0f * (m_currentPitchWheelPosition - 8192) / 8192.0f;
-        const float freq = static_cast<float>(baseFreq * std::pow(2.0, static_cast<double>(bendSemitones) / 12.0));
-
-        for (auto& osc : m_oscillators)
-        {
-            if (osc != nullptr)
-                osc->setFrequency(freq);
         }
     }
 }
