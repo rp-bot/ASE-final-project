@@ -67,6 +67,66 @@ public:
                 cornerName + "Pan",
                 juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f),
                 0.0f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerFilterCutoff (corner),
+                cornerName + "Filter Cutoff",
+                juce::NormalisableRange<float> (20.0f, 20000.0f, 1.0f, 0.25f),
+                4000.0f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerFilterResonance (corner),
+                cornerName + "Filter Resonance",
+                juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+                0.2f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerFilterKeyTrack (corner),
+                cornerName + "Filter Key Track",
+                juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+                0.5f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerFilterDrive (corner),
+                cornerName + "Filter Drive",
+                juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+                0.0f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerAmpAttack (corner),
+                cornerName + "Amp Attack",
+                juce::NormalisableRange<float> (0.001f, 5.0f, 0.001f, 0.4f),
+                0.01f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerAmpDecay (corner),
+                cornerName + "Amp Decay",
+                juce::NormalisableRange<float> (0.001f, 5.0f, 0.001f, 0.4f),
+                0.1f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerAmpSustain (corner),
+                cornerName + "Amp Sustain",
+                juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+                0.7f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerAmpRelease (corner),
+                cornerName + "Amp Release",
+                juce::NormalisableRange<float> (0.001f, 10.0f, 0.001f, 0.4f),
+                0.3f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerAmpLevel (corner),
+                cornerName + "Amp Level",
+                juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+                1.0f));
+
+            layout.add (std::make_unique<juce::AudioParameterFloat> (
+                ParameterIDs::cornerAmpVelSens (corner),
+                cornerName + "Amp Vel Sens",
+                juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+                0.5f));
         }
 
         return layout;

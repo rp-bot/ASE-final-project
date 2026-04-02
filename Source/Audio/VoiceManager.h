@@ -2,10 +2,10 @@
 
 #include <juce_audio_basics/juce_audio_basics.h>
 #include <memory>
+#include "ParameterSnapshot.h"
 #include "SynthVoice.h"
 #include "SynthSound.h"
 #include "../DSP/WavetableBank.h"
-#include "../Threading/AtomicGuiState.h"
 
 namespace Audio
 {
@@ -14,17 +14,20 @@ namespace Audio
     class VoiceManager
     {
     public:
-        explicit VoiceManager(Threading::AtomicGuiState* guiState) noexcept;
+        VoiceManager() noexcept;
         ~VoiceManager() = default;
 
-        void prepare(double sampleRate, int blockSize);
+        void prepare (double sampleRate, int blockSize);
 
-        void noteOn(int midiChannel, int midiNoteNumber, float velocity);
-        void noteOff(int midiChannel, int midiNoteNumber, float velocity, bool allowTailOff);
+        /** Call once per audio block before MIDI handling so noteOn sees current parameters. */
+        void setBlockParameterSnapshot (const ParameterSnapshot& snapshot) noexcept;
 
-        void renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
+        void noteOn (int midiChannel, int midiNoteNumber, float velocity);
+        void noteOff (int midiChannel, int midiNoteNumber, float velocity, bool allowTailOff);
 
-        void allNotesOff(bool allowTailOff = true);
+        void renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
+
+        void allNotesOff (bool allowTailOff = true);
 
         void reset();
 
@@ -36,9 +39,9 @@ namespace Audio
 
         juce::Synthesiser m_synthesiser;
         std::unique_ptr<DSP::WavetableBank> m_wavetableBank;
-        Threading::AtomicGuiState* m_guiState { nullptr };
+        ParameterSnapshot m_blockSnapshot {};
         bool m_voicesAdded { false };
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VoiceManager)
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VoiceManager)
     };
 }

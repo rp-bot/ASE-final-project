@@ -4,12 +4,17 @@
 
 namespace
 {
-constexpr std::array<const char*, UI::OscillatorModuleComponent::paramsPerModule> kParamNames
+constexpr std::array<int, 5> kSynthKnobIndices { 0, 1, 3, 4, 5 };
+
+constexpr std::array<const char*, UI::OscillatorModuleComponent::filterParams> kFilterNames
 {
-    "Level", "Detune", "Wave", "Coarse", "Fine", "Pan"
+    "Cutoff", "Res", "Key", "Drive"
 };
 
-constexpr std::array<int, 5> kKnobParamIndices { 0, 1, 3, 4, 5 };
+constexpr std::array<const char*, UI::OscillatorModuleComponent::ampParams> kAmpNames
+{
+    "Attack", "Decay", "Sustain", "Release", "Level", "Vel"
+};
 }
 
 namespace UI
@@ -24,6 +29,23 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
     titleLabel.setJustificationType (juce::Justification::centredLeft);
     titleLabel.setColour (juce::Label::textColourId, accent.brighter (0.3f));
     addAndMakeVisible (titleLabel);
+
+    auto styleTab = [this] (juce::TextButton& b)
+    {
+        b.setColour (juce::TextButton::buttonColourId, accent.withAlpha (0.12f));
+        b.setColour (juce::TextButton::buttonOnColourId, accent.withAlpha (0.4f));
+        b.setColour (juce::TextButton::textColourOffId, juce::Colours::lightgrey);
+        b.setColour (juce::TextButton::textColourOnId, juce::Colours::white);
+    };
+    styleTab (tabSynth);
+    styleTab (tabFilter);
+    styleTab (tabAmp);
+    tabSynth.onClick = [this] { setPage (Page::Synth); };
+    tabFilter.onClick = [this] { setPage (Page::Filter); };
+    tabAmp.onClick = [this] { setPage (Page::Amp); };
+    addAndMakeVisible (tabSynth);
+    addAndMakeVisible (tabFilter);
+    addAndMakeVisible (tabAmp);
 
     waveformSelector.addItem ("Sine", 1);
     waveformSelector.addItem ("Saw", 2);
@@ -44,28 +66,67 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
     waveformSelector.setColour (juce::PopupMenu::highlightedBackgroundColourId, accent.withAlpha (0.45f));
     waveformSelector.setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
     waveformSelector.onChange = [this] { updateWaveformPreviewFromSelector(); };
-    addAndMakeVisible (waveformSelector);
+    addChildComponent (waveformSelector);
 
     waveformPreview.setAccentColour (accent);
-    addAndMakeVisible (waveformPreview);
+    addChildComponent (waveformPreview);
 
-    waveformAttachment = std::make_unique<ComboBoxAttachment> (apvts, getCornerParameterId (2), waveformSelector);
+    waveformAttachment =
+        std::make_unique<ComboBoxAttachment> (apvts, getSynthParameterId (2), waveformSelector);
     updateWaveformPreviewFromSelector();
 
-    for (int paramIndex : kKnobParamIndices)
+    for (int paramIndex : kSynthKnobIndices)
     {
-        auto& slider = paramSliders[static_cast<size_t> (paramIndex)];
-        auto& label = paramLabels[static_cast<size_t> (paramIndex)];
-        configureRotarySlider (slider, label, kParamNames[static_cast<size_t> (paramIndex)]);
+        auto& slider = synthSliders[static_cast<size_t> (paramIndex)];
+        auto& label = synthLabels[static_cast<size_t> (paramIndex)];
+        static constexpr std::array<const char*, synthParams> kSynthNames
+        {
+            "Level", "Detune", "Wave", "Coarse", "Fine", "Pan"
+        };
+        configureRotarySlider (slider, label, kSynthNames[static_cast<size_t> (paramIndex)]);
         slider.setColour (juce::Slider::rotarySliderOutlineColourId, accent.withAlpha (0.25f));
         slider.setColour (juce::Slider::rotarySliderFillColourId, accent.withAlpha (0.9f));
         label.setColour (juce::Label::textColourId, juce::Colours::whitesmoke.withAlpha (0.9f));
-        addAndMakeVisible (slider);
-        addAndMakeVisible (label);
+        addChildComponent (slider);
+        addChildComponent (label);
 
-        paramAttachments[static_cast<size_t> (paramIndex)] =
-            std::make_unique<SliderAttachment> (apvts, getCornerParameterId (paramIndex), slider);
+        synthAttachments[static_cast<size_t> (paramIndex)] =
+            std::make_unique<SliderAttachment> (apvts, getSynthParameterId (paramIndex), slider);
     }
+
+    for (int i = 0; i < filterParams; ++i)
+    {
+        configureRotarySlider (filterSliders[static_cast<size_t> (i)], filterLabels[static_cast<size_t> (i)],
+                               kFilterNames[static_cast<size_t> (i)]);
+        filterSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderOutlineColourId,
+                                                          accent.withAlpha (0.25f));
+        filterSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderFillColourId,
+                                                          accent.withAlpha (0.9f));
+        filterLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
+                                                         juce::Colours::whitesmoke.withAlpha (0.9f));
+        addChildComponent (filterSliders[static_cast<size_t> (i)]);
+        addChildComponent (filterLabels[static_cast<size_t> (i)]);
+        filterAttachments[static_cast<size_t> (i)] =
+            std::make_unique<SliderAttachment> (apvts, getFilterParameterId (i), filterSliders[static_cast<size_t> (i)]);
+    }
+
+    for (int i = 0; i < ampParams; ++i)
+    {
+        configureRotarySlider (ampSliders[static_cast<size_t> (i)], ampLabels[static_cast<size_t> (i)],
+                               kAmpNames[static_cast<size_t> (i)]);
+        ampSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderOutlineColourId,
+                                                      accent.withAlpha (0.25f));
+        ampSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderFillColourId,
+                                                       accent.withAlpha (0.9f));
+        ampLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
+                                                      juce::Colours::whitesmoke.withAlpha (0.9f));
+        addChildComponent (ampSliders[static_cast<size_t> (i)]);
+        addChildComponent (ampLabels[static_cast<size_t> (i)]);
+        ampAttachments[static_cast<size_t> (i)] =
+            std::make_unique<SliderAttachment> (apvts, getAmpParameterId (i), ampSliders[static_cast<size_t> (i)]);
+    }
+
+    setPage (Page::Synth);
 }
 
 OscillatorModuleComponent::~OscillatorModuleComponent()
@@ -84,36 +145,131 @@ void OscillatorModuleComponent::paint (juce::Graphics& g)
 void OscillatorModuleComponent::resized()
 {
     auto inner = getLocalBounds().reduced (4);
-    titleLabel.setBounds (inner.removeFromTop (16));
-    inner.removeFromTop (2);
+    auto header = inner.removeFromTop (22);
+    titleLabel.setBounds (header.removeFromLeft (juce::jmin (88, header.getWidth() / 2)));
+    header.removeFromLeft (6);
+    const int tabW = juce::jmin (52, (header.getWidth() - 12) / 3);
+    tabSynth.setBounds (header.removeFromLeft (tabW));
+    header.removeFromLeft (4);
+    tabFilter.setBounds (header.removeFromLeft (tabW));
+    header.removeFromLeft (4);
+    tabAmp.setBounds (header.removeFromLeft (tabW));
 
+    inner.removeFromTop (4);
+    if (activePage == Page::Synth)
+        layoutSynthPage (inner);
+    else if (activePage == Page::Filter)
+        layoutFilterPage (inner);
+    else
+        layoutAmpPage (inner);
+}
+
+void OscillatorModuleComponent::setPage (Page page)
+{
+    activePage = page;
+    const bool synth = (page == Page::Synth);
+    const bool filt = (page == Page::Filter);
+    const bool amp = (page == Page::Amp);
+
+    waveformSelector.setVisible (synth);
+    waveformPreview.setVisible (synth);
+    for (int paramIndex : kSynthKnobIndices)
+    {
+        synthSliders[static_cast<size_t> (paramIndex)].setVisible (synth);
+        synthLabels[static_cast<size_t> (paramIndex)].setVisible (synth);
+    }
+
+    for (int i = 0; i < filterParams; ++i)
+    {
+        filterSliders[static_cast<size_t> (i)].setVisible (filt);
+        filterLabels[static_cast<size_t> (i)].setVisible (filt);
+    }
+
+    for (int i = 0; i < ampParams; ++i)
+    {
+        ampSliders[static_cast<size_t> (i)].setVisible (amp);
+        ampLabels[static_cast<size_t> (i)].setVisible (amp);
+    }
+
+    refreshTabColours();
+    resized();
+}
+
+void OscillatorModuleComponent::refreshTabColours()
+{
+    auto apply = [this] (juce::TextButton& b, bool selected)
+    {
+        b.setColour (juce::TextButton::buttonColourId,
+                     selected ? accent.withAlpha (0.38f) : accent.withAlpha (0.12f));
+        b.setColour (juce::TextButton::textColourOffId,
+                     selected ? juce::Colours::white : juce::Colours::lightgrey);
+    };
+    apply (tabSynth, activePage == Page::Synth);
+    apply (tabFilter, activePage == Page::Filter);
+    apply (tabAmp, activePage == Page::Amp);
+}
+
+void OscillatorModuleComponent::layoutSynthPage (juce::Rectangle<int> area)
+{
     constexpr int knobGap = 4;
-    const auto knobCount = static_cast<int> (kKnobParamIndices.size());
-    const auto totalCells = knobCount + 1; // one cell reserved for waveform preview
-    const auto cellWidth = (inner.getWidth() - (knobGap * (totalCells - 1))) / totalCells;
+    const auto knobCount = static_cast<int> (kSynthKnobIndices.size());
+    const auto totalCells = knobCount + 1;
+    const auto cellWidth = (area.getWidth() - (knobGap * (totalCells - 1))) / totalCells;
 
-    auto previewArea = inner.removeFromLeft (cellWidth);
+    auto previewArea = area.removeFromLeft (cellWidth);
     auto waveUnit = previewArea.reduced (0, 2);
     auto selectorArea = waveUnit.removeFromTop (20);
     waveformSelector.setBounds (selectorArea);
     waveUnit.removeFromTop (2);
     waveformPreview.setBounds (waveUnit);
-    inner.removeFromLeft (knobGap);
+    area.removeFromLeft (knobGap);
 
     for (int index = 0; index < knobCount; ++index)
     {
-        const auto paramIndex = kKnobParamIndices[static_cast<size_t> (index)];
-        auto knobArea = inner.removeFromLeft (cellWidth);
+        const auto paramIndex = kSynthKnobIndices[static_cast<size_t> (index)];
+        auto knobArea = area.removeFromLeft (cellWidth);
         if (index < knobCount - 1)
-            inner.removeFromLeft (knobGap);
+            area.removeFromLeft (knobGap);
 
         auto sliderArea = knobArea.removeFromTop (juce::jmax (32, knobArea.getHeight() - 14));
-        paramSliders[static_cast<size_t> (paramIndex)].setBounds (sliderArea);
-        paramLabels[static_cast<size_t> (paramIndex)].setBounds (knobArea);
+        synthSliders[static_cast<size_t> (paramIndex)].setBounds (sliderArea);
+        synthLabels[static_cast<size_t> (paramIndex)].setBounds (knobArea);
     }
 }
 
-juce::String OscillatorModuleComponent::getCornerParameterId (int paramIndex) const
+void OscillatorModuleComponent::layoutFilterPage (juce::Rectangle<int> area)
+{
+    constexpr int gap = 4;
+    const int n = filterParams;
+    const int cellW = (area.getWidth() - gap * (n - 1)) / n;
+    for (int i = 0; i < n; ++i)
+    {
+        auto cell = area.removeFromLeft (cellW);
+        if (i < n - 1)
+            area.removeFromLeft (gap);
+        auto sliderArea = cell.removeFromTop (juce::jmax (32, cell.getHeight() - 14));
+        filterSliders[static_cast<size_t> (i)].setBounds (sliderArea);
+        filterLabels[static_cast<size_t> (i)].setBounds (cell);
+    }
+}
+
+void OscillatorModuleComponent::layoutAmpPage (juce::Rectangle<int> area)
+{
+    constexpr int gap = 4;
+    const int n = ampParams;
+    const int cellW = (area.getWidth() - gap * (n - 1)) / n;
+    for (int i = 0; i < n; ++i)
+    {
+        auto cell = area.removeFromLeft (cellW);
+        if (i < n - 1)
+            area.removeFromLeft (gap);
+        auto sliderArea = cell.removeFromTop (juce::jmax (28, cell.getHeight() - 12));
+        ampSliders[static_cast<size_t> (i)].setBounds (sliderArea);
+        ampLabels[static_cast<size_t> (i)].setBounds (cell);
+    }
+}
+
+juce::String OscillatorModuleComponent::getSynthParameterId (int paramIndex) const
 {
     switch (paramIndex)
     {
@@ -123,6 +279,38 @@ juce::String OscillatorModuleComponent::getCornerParameterId (int paramIndex) co
         case 3: return ParameterIDs::cornerCoarse (corner);
         case 4: return ParameterIDs::cornerFine (corner);
         case 5: return ParameterIDs::cornerPan (corner);
+        default: break;
+    }
+
+    jassertfalse;
+    return {};
+}
+
+juce::String OscillatorModuleComponent::getFilterParameterId (int paramIndex) const
+{
+    switch (paramIndex)
+    {
+        case 0: return ParameterIDs::cornerFilterCutoff (corner);
+        case 1: return ParameterIDs::cornerFilterResonance (corner);
+        case 2: return ParameterIDs::cornerFilterKeyTrack (corner);
+        case 3: return ParameterIDs::cornerFilterDrive (corner);
+        default: break;
+    }
+
+    jassertfalse;
+    return {};
+}
+
+juce::String OscillatorModuleComponent::getAmpParameterId (int paramIndex) const
+{
+    switch (paramIndex)
+    {
+        case 0: return ParameterIDs::cornerAmpAttack (corner);
+        case 1: return ParameterIDs::cornerAmpDecay (corner);
+        case 2: return ParameterIDs::cornerAmpSustain (corner);
+        case 3: return ParameterIDs::cornerAmpRelease (corner);
+        case 4: return ParameterIDs::cornerAmpLevel (corner);
+        case 5: return ParameterIDs::cornerAmpVelSens (corner);
         default: break;
     }
 
@@ -168,10 +356,10 @@ void OscillatorModuleComponent::WaveformPreviewComponent::paint (juce::Graphics&
 
         switch (waveformIndex)
         {
-            case 0: sample = std::sin (phase); break;                                     // sine
-            case 1: sample = (2.0f * t) - 1.0f; break;                                    // saw
-            case 2: sample = (t < 0.5f) ? 1.0f : -1.0f; break;                            // square
-            case 3: sample = (2.0f * std::abs (2.0f * t - 1.0f)) - 1.0f; break;          // triangle
+            case 0: sample = std::sin (phase); break;
+            case 1: sample = (2.0f * t) - 1.0f; break;
+            case 2: sample = (t < 0.5f) ? 1.0f : -1.0f; break;
+            case 3: sample = (2.0f * std::abs (2.0f * t - 1.0f)) - 1.0f; break;
             default: sample = std::sin (phase); break;
         }
 
@@ -197,7 +385,8 @@ void OscillatorModuleComponent::AccentComboLookAndFeel::drawComboBox (juce::Grap
                                                                       int,
                                                                       juce::ComboBox&)
 {
-    const auto bounds = juce::Rectangle<float> (0.0f, 0.0f, static_cast<float> (width), static_cast<float> (height)).reduced (0.5f);
+    const auto bounds =
+        juce::Rectangle<float> (0.0f, 0.0f, static_cast<float> (width), static_cast<float> (height)).reduced (0.5f);
     g.setColour (accent.withAlpha (0.15f));
     g.fillRoundedRectangle (bounds, 3.0f);
     g.setColour (accent.withAlpha (0.7f));

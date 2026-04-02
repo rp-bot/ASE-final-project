@@ -3,6 +3,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <memory>
 #include "../Parameters/ParameterManager.h"
+#include "../Parameters/ParameterCorners.h"
 #include "../Threading/AtomicGuiState.h"
 
 namespace Audio
@@ -55,7 +56,7 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
-    
+
     ParameterManager& getParameterManager() { return parameterManager; }
 
     // ---- GUI state bridge (message thread write / audio thread read) ----
@@ -74,7 +75,10 @@ public:
 
 private:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
+
+    void syncParamsToGuiState();
     void syncCursorParamsToGuiState();
+    void syncCornerParamsToGuiState();
 
     ParameterManager parameterManager;
     Threading::AtomicGuiState atomicGuiState;
