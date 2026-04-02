@@ -1,25 +1,140 @@
-\section{Module Overview}
+\section{Architecture Overview}
 
-\begin{frame}\frametitle{Module Overview}
+\begin{frame}\frametitle{\secname}\framesubtitle{Section Roadmap}
+\begin{itemize}[<+->]
+    \item Codebase structure overview.
+    \item Views: \texttt{Plugin}, \texttt{Visualization}, \texttt{Audio Engine}.
+    \item Stack: \texttt{JUCE} + \texttt{OpenGL}.
+    \item Per-view diagrams
+    \item Final frame: cross-module connections.
+\end{itemize}
+\end{frame}
+
+\begin{frame}\frametitle{\secname}\framesubtitle{Plugin}
 \begin{columns}[T,totalwidth=\textwidth]
     \column{0.56\textwidth}
-    \begin{itemize}
-        \item \texttt{DSP/}: \texttt{DualFilter}, \texttt{TrilinearMixer8}, oscillation and envelope logic.
-        \item \texttt{Plugin/}: processor/editor lifecycle and parameter plumbing.
-        \item \texttt{UI/}: mixer gain views and controls tied to DSP state.
-        \item \texttt{Tests/}: unit coverage for \texttt{DualFilter}, \texttt{TrilinearMixer8}, and math utilities.
-        \item \textbf{Flow:} MIDI/Input $\rightarrow$ Voice/DSP path $\rightarrow$ Mixer/Filter/Envelope $\rightarrow$ Output + UI feedback.
+    \begin{itemize}[<+->]
+        \item Host-facing plugin core and lifecycle.
+        \item Main editor and UI composition root.
+        \item Centralized parameter model (APVTS).
+        \item Lock-free UI/audio state bridge.
+        \item \textbf{Flow:} host $\rightarrow$ processor $\rightarrow$ audio + UI sync.
+
     \end{itemize}
 
     \column{0.44\textwidth}
-    \textbf{Block Diagram Placeholder}
+    \only<1>{\textbf{Processor Class Card}}
+    \only<2>{\textbf{Editor Class Card}}
+    \only<3>{\textbf{Parameter Manager Class Card}}
+    \only<4>{\textbf{Atomic GUI State Class Card}}
+    \only<5>{\textbf{MIDI Manager Class Card}}
     \vspace{0.8ex}
 
     \fbox{
         \parbox[c][0.58\textheight][c]{0.95\linewidth}{
             \centering
+            \only<1>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/synth_processor.png}}
+            \only<2>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/synth_editor.drawio.png}}
+            \only<3>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/param_manager.drawio.png}}
+            \only<4>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/atomic_gui_state.drawio.png}}
+            \only<5>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/midi_manager.drawio.png}}
+        }
+    }
+\end{columns}
+\end{frame}
 
-            and place it here.
+\begin{frame}\frametitle{\secname}\framesubtitle{Visualization}
+\begin{columns}[T,totalwidth=\textwidth]
+    \column{0.56\textwidth}
+    \begin{itemize}[<+->]
+        \item Central panel for cursor and trajectory control.
+        \item Real-time 8-corner gain visualization.
+        \item Per-corner oscillator control modules.
+        \item 3D state bridge into DSP.
+        \item \textbf{Flow:} user input $\rightarrow$ state update $\rightarrow$ DSP feedback.
+
+    \end{itemize}
+
+    \column{0.44\textwidth}
+    \only<1>{\textbf{Center Control Panel Class Card}}
+    \only<2>{\textbf{Mixer Gains View Class Card}}
+    \only<3>{\textbf{Oscillator Module Class Card}}
+    \only<4>{\textbf{Atomic GUI State Class Card}}
+    \only<5>{\textbf{Center Control Recap}}
+    \vspace{0.8ex}
+
+    \fbox{
+        \parbox[c][0.58\textheight][c]{0.95\linewidth}{
+            \centering
+            \only<1>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/central_control.drawio.png}}
+            \only<2>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/mixer_gains.drawio.png}}
+            \only<3>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/oscillator.drawio.png}}
+            \only<4>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/atomic_gui_state.drawio.png}}
+            \only<5>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/central_control.drawio.png}}
+        }
+    }
+\end{columns}
+\end{frame}
+
+\begin{frame}\frametitle{\secname}\framesubtitle{Audio Engine}
+\begin{columns}[T,totalwidth=\textwidth]
+    \column{0.56\textwidth}
+    \begin{itemize}[<+->]
+        \item MIDI and audio block orchestration.
+        \item Voice allocation and note lifecycle.
+        \item Per-voice synthesis signal path.
+        \item Oscillator stage for tone generation.
+        \item Mixer + envelope stage for shaping and level.
+        \item \textbf{Flow:} MIDI/input $\rightarrow$ voice path $\rightarrow$ DSP shaping $\rightarrow$ output.
+
+    \end{itemize}
+
+    \column{0.44\textwidth}
+    \only<1>{\textbf{Synth Engine Class Card}}
+    \only<2>{\textbf{Voice Manager Class Card}}
+    \only<3>{\textbf{Synth Voice Class Card}}
+    \only<4>{\textbf{Oscillator Class Card}}
+    \only<5>{\textbf{Trilinear Mixer Class Card}}
+    \only<6>{\textbf{Amplitude Envelope Class Card}}
+    \vspace{0.8ex}
+
+    \fbox{
+        \parbox[c][0.58\textheight][c]{0.95\linewidth}{
+            \centering
+            \only<1>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/synth_engine.drawio.png}}
+            \only<2>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/voice_manager.drawio.png}}
+            \only<3>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/synth_voice.drawio.png}}
+            \only<4>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/oscillator.drawio.png}}
+            \only<5>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/trilinear_mixer.drawio.png}}
+            \only<6>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/amp_envelope.drawio.png}}
+        }
+    }
+\end{columns}
+\end{frame}
+
+\begin{frame}\frametitle{\secname}\framesubtitle{End-to-End Integration}
+\begin{columns}[T,totalwidth=\textwidth]
+    \column{0.56\textwidth}
+    \begin{itemize}[<+->]
+        \item User interaction enters through the editor layer.
+        \item Control and state propagate into real-time paths.
+        \item Plugin core coordinates MIDI and synthesis runtime.
+        \item Rendering path flows from engine to voices to DSP output.
+        \item \textbf{Flow:} UI $\rightarrow$ control/state bridge $\rightarrow$ processor $\rightarrow$ audio output.
+    \end{itemize}
+
+    \column{0.44\textwidth}
+    \only<1>{\textbf{System Integration Overview}}
+    \only<2>{\textbf{Control Path Focus}}
+    \only<3>{\textbf{Processor Coordination Focus}}
+    \only<4>{\textbf{Render Pipeline Focus}}
+    \only<5>{\textbf{End-to-End Architecture}}
+    \vspace{0.8ex}
+
+    \fbox{
+        \parbox[c][0.58\textheight][c]{0.95\linewidth}{
+            \centering
+            \only<1-5>{\includegraphics[width=\linewidth,height=0.5\textheight,keepaspectratio]{figures/volumetric_synth_arch.png}}
         }
     }
 \end{columns}
