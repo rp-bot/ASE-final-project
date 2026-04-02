@@ -79,26 +79,30 @@ classDiagram
 
 ```mermaid
 classDiagram
-    class UI_CenterControlPanel {
+    class UI_TrilinearCube {
         +setCursorPosition(x, y, z)
-        +setTrajectoryActive(isActive)
+        +mouseDown(event)
+        +mouseDrag(event)
+        +mouseUp(event)
+        +renderOpenGL()
+    }
+
+    class Threading_AtomicGuiState {
+        +setCursorPosition(x, y, z)
+        +setTrajectoryActive(active)
+        +getCursorPosition() vec3
+    }
+
+    class UI_CenterControlPanel {
         +setCursorChangedCallback(callback)
-        +setTrajectoryChangedCallback(callback)
-    }
-
-    class UI_TrilinearMixerGainsView {
-        +setPosition(x, y, z)
+        +setCursorPosition(x, y, z)
         +paint(g)
     }
 
-    class UI_OscillatorModuleComponent {
-        +paint(g)
-        +resized()
-    }
-
-    class UI_WaveformPreviewComponent {
-        +setWaveformIndex(index)
-        +paint(g)
+    class juce_OpenGLContext {
+        +attachTo(component)
+        +setRenderer(renderer)
+        +setContinuousRepainting(enabled)
     }
 ```
 
@@ -116,6 +120,7 @@ classDiagram
     class Audio_VoiceManager
     class Audio_SynthVoice
     class DSP_TrilinearMixer8
+    class Audio_Output
 
     VolumetricSynthEditor --> UI_CenterControlPanel : hosts
     VolumetricSynthEditor --> VolumetricSynthAudioProcessor : edits
@@ -129,4 +134,5 @@ classDiagram
     Audio_VoiceManager --> Audio_SynthVoice : active voices
     Audio_SynthVoice --> DSP_TrilinearMixer8 : dsp mix
     DSP_TrilinearMixer8 --> Threading_AtomicGuiState : reads cursor
+    Audio_SynthEngine --> Audio_Output : writes buffer
 ```
