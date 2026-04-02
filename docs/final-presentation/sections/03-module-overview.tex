@@ -1,13 +1,30 @@
 \section{Architecture Overview}
 
-\begin{frame}\frametitle{\secname}\framesubtitle{Section Roadmap}
-\begin{itemize}[<+->]
-    \item Codebase structure overview.
-    \item Views: \texttt{Plugin}, \texttt{Visualization}, \texttt{Audio Engine}.
-    \item Stack: \texttt{JUCE} + \texttt{OpenGL}.
-    \item Per-view diagrams
-    \item Final frame: cross-module connections.
+\begin{frame}[t]\frametitle{\secname}\framesubtitle{Section Roadmap}
+\begin{itemize}
+    \item<1-> Codebase structure overview.
+    \item<2-> Views: \texttt{Plugin}, \texttt{Visualization}, \texttt{Audio Engine}.
+    \item<3-> Stack: \texttt{JUCE} + \texttt{OpenGL}.
+    \item<4-> Per-view diagrams
+    \item<5-> Final frame: cross-module connections.
 \end{itemize}
+\uncover<6->{
+\vfill
+\centering
+\begin{tikzpicture}[node distance=1.2cm, >=stealth, every node/.style={font=\small, align=center}]
+    \node (user) [draw, rounded corners, inner sep=3pt] {User\\interaction};
+    \node (plugin) [draw, rounded corners, inner sep=3pt, right=of user] {Plugin};
+    \node (vis) [draw, rounded corners, inner sep=3pt, text width=2.35cm, right=of plugin] {Visualization};
+    \node (audio) [draw, rounded corners, inner sep=3pt, right=of vis] {Audio\\Engine};
+    \node (out) [draw, rounded corners, inner sep=3pt, right=of audio] {Output};
+
+    \draw[->] (user) -- (plugin);
+    \draw[->] (plugin) -- (vis);
+    \draw[->] (vis) -- (audio);
+    \draw[->] (audio) -- (out);
+\end{tikzpicture}
+\vfill
+}
 \end{frame}
 
 \begin{frame}\frametitle{\secname}\framesubtitle{Plugin}
