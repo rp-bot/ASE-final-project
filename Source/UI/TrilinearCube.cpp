@@ -36,7 +36,7 @@ void TrilinearCube::mouseDrag (const juce::MouseEvent& event)
     lastDragPosition = position;
 
     constexpr float sensitivity = 0.5f;
-    constexpr float velScale = 28.0f;
+    constexpr float velScale = 28.0f; //change for stronger/weaker cube throw
     rotationY += static_cast<float> (dx) * sensitivity;
     rotationX += static_cast<float> (dy) * sensitivity;
     rotationX = juce::jlimit (-89.0f, 89.0f, rotationX);
@@ -73,8 +73,7 @@ void TrilinearCube::newOpenGLContextCreated()
         {
             vec3 base = vec3 (0.10, 0.45, 1.00);
             float pulse = 0.5 + 0.5 * sin (uTime * 2.0 + dot (vPosition, vec3 (2.0, 2.0, 2.0)));
-            float depthGlow = 0.35 + 0.65 * (1.0 - abs (vPosition.z));
-            vec3 colour = base * (0.65 + 0.35 * pulse) * depthGlow;
+            vec3 colour = base * (0.65 + 0.35 * pulse);
             float alpha = 0.22 + 0.18 * pulse;
             gl_FragColor = vec4 (colour, alpha);
         }
@@ -135,7 +134,7 @@ void TrilinearCube::renderOpenGL()
 
     juce::gl::glMatrixMode (juce::gl::GL_MODELVIEW);
     juce::gl::glLoadIdentity();
-    juce::gl::glTranslatef (0.0f, 0.0f, -4.0f);
+    juce::gl::glTranslatef (0.0f, 0.0f, -3.8f);
     juce::gl::glRotatef (rotationX, 1.0f, 0.0f, 0.0f);
     juce::gl::glRotatef (rotationY, 0.0f, 1.0f, 0.0f);
 
@@ -193,7 +192,26 @@ void TrilinearCube::renderOpenGL()
     const auto py = map (cursor.y);
     const auto pz = map (cursor.z);
 
-    juce::gl::glPointSize (8.0f);
+    const float radY = juce::degreesToRadians (rotationY);
+    const float radX = juce::degreesToRadians (rotationX);
+    const float cy = std::cos (radY);
+    const float sy = std::sin (radY);
+    const float cx = std::cos (radX);
+    const float sx = std::sin (radX);
+    const float x1 = cy * px + sy * pz;
+    const float y1 = py;
+    const float z1 = -sy * px + cy * pz;
+    const float ex = x1;
+    const float ey = cx * y1 - sx * z1;
+    const float ez = sx * y1 + cx * z1 - 4.0f;
+    const float dist = juce::jmax (0.15f, std::sqrt (ex * ex + ey * ey + ez * ez));
+
+    constexpr float basePointSize = 10.0f;
+    constexpr float distScale = 2.8f;
+    constexpr float minPointSize = 3.0f;
+    constexpr float maxPointSize = 24.0f;
+    const float pointSize = juce::jlimit (minPointSize, maxPointSize, basePointSize * distScale / dist);
+    juce::gl::glPointSize (pointSize);
     juce::gl::glColor4f (1.0f, 0.3f, 0.3f, 1.0f);
     juce::gl::glBegin (juce::gl::GL_POINTS);
     juce::gl::glVertex3f (px, py, pz);
