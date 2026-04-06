@@ -6,9 +6,6 @@ namespace UI
 CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvts)
     : apvtsPtr (&apvts)
 {
-    viewPanel.setFilledBackground (true);
-    addAndMakeVisible (viewPanel);
-    // TRILINEAR MIXER VISUALIZATION
     addAndMakeVisible (mixerGainsView);
 
     configureRotarySlider (xSlider, xLabel, "X");
@@ -116,9 +113,7 @@ void CenterControlPanel::resized()
 {
     auto inner = getLocalBounds().reduced (8);
     auto viewArea = inner.removeFromTop (juce::roundToInt (inner.getHeight() * 0.45f));
-    constexpr int titleHeight = 22;
-    viewPanel.setBounds (viewArea.removeFromTop (titleHeight));
-    // TRILINEAR MIXER VISUALIZATION (if removing, give full viewArea to viewPanel instead)
+
     mixerGainsView.setBounds (viewArea.reduced (2));
     inner.removeFromTop (6);
 

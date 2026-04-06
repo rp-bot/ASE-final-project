@@ -3,7 +3,6 @@
 #include <functional>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "LabeledPanel.h"
 // TRILINEAR MIXER VISUALIZATION
 #include "TrilinearMixerGainsView.h"
 
@@ -36,7 +35,6 @@ private:
     void updateReadoutAndGainsFromParams();
 
     juce::AudioProcessorValueTreeState* apvtsPtr { nullptr };
-    LabeledPanel viewPanel { "Mixer gains" };  // TRILINEAR MIXER VISUALIZATION: revert to "3D view placeholder" if removing
     TrilinearMixerGainsView mixerGainsView;   // TRILINEAR MIXER VISUALIZATION
     juce::Slider xSlider;
     juce::Slider ySlider;
