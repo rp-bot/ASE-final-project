@@ -11,6 +11,14 @@ namespace Visualization
     {
         attachedComponent_ = &component;
 
+#if JUCE_MAC
+        // macOS can fall back to an older profile unless we explicitly request core OpenGL.
+        // The renderer shaders target GLSL 330, which requires a modern context.
+        openGLContext_.setOpenGLVersionRequired(juce::OpenGLContext::OpenGLVersion::openGL4_1);
+#else
+        openGLContext_.setOpenGLVersionRequired(juce::OpenGLContext::OpenGLVersion::openGL3_2);
+#endif
+
         openGLContext_.setRenderer(this);
         openGLContext_.setContinuousRepainting(true);
         openGLContext_.attachTo(component);

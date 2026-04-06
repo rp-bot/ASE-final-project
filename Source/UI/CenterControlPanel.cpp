@@ -34,6 +34,7 @@ CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvt
     };
 
     xyJoystick.setXYSliders (&xSlider, &ySlider);
+    xyJoystick.setScrollSlider (&heightSlider);
     addAndMakeVisible (xyJoystick);
 
     addAndMakeVisible (xLabel);

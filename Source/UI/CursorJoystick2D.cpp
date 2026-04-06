@@ -28,6 +28,11 @@ void CursorJoystick2D::setXYSliders (juce::Slider* xSlider, juce::Slider* ySlide
         ySlider_->addListener (this);
 }
 
+void CursorJoystick2D::setScrollSlider (juce::Slider* scrollSlider) noexcept
+{
+    scrollSlider_ = scrollSlider;
+}
+
 void CursorJoystick2D::sliderValueChanged (juce::Slider*)
 {
     repaint();
@@ -75,6 +80,24 @@ void CursorJoystick2D::paint (juce::Graphics& g)
 void CursorJoystick2D::mouseDown (const juce::MouseEvent& e) { updateFromLocalPosition (e.position); }
 
 void CursorJoystick2D::mouseDrag (const juce::MouseEvent& e) { updateFromLocalPosition (e.position); }
+
+void CursorJoystick2D::mouseWheelMove (const juce::MouseEvent&, const juce::MouseWheelDetails& wheel)
+{
+    if (scrollSlider_ == nullptr)
+        return;
+
+    const double minValue = scrollSlider_->getMinimum();
+    const double maxValue = scrollSlider_->getMaximum();
+    const double range = maxValue - minValue;
+
+    if (range <= 0.0)
+        return;
+
+    // Scale wheel delta to a practical normalized step amount.
+    const double delta = static_cast<double> (wheel.deltaY) * 0.08 * range;
+    const double newValue = juce::jlimit (minValue, maxValue, scrollSlider_->getValue() + delta);
+    scrollSlider_->setValue (newValue, juce::sendNotificationSync);
+}
 
 void CursorJoystick2D::updateFromLocalPosition (juce::Point<float> localPos)
 {
