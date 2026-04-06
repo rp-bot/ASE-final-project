@@ -14,9 +14,10 @@ namespace Visualization
         void initialise();
         void shutdown();
 
-        // Render the cube as a wireframe in the current OpenGL context.
+        /** Wireframe edges; \p timeSec drives the same pulse as the translucent cube faces. */
         void render(const glm::mat4& viewMatrix,
-                    const glm::mat4& projectionMatrix) const;
+                    const glm::mat4& projectionMatrix,
+                    float timeSec) const;
 
         void setBounds(const glm::vec3& minBounds,
                        const glm::vec3& maxBounds);
@@ -34,6 +35,7 @@ namespace Visualization
         unsigned int vbo_{ 0 };
         unsigned int ebo_{ 0 };
         unsigned int shaderProgram_{ 0 };
+        int uTimeUniform_{ -1 };
 
         bool buffersDirty_{ true };
     };

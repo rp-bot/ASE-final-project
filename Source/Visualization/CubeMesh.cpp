@@ -26,8 +26,13 @@ void main() {
 )";
         constexpr const char* fragmentShaderSource = R"(#version 330 core
 out vec4 fragColor;
+uniform float uTime;
 void main() {
-    fragColor = vec4(0.9, 0.3, 0.2, 1.0);
+    vec3 base = vec3(0.10, 0.45, 1.00);
+    float pulse = 0.5 + 0.5 * sin(uTime * 2.0);
+    vec3 colour = base * (0.65 + 0.35 * pulse);
+    float alpha = 0.50 + 0.28 * pulse;
+    fragColor = vec4(colour, alpha);
 }
 )";
     }
@@ -54,6 +59,7 @@ void main() {
         glDeleteShader(vert);
         glDeleteShader(frag);
         shaderProgram_ = program;
+        uTimeUniform_ = glGetUniformLocation(program, "uTime");
 
         glGenVertexArrays(1, &vao_);
         glGenBuffers(1, &vbo_);
@@ -101,7 +107,8 @@ void main() {
     }
 
     void CubeMesh::render(const glm::mat4& viewMatrix,
-                          const glm::mat4& projectionMatrix) const
+                          const glm::mat4& projectionMatrix,
+                          float timeSec) const
     {
         if (vao_ == 0 || shaderProgram_ == 0)
             return;
@@ -116,10 +123,17 @@ void main() {
         const GLint projLoc = glGetUniformLocation(shaderProgram_, "uProjection");
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+        if (uTimeUniform_ >= 0)
+            glUniform1f(uTimeUniform_, timeSec);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glLineWidth(1.5f);
 
         glBindVertexArray(vao_);
         glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, nullptr);
         glBindVertexArray(0);
+        glDisable(GL_BLEND);
         glUseProgram(0);
     }
 

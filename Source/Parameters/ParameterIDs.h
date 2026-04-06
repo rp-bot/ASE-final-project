@@ -4,7 +4,6 @@
 
 namespace ParameterIDs
 {
-    inline const juce::String gain { "GAIN" };
     inline const juce::String cursorX { "CURSOR_X" };
     inline const juce::String cursorY { "CURSOR_Y" };
     inline const juce::String cursorZ { "CURSOR_Z" };

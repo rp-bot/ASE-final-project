@@ -37,16 +37,10 @@ VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
     }
 
     centerPanel = std::make_unique<UI::CenterControlPanel> (apvts);
-    centerPanel->setTrajectoryChangedCallback ([this] (bool isActive)
-    {
-        processorRef.setGuiTrajectoryActive (isActive);
-    });
     addAndMakeVisible (*centerPanel);
-    addAndMakeVisible (bottomLeftPanel);
-    addAndMakeVisible (bottomCenterPanel);
-    addAndMakeVisible (bottomRightPanel);
 
-    centerPanel->setTrajectoryActive (processorRef.isGuiTrajectoryActive());
+    addAndMakeVisible (bottomLeftPanel);
+    addAndMakeVisible (bottomRightPanel);
 
     addAndMakeVisible (glViewport_);
     glContextHost_.setRenderer (&renderer3D_);
@@ -109,8 +103,7 @@ void VolumetricSynthEditor::paint (juce::Graphics& g)
 void VolumetricSynthEditor::resized()
 {
     auto bounds = getLocalBounds().reduced (8);
-    topArea = bounds.removeFromTop (juce::roundToInt (bounds.getHeight() * 0.72f));
-    bottomArea = bounds;
+    topArea = bounds;
 
     auto topRow = topArea;
     constexpr int columnGap = 8;
@@ -120,6 +113,10 @@ void VolumetricSynthEditor::resized()
     centerArea = topRow.removeFromLeft (columnWidth);
     topRow.removeFromLeft (columnGap);
     rightBankArea = topRow;
+
+    const int bottomStripHeight = juce::roundToInt (static_cast<float> (topArea.getHeight()) * 0.22f);
+    bottomLeftArea = leftBankArea.removeFromBottom (bottomStripHeight);
+    bottomRightArea = rightBankArea.removeFromBottom (bottomStripHeight);
 
     auto layoutBankModules = [] (juce::Rectangle<int> bankBounds,
                                  std::array<std::unique_ptr<UI::OscillatorModuleComponent>, modulesPerBank>& modules)
@@ -141,22 +138,13 @@ void VolumetricSynthEditor::resized()
     layoutBankModules (leftBankArea, leftModules);
     layoutBankModules (rightBankArea, rightModules);
 
+    bottomLeftPanel.setBounds (bottomLeftArea.reduced (8));
+    bottomRightPanel.setBounds (bottomRightArea.reduced (8));
+
     auto centerColumn = centerArea.reduced (6);
     const auto viewportHeight = juce::roundToInt (static_cast<float> (centerColumn.getHeight()) * 0.6f);
     glViewport_.setBounds (centerColumn.removeFromTop (viewportHeight));
     centerPanel->setBounds (centerColumn);
-
-    auto bottomRow = bottomArea;
-    const auto bottomColumnWidth = (bottomRow.getWidth() - (columnGap * 2)) / 3;
-    bottomLeftArea = bottomRow.removeFromLeft (bottomColumnWidth);
-    bottomRow.removeFromLeft (columnGap);
-    bottomCenterArea = bottomRow.removeFromLeft (bottomColumnWidth);
-    bottomRow.removeFromLeft (columnGap);
-    bottomRightArea = bottomRow;
-
-    bottomLeftPanel.setBounds (bottomLeftArea.reduced (8));
-    bottomCenterPanel.setBounds (bottomCenterArea.reduced (8));
-    bottomRightPanel.setBounds (bottomRightArea.reduced (8));
 }
 
 void VolumetricSynthEditor::mouseDown (const juce::MouseEvent& event)

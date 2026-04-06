@@ -5,4 +5,6 @@ target_sources("${PROJECT_NAME}"
         OscillatorModuleComponent.h
         OscillatorModuleComponent.cpp
         CenterControlPanel.h
-        CenterControlPanel.cpp)
+        CenterControlPanel.cpp
+        CursorJoystick2D.h
+        CursorJoystick2D.cpp)

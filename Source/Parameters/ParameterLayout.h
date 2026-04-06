@@ -10,11 +10,6 @@ public:
     {
         juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-        layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::gain,
-                                                                 "Gain",
-                                                                 juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
-                                                                 0.5f));
-
         layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::cursorX,
                                                                  "Cursor X",
                                                                  juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f),

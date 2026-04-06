@@ -538,8 +538,8 @@ void main()
             glUseProgram(0);
         }
 
-        // Render cube wireframe
-        cubeMesh_.render(view, proj);
+        cubeMesh_.render(view, proj,
+                         static_cast<float>(juce::Time::getMillisecondCounterHiRes() * 0.001));
 
         // Corner spheres (depth tested, so they sit in 3D correctly)
         if (cursorShader_ && cursorSphereVao_ && cursorSphereIndexCount_ > 0)

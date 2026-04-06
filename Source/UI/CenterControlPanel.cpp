@@ -6,44 +6,53 @@ namespace UI
 CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvts)
     : apvtsPtr (&apvts)
 {
-    configureRotarySlider (xSlider, xLabel, "X");
-    configureRotarySlider (ySlider, yLabel, "Y");
-    configureRotarySlider (zSlider, zLabel, "Z");
-    configureRotarySlider (gainSlider, gainLabel, "Gain");
+    // Knobs labeled X, Y, Z (left→right). Joystick: X + engine-Z axis; height + Z knob: engine Y (synced).
+    configureCursorKnob (xSlider, xLabel, "X");
+    configureCursorKnob (ySlider, yLabel, "Y");
+    configureCursorKnob (zSlider, zLabel, "Z");
+    configureHeightSlider (heightSlider, heightLabel, "Height");
 
-    for (auto* slider : { &xSlider, &ySlider, &zSlider })
+    xSlider.onValueChange = [this] { updateCursorFromControls(); };
+    ySlider.onValueChange = [this] { updateCursorFromControls(); };
+    zSlider.onValueChange = [this]
     {
-        slider->setRange (0.0, 1.0, 0.001);
-        slider->onValueChange = [this] { updateCursorFromSliders(); };
-        addAndMakeVisible (*slider);
-    }
+        if (syncingEngineY_)
+            return;
+        syncingEngineY_ = true;
+        heightSlider.setValue (zSlider.getValue(), juce::sendNotificationSync);
+        syncingEngineY_ = false;
+        updateCursorFromControls();
+    };
+    heightSlider.onValueChange = [this]
+    {
+        if (syncingEngineY_)
+            return;
+        syncingEngineY_ = true;
+        zSlider.setValue (heightSlider.getValue(), juce::dontSendNotification);
+        syncingEngineY_ = false;
+        updateCursorFromControls();
+    };
+
+    xyJoystick.setXYSliders (&xSlider, &ySlider);
+    addAndMakeVisible (xyJoystick);
 
     addAndMakeVisible (xLabel);
     addAndMakeVisible (yLabel);
     addAndMakeVisible (zLabel);
-    addAndMakeVisible (gainSlider);
-    addAndMakeVisible (gainLabel);
+    addAndMakeVisible (xSlider);
+    addAndMakeVisible (ySlider);
+    addAndMakeVisible (zSlider);
+    addAndMakeVisible (heightLabel);
+    addAndMakeVisible (heightSlider);
 
-    gainAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::gain, gainSlider);
     cursorXAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::cursorX, xSlider);
-    cursorYAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::cursorY, ySlider);
-    cursorZAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::cursorZ, zSlider);
+    cursorZAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::cursorZ, ySlider);
+    cursorYAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::cursorY, heightSlider);
 
     apvts.addParameterListener (ParameterIDs::cursorX, this);
     apvts.addParameterListener (ParameterIDs::cursorY, this);
     apvts.addParameterListener (ParameterIDs::cursorZ, this);
-    updateReadoutAndGainsFromParams();
-
-    trajectoryToggle.setButtonText ("Trajectory");
-    trajectoryToggle.onClick = [this]
-    {
-        if (onTrajectoryChanged)
-            onTrajectoryChanged (trajectoryToggle.getToggleState());
-    };
-    addAndMakeVisible (trajectoryToggle);
-
-    cursorReadoutLabel.setJustificationType (juce::Justification::centredLeft);
-    addAndMakeVisible (cursorReadoutLabel);
+    updateReadoutFromParams();
 }
 
 CenterControlPanel::~CenterControlPanel()
@@ -59,21 +68,27 @@ CenterControlPanel::~CenterControlPanel()
 void CenterControlPanel::parameterChanged (const juce::String& parameterID, float /*newValue*/)
 {
     if (parameterID == ParameterIDs::cursorX || parameterID == ParameterIDs::cursorY || parameterID == ParameterIDs::cursorZ)
-        updateReadoutAndGainsFromParams();
+        updateReadoutFromParams();
 }
 
-void CenterControlPanel::updateReadoutAndGainsFromParams()
+void CenterControlPanel::syncEngineYControls (float normalizedY, bool fromHeightSlider)
+{
+    syncingEngineY_ = true;
+    if (fromHeightSlider)
+        zSlider.setValue (static_cast<double> (normalizedY), juce::dontSendNotification);
+    else
+        heightSlider.setValue (static_cast<double> (normalizedY), juce::dontSendNotification);
+    syncingEngineY_ = false;
+}
+
+void CenterControlPanel::updateReadoutFromParams()
 {
     if (apvtsPtr == nullptr)
         return;
-    auto* px = apvtsPtr->getRawParameterValue (ParameterIDs::cursorX);
     auto* py = apvtsPtr->getRawParameterValue (ParameterIDs::cursorY);
-    auto* pz = apvtsPtr->getRawParameterValue (ParameterIDs::cursorZ);
-    const float x = (px != nullptr) ? px->load() : 0.5f;
     const float y = (py != nullptr) ? py->load() : 0.5f;
-    const float z = (pz != nullptr) ? pz->load() : 0.5f;
-    cursorReadoutLabel.setText ("Cursor: " + juce::String (x, 2) + ", " + juce::String (y, 2) + ", " + juce::String (z, 2),
-                                juce::dontSendNotification);
+    syncEngineYControls (y, false);
+    xyJoystick.repaint();
 }
 
 void CenterControlPanel::setCursorChangedCallback (CursorChangedCallback callback)
@@ -81,22 +96,16 @@ void CenterControlPanel::setCursorChangedCallback (CursorChangedCallback callbac
     onCursorChanged = std::move (callback);
 }
 
-void CenterControlPanel::setTrajectoryChangedCallback (TrajectoryChangedCallback callback)
-{
-    onTrajectoryChanged = std::move (callback);
-}
-
 void CenterControlPanel::setCursorPosition (float x, float y, float z)
 {
     xSlider.setValue (x, juce::dontSendNotification);
-    ySlider.setValue (y, juce::dontSendNotification);
-    zSlider.setValue (z, juce::dontSendNotification);
-    updateCursorFromSliders();
-}
-
-void CenterControlPanel::setTrajectoryActive (bool isActive)
-{
-    trajectoryToggle.setToggleState (isActive, juce::dontSendNotification);
+    ySlider.setValue (z, juce::dontSendNotification);
+    syncingEngineY_ = true;
+    heightSlider.setValue (y, juce::dontSendNotification);
+    zSlider.setValue (y, juce::dontSendNotification);
+    syncingEngineY_ = false;
+    updateCursorFromControls();
+    xyJoystick.repaint();
 }
 
 void CenterControlPanel::paint (juce::Graphics& g)
@@ -108,48 +117,65 @@ void CenterControlPanel::paint (juce::Graphics& g)
 void CenterControlPanel::resized()
 {
     auto inner = getLocalBounds().reduced (8);
-    auto controlsArea = inner.removeFromTop (juce::roundToInt (inner.getHeight() * 0.7f));
-    constexpr int controlGap = 8;
-    const auto controlWidth = (controlsArea.getWidth() - (controlGap * 3)) / 4;
+    auto bottomRow = inner.removeFromBottom (juce::jmax (100, juce::roundToInt (inner.getHeight() * 0.28f)));
+    inner.removeFromBottom (6);
 
-    for (int control = 0; control < 4; ++control)
+    constexpr int heightColumnWidth = 52;
+    constexpr int gap = 8;
+    auto heightColumn = inner.removeFromRight (heightColumnWidth);
+    inner.removeFromRight (gap);
+
+    auto topArea = inner;
+    const int side = juce::jmin (topArea.getWidth(), topArea.getHeight());
+    xyJoystick.setBounds (topArea.withSizeKeepingCentre (side, side));
+
+    auto labelH = juce::jmin (18, heightColumn.getHeight() / 4);
+    heightLabel.setBounds (heightColumn.removeFromTop (labelH));
+    heightSlider.setBounds (heightColumn);
+
+    constexpr int knobGap = 8;
+    const int knobW = (bottomRow.getWidth() - knobGap * 2) / 3;
+    constexpr int knobLabelH = 18;
+
+    auto placeKnob = [knobLabelH] (juce::Rectangle<int> cell, juce::Label& label, juce::Slider& slider)
     {
-        auto cell = controlsArea.removeFromLeft (controlWidth);
-        if (control < 3)
-            controlsArea.removeFromLeft (controlGap);
+        label.setBounds (cell.removeFromTop (knobLabelH));
+        slider.setBounds (cell);
+    };
 
-        auto sliderArea = cell.removeFromTop (juce::jmax (40, cell.getHeight() - 14));
-        auto labelArea = cell;
-
-        if (control == 0) { xSlider.setBounds (sliderArea); xLabel.setBounds (labelArea); }
-        if (control == 1) { ySlider.setBounds (sliderArea); yLabel.setBounds (labelArea); }
-        if (control == 2) { zSlider.setBounds (sliderArea); zLabel.setBounds (labelArea); }
-        if (control == 3) { gainSlider.setBounds (sliderArea); gainLabel.setBounds (labelArea); }
-    }
-
-    inner.removeFromTop (4);
-    auto trajectoryArea = inner.removeFromTop (24);
-    trajectoryToggle.setBounds (trajectoryArea.removeFromLeft (120));
-    cursorReadoutLabel.setBounds (trajectoryArea);
+    placeKnob (bottomRow.removeFromLeft (knobW), xLabel, xSlider);
+    bottomRow.removeFromLeft (knobGap);
+    placeKnob (bottomRow.removeFromLeft (knobW), yLabel, ySlider);
+    bottomRow.removeFromLeft (knobGap);
+    placeKnob (bottomRow, zLabel, zSlider);
 }
 
-void CenterControlPanel::configureRotarySlider (juce::Slider& slider, juce::Label& label, const juce::String& text)
+void CenterControlPanel::configureCursorKnob (juce::Slider& slider, juce::Label& label, const juce::String& text)
 {
+    slider.setRange (0.0, 1.0, 0.001);
     slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
+    slider.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 56, 18);
+    slider.setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::grey.withAlpha (0.6f));
+    label.setText (text, juce::dontSendNotification);
+    label.setJustificationType (juce::Justification::centred);
+}
+
+void CenterControlPanel::configureHeightSlider (juce::Slider& slider, juce::Label& label, const juce::String& text)
+{
+    slider.setRange (0.0, 1.0, 0.001);
+    slider.setSliderStyle (juce::Slider::LinearVertical);
     slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
     label.setText (text, juce::dontSendNotification);
     label.setJustificationType (juce::Justification::centred);
 }
 
-void CenterControlPanel::updateCursorFromSliders()
+void CenterControlPanel::updateCursorFromControls()
 {
-    const auto x = static_cast<float> (xSlider.getValue());
-    const auto y = static_cast<float> (ySlider.getValue());
-    const auto z = static_cast<float> (zSlider.getValue());
+    const float x = static_cast<float> (xSlider.getValue());
+    const float engineY = static_cast<float> (heightSlider.getValue());
+    const float engineZ = static_cast<float> (ySlider.getValue());
 
-    cursorReadoutLabel.setText ("Cursor: " + juce::String (x, 2) + ", " + juce::String (y, 2) + ", " + juce::String (z, 2),
-                                juce::dontSendNotification);
     if (onCursorChanged)
-        onCursorChanged (x, y, z);
+        onCursorChanged (x, engineY, engineZ);
 }
 } // namespace UI
