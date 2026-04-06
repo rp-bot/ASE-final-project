@@ -5,9 +5,4 @@ target_sources("${PROJECT_NAME}"
         OscillatorModuleComponent.h
         OscillatorModuleComponent.cpp
         CenterControlPanel.h
-        CenterControlPanel.cpp
-        # TRILINEAR MIXER VISUALIZATION (remove these two lines when removing visualization)
-        TrilinearMixerGainsView.h
-        TrilinearMixerGainsView.cpp
-        TrilinearCube.h
-        TrilinearCube.cpp)
+        CenterControlPanel.cpp)

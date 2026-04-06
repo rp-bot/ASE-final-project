@@ -6,8 +6,6 @@ namespace UI
 CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvts)
     : apvtsPtr (&apvts)
 {
-    addAndMakeVisible (mixerGainsView);
-
     configureRotarySlider (xSlider, xLabel, "X");
     configureRotarySlider (ySlider, yLabel, "Y");
     configureRotarySlider (zSlider, zLabel, "Z");
@@ -76,8 +74,6 @@ void CenterControlPanel::updateReadoutAndGainsFromParams()
     const float z = (pz != nullptr) ? pz->load() : 0.5f;
     cursorReadoutLabel.setText ("Cursor: " + juce::String (x, 2) + ", " + juce::String (y, 2) + ", " + juce::String (z, 2),
                                 juce::dontSendNotification);
-    // TRILINEAR MIXER VISUALIZATION
-    mixerGainsView.setPosition (x, y, z);
 }
 
 void CenterControlPanel::setCursorChangedCallback (CursorChangedCallback callback)
@@ -95,7 +91,7 @@ void CenterControlPanel::setCursorPosition (float x, float y, float z)
     xSlider.setValue (x, juce::dontSendNotification);
     ySlider.setValue (y, juce::dontSendNotification);
     zSlider.setValue (z, juce::dontSendNotification);
-    updateCursorFromSliders(); // updates readout and gains view only; params are source of truth
+    updateCursorFromSliders();
 }
 
 void CenterControlPanel::setTrajectoryActive (bool isActive)
@@ -112,12 +108,7 @@ void CenterControlPanel::paint (juce::Graphics& g)
 void CenterControlPanel::resized()
 {
     auto inner = getLocalBounds().reduced (8);
-    auto viewArea = inner.removeFromTop (juce::roundToInt (inner.getHeight() * 0.45f));
-
-    mixerGainsView.setBounds (viewArea.reduced (2));
-    inner.removeFromTop (6);
-
-    auto controlsArea = inner.removeFromTop (juce::roundToInt (inner.getHeight() * 0.62f));
+    auto controlsArea = inner.removeFromTop (juce::roundToInt (inner.getHeight() * 0.7f));
     constexpr int controlGap = 8;
     const auto controlWidth = (controlsArea.getWidth() - (controlGap * 3)) / 4;
 
@@ -158,8 +149,6 @@ void CenterControlPanel::updateCursorFromSliders()
 
     cursorReadoutLabel.setText ("Cursor: " + juce::String (x, 2) + ", " + juce::String (y, 2) + ", " + juce::String (z, 2),
                                 juce::dontSendNotification);
-    // TRILINEAR MIXER VISUALIZATION
-    mixerGainsView.setPosition (x, y, z);
     if (onCursorChanged)
         onCursorChanged (x, y, z);
 }

@@ -3,8 +3,6 @@
 #include <functional>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
-// TRILINEAR MIXER VISUALIZATION
-#include "TrilinearMixerGainsView.h"
 
 namespace UI
 {
@@ -35,7 +33,6 @@ private:
     void updateReadoutAndGainsFromParams();
 
     juce::AudioProcessorValueTreeState* apvtsPtr { nullptr };
-    TrilinearMixerGainsView mixerGainsView;   // TRILINEAR MIXER VISUALIZATION
     juce::Slider xSlider;
     juce::Slider ySlider;
     juce::Slider zSlider;
