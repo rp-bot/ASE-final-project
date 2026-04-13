@@ -7,4 +7,7 @@ target_sources("${PROJECT_NAME}"
         CenterControlPanel.h
         CenterControlPanel.cpp
         CursorJoystick2D.h
-        CursorJoystick2D.cpp)
+        CursorJoystick2D.cpp
+        OutputSection.h
+        OutputSection.cpp
+    )

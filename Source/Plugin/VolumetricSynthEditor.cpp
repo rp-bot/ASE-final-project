@@ -1,6 +1,7 @@
 #include "VolumetricSynthAudioProcessor.h"
 #include "VolumetricSynthEditor.h"
 #include "../Parameters/ParameterIDs.h"
+#include "../Audio/SynthEngine.h"
 
 //==============================================================================
 VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
@@ -40,7 +41,9 @@ VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
     addAndMakeVisible (*centerPanel);
 
     addAndMakeVisible (bottomLeftPanel);
-    addAndMakeVisible (bottomRightPanel);
+
+    outputSection = std::make_unique<UI::OutputSection> (apvts);
+    addAndMakeVisible (*outputSection);
 
     addAndMakeVisible (glViewport_);
     glContextHost_.setRenderer (&renderer3D_);
@@ -72,6 +75,10 @@ VolumetricSynthEditor::~VolumetricSynthEditor()
 void VolumetricSynthEditor::timerCallback()
 {
     renderer3D_.setCursorFromUnitPosition (processorRef.getGuiCursorPosition());
+
+    outputSection->setMeterLevels (
+        processorRef.getSynthEngine().getMeterLevelLeft(),
+        processorRef.getSynthEngine().getMeterLevelRight());
 }
 
 void VolumetricSynthEditor::updateCursorParametersFromPosition (glm::vec3 position)
@@ -139,7 +146,7 @@ void VolumetricSynthEditor::resized()
     layoutBankModules (rightBankArea, rightModules);
 
     bottomLeftPanel.setBounds (bottomLeftArea.reduced (8));
-    bottomRightPanel.setBounds (bottomRightArea.reduced (8));
+    outputSection->setBounds (bottomRightArea.reduced (8));
 
     auto centerColumn = centerArea.reduced (6);
     const auto viewportHeight = juce::roundToInt (static_cast<float> (centerColumn.getHeight()) * 0.6f);

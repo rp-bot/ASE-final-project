@@ -22,6 +22,16 @@ public:
                                                                  "Cursor Z",
                                                                  juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f),
                                                                  0.5f));
+        
+        layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::outputGain, 
+                                                                "Output Gain",
+                                                                juce::NormalisableRange<float> (-60.0f, 6.0f, 0.1f), 
+                                                                0.0f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::outputPan, 
+                                                                "Pan",
+                                                                juce::NormalisableRange<float> (-1.0f, 1.0f, 0.01f), 
+                                                                0.0f));
 
         for (int corner = 0; corner < 8; ++corner)
         {

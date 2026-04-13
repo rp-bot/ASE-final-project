@@ -47,6 +47,7 @@ public:
     double getTailLengthSeconds() const override;
 
     //==============================================================================
+    Audio::SynthEngine& getSynthEngine() noexcept;
     int getNumPrograms() override;
     int getCurrentProgram() override;
     void setCurrentProgram (int index) override;
