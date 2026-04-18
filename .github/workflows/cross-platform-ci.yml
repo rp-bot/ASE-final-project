@@ -1,0 +1,79 @@
+name: Cross-Platform CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} / ${{ matrix.config }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        config: [Release]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            libasound2-dev \
+            libfreetype6-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev
+
+      - name: Configure CMake
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+
+      - name: Build tests target
+        run: >
+          cmake --build build
+          --config ${{ matrix.config }}
+          --target VolumetricSynth_Tests
+
+      - name: Run tests (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TEST_EXE="$(find build -type f -name 'VolumetricSynth_Tests' | head -n 1)"
+          if [ -z "$TEST_EXE" ]; then
+            echo "Could not find VolumetricSynth_Tests executable"
+            exit 1
+          fi
+          echo "Running $TEST_EXE"
+          "$TEST_EXE"
+
+      - name: Run tests (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $testExe = Get-ChildItem -Path build -Filter VolumetricSynth_Tests.exe -Recurse | Select-Object -First 1
+          if (-not $testExe) {
+            throw "Could not find VolumetricSynth_Tests.exe executable"
+          }
+          Write-Host "Running $($testExe.FullName)"
+          & $testExe.FullName

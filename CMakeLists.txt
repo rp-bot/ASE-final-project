@@ -49,7 +49,7 @@ FetchContent_Declare(juce
 
 FetchContent_Declare(glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG        ${LIB_GLM_TAG}
+    GIT_TAG        ${GLM_REF}
     GIT_SHALLOW    TRUE
     GIT_CONFIG     advice.detachedHead=false
     SOURCE_DIR     "${FETCHCONTENT_BASE_DIR}/glm"
