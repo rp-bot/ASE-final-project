@@ -172,7 +172,9 @@ void VolumetricSynthEditor::mouseDown (const juce::MouseEvent& event)
 void VolumetricSynthEditor::mouseDrag (const juce::MouseEvent& event)
 {
     const auto vpBounds = glViewport_.getBounds();
-    if (vpBounds.contains (event.getPosition()))
+    // Forward drag even when the pointer leaves the viewport so a gizmo drag
+    // that started inside the viewport isn't silently dropped.
+    if (vpBounds.contains (event.getPosition()) || renderer3D_.hasActiveDrag())
     {
         renderer3D_.mouseDrag (event, vpBounds);
 
@@ -180,6 +182,11 @@ void VolumetricSynthEditor::mouseDrag (const juce::MouseEvent& event)
         processorRef.setGuiCursorPosition (newCursor);
         updateCursorParametersFromPosition (newCursor);
     }
+}
+
+void VolumetricSynthEditor::mouseUp (const juce::MouseEvent& event)
+{
+    renderer3D_.mouseUp (event);
 }
 
 void VolumetricSynthEditor::mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)

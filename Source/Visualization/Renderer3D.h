@@ -6,6 +6,7 @@
 #include "CubeMesh.h"
 #include "RayCaster.h"
 #include "GroundGrid.h"
+#include "TransformGizmo.h"
 #include <array>
 
 namespace Visualization
@@ -24,6 +25,7 @@ namespace Visualization
         /** viewportBounds: GL viewport rect in editor coordinates (for converting event position). */
         void mouseDown(const juce::MouseEvent& e, const juce::Rectangle<int>& viewportBounds);
         void mouseDrag(const juce::MouseEvent& e, const juce::Rectangle<int>& viewportBounds);
+        void mouseUp(const juce::MouseEvent& e);
         void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel);
 
     private:
@@ -33,6 +35,7 @@ namespace Visualization
         CubeMesh cubeMesh_;
         GroundGrid groundGrid_;
         RayCaster rayCaster_{ &camera_ };
+        TransformGizmo gizmo_;
 
         glm::vec3 cursorPositionCube_{ 0.0f, 0.0f, 0.0f };
 
@@ -43,6 +46,10 @@ namespace Visualization
 
         juce::Point<int> lastMousePosition_;
         bool isDragging_{ false };
+
+        // Gizmo drag state.
+        TransformGizmo::Part activePart_{ TransformGizmo::Part::None };
+        glm::vec3            dragCursorStart_{};
 
         unsigned int cursorSphereVao_{ 0 };
         unsigned int cursorSphereVbo_{ 0 };
@@ -63,12 +70,16 @@ namespace Visualization
         void clampCursorToCube();
         glm::vec3 unitToCube(const glm::vec3& unitPos) const;
         glm::vec3 cubeToUnit(const glm::vec3& cubePos) const;
+        void applyGizmoDrag(const Ray& ray);
 
     public:
         void setCursorFromUnitPosition(const glm::vec3& unitPos);
         glm::vec3 getCursorAsUnitPosition() const;
 
         void setCornerColours(const std::array<glm::vec4, 8>& colours);
+
+        /** True while any mouse button is held (gizmo or free drag). */
+        bool hasActiveDrag() const noexcept { return isDragging_; }
     };
 }
 

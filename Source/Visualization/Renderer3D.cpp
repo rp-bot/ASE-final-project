@@ -4,7 +4,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
-
 namespace Visualization
 {
     using namespace juce::gl;
@@ -13,6 +12,8 @@ namespace Visualization
     {
         // Light neutral background so future shadow work reads well.
         const juce::Colour sceneClearColour = juce::Colour::fromRGB(236, 238, 242);
+
+        constexpr float kGizmoScale = 0.18f; // world-size = camera.radius * kGizmoScale
 
         constexpr const char* cursorVertSource = R"(#version 330 core
 layout(location = 0) in vec3 aPos;
@@ -248,6 +249,7 @@ void main()
         cubeMesh_.initialise();
         groundGrid_.initialise();
         groundGrid_.setParams(/*radius*/ 10.0f, /*spacing*/ 0.5f, /*majorLineEvery*/ 4);
+        gizmo_.initialise();
 
         // Shadow shaders + lit shader.
         shadowDepthShader_ = linkProgram(shadowDepthVertSource, shadowDepthFragSource);
@@ -433,6 +435,7 @@ void main()
         groundGrid_.shutdown();
         cubeMesh_.shutdown();
         scene_.shutdown();
+        gizmo_.shutdown();
     }
 
     void Renderer3D::render(int width, int height)
@@ -525,8 +528,6 @@ void main()
         groundGrid_.render(view, proj,
                            /*gridY*/ gridY,
                            /*centerXZ*/ centerXZ);
-
-        scene_.render(view, proj);
 
         // 2) Lit solids with shadowing (ground plane + cube).
         if (litShader_ && shadowDepthTex_ && solidCubeVao_ && solidPlaneVao_)
@@ -633,6 +634,12 @@ void main()
             glBindVertexArray(0);
             glUseProgram(0);
         }
+
+        // Transform gizmo — rendered last so it is always on top.
+        {
+            const float gs = camera_.getRadius() * kGizmoScale;
+            gizmo_.render(cursorPositionCube_, gs, view, proj, activePart_);
+        }
     }
 
     void Renderer3D::mouseDown(const juce::MouseEvent& e, const juce::Rectangle<int>& viewportBounds)
@@ -642,7 +649,7 @@ void main()
 
         const int vpW = viewportBounds.getWidth();
         const int vpH = viewportBounds.getHeight();
-        if (vpW <= 0 || vpH <= 0 || e.mods.isShiftDown())
+        if (vpW <= 0 || vpH <= 0)
             return;
 
         const int relX = e.getPosition().x - viewportBounds.getX();
@@ -653,6 +660,25 @@ void main()
         const auto ray = rayCaster_.castRay(screenX, screenY,
                                             static_cast<float>(vpW),
                                             static_cast<float>(vpH));
+
+        // Gizmo hit-test takes priority over cube picking.
+        if (!e.mods.isShiftDown())
+        {
+            const float gs   = camera_.getRadius() * kGizmoScale;
+            const auto  part = gizmo_.hitTest(ray, cursorPositionCube_, gs);
+
+            if (part != TransformGizmo::Part::None)
+            {
+                activePart_       = part;
+                dragCursorStart_  = cursorPositionCube_;
+                return;
+            }
+        }
+
+        if (e.mods.isShiftDown())
+            return;
+
+        // Default: move cursor to cube surface where the ray hits.
         glm::vec3 hitPoint{};
         if (rayCaster_.intersectCube(ray,
                                     cubeMesh_.getMinBounds(),
@@ -669,7 +695,7 @@ void main()
         if (!isDragging_)
             return;
 
-        const auto pos = e.getPosition();
+        const auto pos   = e.getPosition();
         const auto delta = pos - lastMousePosition_;
         lastMousePosition_ = pos;
 
@@ -678,14 +704,31 @@ void main()
         if (vpW <= 0 || vpH <= 0)
             return;
 
+        // ── Gizmo constrained drag ────────────────────────────────────────────
+        if (activePart_ != TransformGizmo::Part::None)
+        {
+            const int relX = pos.x - viewportBounds.getX();
+            const int relY = pos.y - viewportBounds.getY();
+            const float screenX = static_cast<float>(relX) / static_cast<float>(vpW);
+            const float screenY = static_cast<float>(relY) / static_cast<float>(vpH);
+
+            const auto ray = rayCaster_.castRay(screenX, screenY,
+                                                static_cast<float>(vpW),
+                                                static_cast<float>(vpH));
+            applyGizmoDrag(ray);
+            return;
+        }
+
+        // ── Camera orbit (Shift held) ─────────────────────────────────────────
         if (e.mods.isShiftDown())
         {
             camera_.orbit(static_cast<float>(delta.x),
                           static_cast<float>(delta.y));
+            return;
         }
-        else
+
+        // ── Free cursor drag on view-plane ────────────────────────────────────
         {
-            // Use position relative to viewport so ray cast matches GL viewport.
             const int relX = pos.x - viewportBounds.getX();
             const int relY = pos.y - viewportBounds.getY();
             const float screenX = static_cast<float>(relX) / static_cast<float>(vpW);
@@ -695,9 +738,8 @@ void main()
                                                 static_cast<float>(vpW),
                                                 static_cast<float>(vpH));
 
-            // Slide on the plane through the current cursor, perpendicular to view (no depth drift).
             const glm::vec3 planeNormal = camera_.getForward();
-            const glm::vec3 planePoint = cursorPositionCube_;
+            const glm::vec3 planePoint  = cursorPositionCube_;
             const auto minB = cubeMesh_.getMinBounds();
             const auto maxB = cubeMesh_.getMaxBounds();
 
@@ -720,6 +762,88 @@ void main()
     {
         juce::ignoreUnused(e);
         camera_.zoom(wheel.deltaY);
+    }
+
+    void Renderer3D::mouseUp(const juce::MouseEvent& /*e*/)
+    {
+        isDragging_ = false;
+        activePart_ = TransformGizmo::Part::None;
+    }
+
+    void Renderer3D::applyGizmoDrag(const Ray& ray)
+    {
+        // Helper: find the scalar position `s` along an axis through dragCursorStart_
+        // that is closest to the given ray.  Returns false if parallel.
+        auto closestOnAxis = [&](const glm::vec3& axisDir, float& s) -> bool {
+            const glm::vec3 m    = ray.origin - dragCursorStart_;
+            const float     e    = glm::dot(ray.direction, axisDir);
+            const float     f    = glm::dot(ray.direction, m);
+            const float     c    = glm::dot(axisDir, m);
+            const float     denom = 1.0f - e * e;
+            if (std::abs(denom) < 1e-6f) return false;
+            s = (c - e * f) / denom;
+            return true;
+        };
+
+        // Helper: intersect ray with the plane through dragCursorStart_ with given normal.
+        auto rayVsPlane = [&](const glm::vec3& n, glm::vec3& hit) -> bool {
+            const float denom = glm::dot(ray.direction, n);
+            if (std::abs(denom) < 1e-6f) return false;
+            const float t = glm::dot(dragCursorStart_ - ray.origin, n) / denom;
+            if (t < 0.0f) return false;
+            hit = ray.origin + t * ray.direction;
+            return true;
+        };
+
+        switch (activePart_)
+        {
+            case TransformGizmo::Part::AxisX:
+            {
+                float s = 0.0f;
+                if (closestOnAxis({ 1.f, 0.f, 0.f }, s))
+                    cursorPositionCube_ = { dragCursorStart_.x + s, dragCursorStart_.y, dragCursorStart_.z };
+                break;
+            }
+            case TransformGizmo::Part::AxisY:
+            {
+                float s = 0.0f;
+                if (closestOnAxis({ 0.f, 1.f, 0.f }, s))
+                    cursorPositionCube_ = { dragCursorStart_.x, dragCursorStart_.y + s, dragCursorStart_.z };
+                break;
+            }
+            case TransformGizmo::Part::AxisZ:
+            {
+                float s = 0.0f;
+                if (closestOnAxis({ 0.f, 0.f, 1.f }, s))
+                    cursorPositionCube_ = { dragCursorStart_.x, dragCursorStart_.y, dragCursorStart_.z + s };
+                break;
+            }
+            case TransformGizmo::Part::PlaneXY: // Z locked
+            {
+                glm::vec3 hit{};
+                if (rayVsPlane({ 0.f, 0.f, 1.f }, hit))
+                    cursorPositionCube_ = { hit.x, hit.y, dragCursorStart_.z };
+                break;
+            }
+            case TransformGizmo::Part::PlaneXZ: // Y locked
+            {
+                glm::vec3 hit{};
+                if (rayVsPlane({ 0.f, 1.f, 0.f }, hit))
+                    cursorPositionCube_ = { hit.x, dragCursorStart_.y, hit.z };
+                break;
+            }
+            case TransformGizmo::Part::PlaneYZ: // X locked
+            {
+                glm::vec3 hit{};
+                if (rayVsPlane({ 1.f, 0.f, 0.f }, hit))
+                    cursorPositionCube_ = { dragCursorStart_.x, hit.y, hit.z };
+                break;
+            }
+            default:
+                break;
+        }
+
+        clampCursorToCube();
     }
 
     void Renderer3D::clampCursorToCube()
