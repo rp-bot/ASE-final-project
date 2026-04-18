@@ -1,5 +1,6 @@
 #pragma once
 #include <juce_dsp/juce_dsp.h>
+#include <cstdint>
 namespace DSP
 {
     enum class WaveformType
@@ -21,7 +22,7 @@ namespace DSP
         void loadWavetable(const juce::File& file);
         
         // Generate a default wavetable (sine, saw, square, triangle)
-        void generateDefaultWavetable(uint index, WaveformType type, int tableSize = 2048);
+        void generateDefaultWavetable(std::uint32_t index, WaveformType type, int tableSize = 2048);
         // Get wavetable by index
         const juce::AudioBuffer<float>& getWavetable(int index) const;
         

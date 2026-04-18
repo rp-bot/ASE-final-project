@@ -56,7 +56,7 @@ void WavetableBank::loadWavetable(const juce::File& file)
 
 
 //GENERATE DEFAULT WAVETABLE
-void WavetableBank::generateDefaultWavetable(uint index, WaveformType type, int tableSize)
+void WavetableBank::generateDefaultWavetable(std::uint32_t index, WaveformType type, int tableSize)
 {
     juce::AudioBuffer<float> buffer(1, tableSize);
     switch (type)
