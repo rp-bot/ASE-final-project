@@ -322,6 +322,12 @@ void VolumetricSynthAudioProcessor::parameterChanged(const juce::String &paramet
     syncParamsToGuiState();
 }
 
+
+Audio::SynthEngine& VolumetricSynthAudioProcessor::getSynthEngine() noexcept
+{
+    return *synthEngine;
+}
+
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

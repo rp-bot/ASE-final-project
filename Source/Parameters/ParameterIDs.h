@@ -4,7 +4,6 @@
 
 namespace ParameterIDs
 {
-    inline const juce::String gain { "GAIN" };
     inline const juce::String cursorX { "CURSOR_X" };
     inline const juce::String cursorY { "CURSOR_Y" };
     inline const juce::String cursorZ { "CURSOR_Z" };
@@ -30,4 +29,8 @@ namespace ParameterIDs
     inline juce::String cornerAmpRelease (int cornerIndex)  { return "CORNER" + juce::String (cornerIndex) + "_AMP_REL"; }
     inline juce::String cornerAmpLevel (int cornerIndex)    { return "CORNER" + juce::String (cornerIndex) + "_AMP_LVL"; }
     inline juce::String cornerAmpVelSens (int cornerIndex)  { return "CORNER" + juce::String (cornerIndex) + "_AMP_VEL"; }
+
+    // Global controls
+    inline constexpr const char* outputGain = "outputGain";
+    inline constexpr const char* outputPan  = "outputPan";
 }

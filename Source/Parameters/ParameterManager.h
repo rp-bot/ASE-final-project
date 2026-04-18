@@ -11,8 +11,6 @@ public:
     {
     }
 
-    float getGain() const { return *apvts.getRawParameterValue (ParameterIDs::gain); }
-    
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
 
 private:

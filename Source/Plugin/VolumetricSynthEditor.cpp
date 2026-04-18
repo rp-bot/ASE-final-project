@@ -1,5 +1,7 @@
 #include "VolumetricSynthAudioProcessor.h"
 #include "VolumetricSynthEditor.h"
+#include "../Parameters/ParameterIDs.h"
+#include "../Audio/SynthEngine.h"
 
 //==============================================================================
 VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
@@ -36,25 +38,60 @@ VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
     }
 
     centerPanel = std::make_unique<UI::CenterControlPanel> (apvts);
-    centerPanel->setTrajectoryChangedCallback ([this] (bool isActive)
-    {
-        processorRef.setGuiTrajectoryActive (isActive);
-    });
     addAndMakeVisible (*centerPanel);
-    addAndMakeVisible (bottomLeftPanel);
-    addAndMakeVisible (bottomCenterPanel);
-    addAndMakeVisible (bottomRightPanel);
 
-    centerPanel->setTrajectoryActive (processorRef.isGuiTrajectoryActive());
+    addAndMakeVisible (bottomLeftPanel);
+
+    outputSection = std::make_unique<UI::OutputSection> (apvts);
+    addAndMakeVisible (*outputSection);
+
+    addAndMakeVisible (glViewport_);
+    glContextHost_.setRenderer (&renderer3D_);
+    glContextHost_.attachTo (glViewport_);
+
+    {
+        std::array<glm::vec4, 8> cornerColours{};
+        for (size_t i = 0; i < cornerColours.size(); ++i)
+        {
+            const auto c = moduleColours[i];
+            cornerColours[i] = { c.getFloatRed(), c.getFloatGreen(), c.getFloatBlue(), 1.0f };
+        }
+        renderer3D_.setCornerColours (cornerColours);
+    }
+
+    renderer3D_.setCursorFromUnitPosition (processorRef.getGuiCursorPosition());
+
+    startTimerHz (25);
 
     setSize (1220, 700);
 }
 
 VolumetricSynthEditor::~VolumetricSynthEditor()
 {
+    glContextHost_.detach();
 }
 
 //==============================================================================
+void VolumetricSynthEditor::timerCallback()
+{
+    renderer3D_.setCursorFromUnitPosition (processorRef.getGuiCursorPosition());
+
+    outputSection->setMeterLevels (
+        processorRef.getSynthEngine().getMeterLevelLeft(),
+        processorRef.getSynthEngine().getMeterLevelRight());
+}
+
+void VolumetricSynthEditor::updateCursorParametersFromPosition (glm::vec3 position)
+{
+    auto& apvts = processorRef.getParameterManager().getAPVTS();
+    if (auto* px = apvts.getParameter (ParameterIDs::cursorX))
+        px->setValueNotifyingHost (position.x);
+    if (auto* py = apvts.getParameter (ParameterIDs::cursorY))
+        py->setValueNotifyingHost (position.y);
+    if (auto* pz = apvts.getParameter (ParameterIDs::cursorZ))
+        pz->setValueNotifyingHost (position.z);
+}
+
 void VolumetricSynthEditor::paint (juce::Graphics& g)
 {
     g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
@@ -67,14 +104,13 @@ void VolumetricSynthEditor::paint (juce::Graphics& g)
     g.setColour (juce::Colours::white);
     g.setFont (16.0f);
 
-    // g.drawText ("Volumetric Synth", getLocalBounds().removeFromTop (24), juce::Justification::centred, false);
+    g.drawText ("Volumetric Synth", getLocalBounds().removeFromTop (24), juce::Justification::centred, false);
 }
 
 void VolumetricSynthEditor::resized()
 {
     auto bounds = getLocalBounds().reduced (8);
-    topArea = bounds.removeFromTop (juce::roundToInt (bounds.getHeight() * 0.72f));
-    bottomArea = bounds;
+    topArea = bounds;
 
     auto topRow = topArea;
     constexpr int columnGap = 8;
@@ -84,6 +120,10 @@ void VolumetricSynthEditor::resized()
     centerArea = topRow.removeFromLeft (columnWidth);
     topRow.removeFromLeft (columnGap);
     rightBankArea = topRow;
+
+    const int bottomStripHeight = juce::roundToInt (static_cast<float> (topArea.getHeight()) * 0.22f);
+    bottomLeftArea = leftBankArea.removeFromBottom (bottomStripHeight);
+    bottomRightArea = rightBankArea.removeFromBottom (bottomStripHeight);
 
     auto layoutBankModules = [] (juce::Rectangle<int> bankBounds,
                                  std::array<std::unique_ptr<UI::OscillatorModuleComponent>, modulesPerBank>& modules)
@@ -104,17 +144,46 @@ void VolumetricSynthEditor::resized()
 
     layoutBankModules (leftBankArea, leftModules);
     layoutBankModules (rightBankArea, rightModules);
-    centerPanel->setBounds (centerArea.reduced (6));
-
-    auto bottomRow = bottomArea;
-    const auto bottomColumnWidth = (bottomRow.getWidth() - (columnGap * 2)) / 3;
-    bottomLeftArea = bottomRow.removeFromLeft (bottomColumnWidth);
-    bottomRow.removeFromLeft (columnGap);
-    bottomCenterArea = bottomRow.removeFromLeft (bottomColumnWidth);
-    bottomRow.removeFromLeft (columnGap);
-    bottomRightArea = bottomRow;
 
     bottomLeftPanel.setBounds (bottomLeftArea.reduced (8));
-    bottomCenterPanel.setBounds (bottomCenterArea.reduced (8));
-    bottomRightPanel.setBounds (bottomRightArea.reduced (8));
+    outputSection->setBounds (bottomRightArea.reduced (8));
+
+    auto centerColumn = centerArea.reduced (6);
+    const auto viewportHeight = juce::roundToInt (static_cast<float> (centerColumn.getHeight()) * 0.6f);
+    glViewport_.setBounds (centerColumn.removeFromTop (viewportHeight));
+    centerPanel->setBounds (centerColumn);
+}
+
+void VolumetricSynthEditor::mouseDown (const juce::MouseEvent& event)
+{
+    const auto vpBounds = glViewport_.getBounds();
+    if (vpBounds.contains (event.getPosition()))
+    {
+        renderer3D_.mouseDown (event, vpBounds);
+        if (! event.mods.isShiftDown())
+        {
+            const auto newCursor = renderer3D_.getCursorAsUnitPosition();
+            processorRef.setGuiCursorPosition (newCursor);
+            updateCursorParametersFromPosition (newCursor);
+        }
+    }
+}
+
+void VolumetricSynthEditor::mouseDrag (const juce::MouseEvent& event)
+{
+    const auto vpBounds = glViewport_.getBounds();
+    if (vpBounds.contains (event.getPosition()))
+    {
+        renderer3D_.mouseDrag (event, vpBounds);
+
+        const auto newCursor = renderer3D_.getCursorAsUnitPosition();
+        processorRef.setGuiCursorPosition (newCursor);
+        updateCursorParametersFromPosition (newCursor);
+    }
+}
+
+void VolumetricSynthEditor::mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
+{
+    if (glViewport_.getBounds().contains (event.getPosition()))
+        renderer3D_.mouseWheelMove (event, wheel);
 }

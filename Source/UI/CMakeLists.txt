@@ -6,8 +6,8 @@ target_sources("${PROJECT_NAME}"
         OscillatorModuleComponent.cpp
         CenterControlPanel.h
         CenterControlPanel.cpp
-        # TRILINEAR MIXER VISUALIZATION (remove these two lines when removing visualization)
-        TrilinearMixerGainsView.h
-        TrilinearMixerGainsView.cpp
-        TrilinearCube.h
-        TrilinearCube.cpp)
+        CursorJoystick2D.h
+        CursorJoystick2D.cpp
+        OutputSection.h
+        OutputSection.cpp
+    )

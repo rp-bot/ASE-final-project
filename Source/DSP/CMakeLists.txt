@@ -12,4 +12,6 @@ target_sources("${PROJECT_NAME}"
         UnisonOscillator.cpp
         TrilinearMixer8.h
         TrilinearMixer8.cpp
+        DualFilter.h
+        DualFilter.cpp
         )
