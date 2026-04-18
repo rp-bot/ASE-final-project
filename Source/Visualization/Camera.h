@@ -12,6 +12,8 @@ namespace Visualization
         glm::mat4 getViewMatrix() const;
         glm::mat4 getProjectionMatrix(float width, float height) const;
         glm::vec3 getPosition() const noexcept { return position_; }
+        /** Unit vector from camera toward look target (into the scene). */
+        glm::vec3 getForward() const;
 
         void orbit(float deltaX, float deltaY);
         void zoom(float delta);

@@ -1,5 +1,6 @@
 #include "Renderer3D.h"
 
+#include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
@@ -372,6 +373,48 @@ void main()
         };
     }
 
+    namespace
+    {
+        /** Ray vs plane (planePoint, planeNormal); ray direction must be unit. */
+        bool intersectRayPlane(const Ray& ray, const glm::vec3& planePoint,
+                               const glm::vec3& planeNormal, glm::vec3& outPoint)
+        {
+            const float denom = glm::dot(ray.direction, planeNormal);
+            if (std::abs(denom) < 1e-6f)
+                return false;
+            const float t = glm::dot(planePoint - ray.origin, planeNormal) / denom;
+            if (t < 0.0f)
+                return false;
+            outPoint = ray.origin + t * ray.direction;
+            return true;
+        }
+
+        /** planeNormal must be unit. Removes drift along the view axis after AABB clamp. */
+        void projectOntoPlane(glm::vec3& p, const glm::vec3& planePoint, const glm::vec3& planeNormal)
+        {
+            p -= glm::dot(p - planePoint, planeNormal) * planeNormal;
+        }
+
+        /** Keep cursor inside the cube while staying on the slide plane (orthogonal to camera). */
+        void clampCursorToCubeOnViewPlane(glm::vec3& p,
+                                          const glm::vec3& planePoint,
+                                          const glm::vec3& planeNormal,
+                                          const glm::vec3& minB,
+                                          const glm::vec3& maxB)
+        {
+            for (int i = 0; i < 16; ++i)
+            {
+                p.x = std::clamp(p.x, minB.x, maxB.x);
+                p.y = std::clamp(p.y, minB.y, maxB.y);
+                p.z = std::clamp(p.z, minB.z, maxB.z);
+                const float d = glm::dot(p - planePoint, planeNormal);
+                if (std::abs(d) <= 1e-5f)
+                    break;
+                p -= d * planeNormal;
+            }
+        }
+    }
+
     void Renderer3D::shutdown()
     {
         if (solidPlaneVbo_) { glDeleteBuffers(1, &solidPlaneVbo_); solidPlaneVbo_ = 0; }
@@ -652,14 +695,23 @@ void main()
                                                 static_cast<float>(vpW),
                                                 static_cast<float>(vpH));
 
+            // Slide on the plane through the current cursor, perpendicular to view (no depth drift).
+            const glm::vec3 planeNormal = camera_.getForward();
+            const glm::vec3 planePoint = cursorPositionCube_;
+            const auto minB = cubeMesh_.getMinBounds();
+            const auto maxB = cubeMesh_.getMaxBounds();
+
             glm::vec3 hitPoint{};
-            if (rayCaster_.intersectCube(ray,
-                                        cubeMesh_.getMinBounds(),
-                                        cubeMesh_.getMaxBounds(),
-                                        hitPoint))
+            if (intersectRayPlane(ray, planePoint, planeNormal, hitPoint))
             {
                 cursorPositionCube_ = hitPoint;
-                clampCursorToCube();
+                clampCursorToCubeOnViewPlane(cursorPositionCube_, planePoint, planeNormal, minB, maxB);
+            }
+            else if (rayCaster_.intersectCube(ray, minB, maxB, hitPoint))
+            {
+                cursorPositionCube_ = hitPoint;
+                projectOntoPlane(cursorPositionCube_, planePoint, planeNormal);
+                clampCursorToCubeOnViewPlane(cursorPositionCube_, planePoint, planeNormal, minB, maxB);
             }
         }
     }
