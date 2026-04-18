@@ -44,9 +44,14 @@ jobs:
             mesa-common-dev
 
       - name: Configure CMake
-        run: >
-          cmake -S . -B build
-          -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXTRA_CMAKE_ARGS=""
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            EXTRA_CMAKE_ARGS="-DUSE_JUCE_DEVELOP=ON"
+          fi
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${EXTRA_CMAKE_ARGS}
 
       - name: Build tests target
         run: >
