@@ -8,7 +8,7 @@ project(VolumetricSynth VERSION 0.0.1)
 option(USE_JUCE_DEVELOP "Use JUCE develop commit needed for macOS 15" OFF)
 
 set(JUCE_STABLE_REF "7.0.8")
-set(JUCE_DEV_REF    "738cc12")   # pin to the exact commit you tested
+set(JUCE_DEV_REF    "develop")   # macOS 15/Xcode 16 compatibility fallback
 set(GLM_REF         "0.9.9.8")
 
 set(JUCE_GIT_REF "${JUCE_STABLE_REF}")
@@ -49,7 +49,7 @@ FetchContent_Declare(juce
 
 FetchContent_Declare(glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG        ${LIB_GLM_TAG}
+    GIT_TAG        ${GLM_REF}
     GIT_SHALLOW    TRUE
     GIT_CONFIG     advice.detachedHead=false
     SOURCE_DIR     "${FETCHCONTENT_BASE_DIR}/glm"

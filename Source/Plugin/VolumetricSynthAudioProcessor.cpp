@@ -1,7 +1,5 @@
 #include "VolumetricSynthAudioProcessor.h"
 
-#include <unistd.h>
-
 #include "VolumetricSynthEditor.h"
 #include "Parameters/ParameterIDs.h"
 #include "Utils/ScopedDenormals.h"

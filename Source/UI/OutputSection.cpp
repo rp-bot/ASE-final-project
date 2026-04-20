@@ -29,7 +29,7 @@ OutputSection::OutputSection (juce::AudioProcessorValueTreeState& apvts)
 
     dbReadoutLabel.setJustificationType (juce::Justification::centred);
     dbReadoutLabel.setText ("-inf dB", juce::dontSendNotification);
-    dbReadoutLabel.setFont (juce::FontOptions (12.0f));
+    dbReadoutLabel.setFont (juce::Font (12.0f));
 
     gainAttachment = std::make_unique<SliderAttachment> (apvts, ParameterIDs::outputGain, gainKnob);
     panAttachment  = std::make_unique<SliderAttachment> (apvts, ParameterIDs::outputPan,  panSlider);
