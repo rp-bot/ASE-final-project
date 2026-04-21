@@ -60,47 +60,61 @@ namespace Audio
         }
 
         buffer.clear();
-        m_voiceManager.renderNextBlock (buffer, 0, buffer.getNumSamples());
-        
-        // Output Gain and Pan
-        if (m_apvts != nullptr)
+
+        const bool anyVoiceRendering = m_voiceManager.hasAnyVoiceRendering();
+
+        if (! anyVoiceRendering)
         {
-            const float gainDb = m_apvts->getRawParameterValue (ParameterIDs::outputGain)->load();
-            const float pan    = m_apvts->getRawParameterValue (ParameterIDs::outputPan)->load();
-        
-            // dB
-            const float gainLinear = juce::Decibels::decibelsToGain (gainDb, -60.0f);
-        
-            // pan
-            const float panAngle = (pan + 1.0f) * 0.5f * juce::MathConstants<float>::halfPi;
-            const float gainL = gainLinear * std::cos (panAngle);
-            const float gainR = gainLinear * std::sin (panAngle);
-        
-            if (buffer.getNumChannels() >= 2)
+            if (m_apvts != nullptr)
             {
-                buffer.applyGain (0, 0, buffer.getNumSamples(), gainL);
-                buffer.applyGain (1, 0, buffer.getNumSamples(), gainR);
+                meterLevelLeft_.store (-96.0f, std::memory_order_relaxed);
+                meterLevelRight_.store (-96.0f, std::memory_order_relaxed);
             }
-            else if (buffer.getNumChannels() == 1)
+        }
+        else
+        {
+            m_voiceManager.renderNextBlock (buffer, 0, buffer.getNumSamples());
+
+            // Output Gain and Pan
+            if (m_apvts != nullptr)
             {
-                buffer.applyGain (0, 0, buffer.getNumSamples(), gainLinear);
-            }
-        
-            // meter level
-            const int numSamples = buffer.getNumSamples();
-            if (buffer.getNumChannels() >= 2)
-            {
-                const float peakL = buffer.getMagnitude (0, 0, numSamples);
-                const float peakR = buffer.getMagnitude (1, 0, numSamples);
-                meterLevelLeft_.store  (juce::Decibels::gainToDecibels (peakL, -96.0f), std::memory_order_relaxed);
-                meterLevelRight_.store (juce::Decibels::gainToDecibels (peakR, -96.0f), std::memory_order_relaxed);
-            }
-            else if (buffer.getNumChannels() == 1)
-            {
-                const float peak = buffer.getMagnitude (0, 0, numSamples);
-                const float db   = juce::Decibels::gainToDecibels (peak, -96.0f);
-                meterLevelLeft_.store  (db, std::memory_order_relaxed);
-                meterLevelRight_.store (db, std::memory_order_relaxed);
+                const float gainDb = m_apvts->getRawParameterValue (ParameterIDs::outputGain)->load();
+                const float pan    = m_apvts->getRawParameterValue (ParameterIDs::outputPan)->load();
+
+                // dB
+                const float gainLinear = juce::Decibels::decibelsToGain (gainDb, -60.0f);
+
+                // pan
+                const float panAngle = (pan + 1.0f) * 0.5f * juce::MathConstants<float>::halfPi;
+                const float gainL = gainLinear * std::cos (panAngle);
+                const float gainR = gainLinear * std::sin (panAngle);
+
+                if (buffer.getNumChannels() >= 2)
+                {
+                    buffer.applyGain (0, 0, buffer.getNumSamples(), gainL);
+                    buffer.applyGain (1, 0, buffer.getNumSamples(), gainR);
+                }
+                else if (buffer.getNumChannels() == 1)
+                {
+                    buffer.applyGain (0, 0, buffer.getNumSamples(), gainLinear);
+                }
+
+                // meter level
+                const int numSamples = buffer.getNumSamples();
+                if (buffer.getNumChannels() >= 2)
+                {
+                    const float peakL = buffer.getMagnitude (0, 0, numSamples);
+                    const float peakR = buffer.getMagnitude (1, 0, numSamples);
+                    meterLevelLeft_.store  (juce::Decibels::gainToDecibels (peakL, -96.0f), std::memory_order_relaxed);
+                    meterLevelRight_.store (juce::Decibels::gainToDecibels (peakR, -96.0f), std::memory_order_relaxed);
+                }
+                else if (buffer.getNumChannels() == 1)
+                {
+                    const float peak = buffer.getMagnitude (0, 0, numSamples);
+                    const float db   = juce::Decibels::gainToDecibels (peak, -96.0f);
+                    meterLevelLeft_.store  (db, std::memory_order_relaxed);
+                    meterLevelRight_.store (db, std::memory_order_relaxed);
+                }
             }
         }
     }

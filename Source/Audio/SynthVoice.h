@@ -33,6 +33,9 @@ namespace Audio
 
         void prepare (double sampleRate, int blockSize);
 
+        /** True from startNote until the envelope tail finishes (see SynthVoice::renderNextBlock). */
+        bool isVoiceRendering() const noexcept { return m_isActive; }
+
     private:
         void applyAmpEnvelopeFromSnapshot();
         void updateOscillatorFrequencies();
