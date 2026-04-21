@@ -73,6 +73,8 @@ public:
     int getLastPitchWheel() const noexcept;
     int getLastController() const noexcept;
     int getLastControllerValue() const noexcept;
+    bool isEngineHardOff() const noexcept;
+    void resetEngineHardOff() noexcept;
 
 private:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
