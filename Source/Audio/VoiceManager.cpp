@@ -67,6 +67,18 @@ namespace Audio
         m_synthesiser.renderNextBlock (outputBuffer, emptyMidi, startSample, numSamples);
     }
 
+    bool VoiceManager::hasAnyVoiceRendering() noexcept
+    {
+        for (int i = 0; i < m_synthesiser.getNumVoices(); ++i)
+        {
+            if (auto* v = m_synthesiser.getVoice (i))
+                if (static_cast<const SynthVoice*> (v)->isVoiceRendering())
+                    return true;
+        }
+
+        return false;
+    }
+
     void VoiceManager::allNotesOff (bool allowTailOff)
     {
         for (int ch = 1; ch <= 16; ++ch)
