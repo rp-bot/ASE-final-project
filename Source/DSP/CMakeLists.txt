@@ -14,4 +14,5 @@ target_sources("${PROJECT_NAME}"
         TrilinearMixer8.cpp
         DualFilter.h
         DualFilter.cpp
+        FastMath.h
         )

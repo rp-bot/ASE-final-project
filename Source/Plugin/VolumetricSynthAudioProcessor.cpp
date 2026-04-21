@@ -77,8 +77,6 @@ void VolumetricSynthAudioProcessor::syncCursorParamsToGuiState()
 
 void VolumetricSynthAudioProcessor::syncCornerParamsToGuiState()
 {
-    DBG("inside corner params"); //NOT UPDATED, ACTIVATED
-
     auto& apvts = parameterManager.getAPVTS();
 
     for (int i = 0; i < 8; ++i) //TODO: GLOBAL
@@ -102,9 +100,6 @@ void VolumetricSynthAudioProcessor::syncCornerParamsToGuiState()
         params.coarse = pc ? pc->load() : 0.0f;
         params.fine   = pf ? pf->load() : 0.0f;
         params.pan    = pp ? pp->load() : 0.0f;
-
-        DBG(params.level);
-        DBG(params.detune); //READING PROPERLY
 
         atomicGuiState.setCorner(i, params);
     }
