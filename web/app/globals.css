@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+/* -------- BASE THEME TOKENS (commercial defaults so SSR renders sanely) -------- */
+@theme {
+  --color-bg: #f4efe4;
+  --color-bg-2: #faf6ec;
+  --color-bg-3: #ebe3d2;
+  --color-ink: #1a140a;
+  --color-ink-soft: #6b5d4a;
+  --color-ink-dim: #9c8f78;
+  --color-accent: #c2410c;
+  --color-accent-2: #1e2a3e;
+  --color-accent-3: #b8932a;
+  --color-hairline: rgba(26, 20, 10, 0.14);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-jetbrains);
+
+  --radius-card: 14px;
+}
+
+/* ---------------- COMMERCIAL: editorial cream ---------------- */
+html[data-edition="commercial"] {
+  --color-bg: #f4efe4;
+  --color-bg-2: #faf6ec;
+  --color-bg-3: #ebe3d2;
+  --color-ink: #1a140a;
+  --color-ink-soft: #6b5d4a;
+  --color-ink-dim: #9c8f78;
+  --color-accent: #c2410c;
+  --color-accent-2: #1e2a3e;
+  --color-accent-3: #b8932a;
+  --color-hairline: rgba(26, 20, 10, 0.14);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+/* ---------------- STUDIO VARIANTS: five unique commercial looks ---------------- */
+html[data-edition="commercial"][data-studio-theme="studio-1"] {
+  --color-bg: #f4efe4;
+  --color-bg-2: #faf6ec;
+  --color-bg-3: #ebe3d2;
+  --color-ink: #1a140a;
+  --color-ink-soft: #6b5d4a;
+  --color-ink-dim: #9c8f78;
+  --color-accent: #c2410c;
+  --color-accent-2: #1e2a3e;
+  --color-accent-3: #b8932a;
+  --color-hairline: rgba(26, 20, 10, 0.14);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+html[data-edition="commercial"][data-studio-theme="studio-2"] {
+  --color-bg: #0d1117;
+  --color-bg-2: #161b22;
+  --color-bg-3: #1f2833;
+  --color-ink: #e6edf3;
+  --color-ink-soft: #9fb0c4;
+  --color-ink-dim: #6f8094;
+  --color-accent: #5eead4;
+  --color-accent-2: #7dd3fc;
+  --color-accent-3: #facc15;
+  --color-hairline: rgba(230, 237, 243, 0.2);
+
+  --font-display: var(--font-bebas);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-jetbrains);
+}
+
+html[data-edition="commercial"][data-studio-theme="studio-3"] {
+  --color-bg: #1a1024;
+  --color-bg-2: #251634;
+  --color-bg-3: #311f44;
+  --color-ink: #f5ecff;
+  --color-ink-soft: #d9c3f3;
+  --color-ink-dim: #b090d0;
+  --color-accent: #f472b6;
+  --color-accent-2: #22d3ee;
+  --color-accent-3: #c4b5fd;
+  --color-hairline: rgba(245, 236, 255, 0.22);
+
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-jetbrains);
+}
+
+html[data-edition="commercial"][data-studio-theme="studio-4"] {
+  --color-bg: #f2f5f0;
+  --color-bg-2: #fcfdf8;
+  --color-bg-3: #e3ead8;
+  --color-ink: #182012;
+  --color-ink-soft: #4c5a41;
+  --color-ink-dim: #7d8d71;
+  --color-accent: #2f855a;
+  --color-accent-2: #2b6cb0;
+  --color-accent-3: #b7791f;
+  --color-hairline: rgba(24, 32, 18, 0.16);
+
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-jetbrains);
+}
+
+html[data-edition="commercial"][data-studio-theme="studio-5"] {
+  --color-bg: #2a0f0f;
+  --color-bg-2: #381515;
+  --color-bg-3: #4b1c1c;
+  --color-ink: #ffe9d6;
+  --color-ink-soft: #f3c9aa;
+  --color-ink-dim: #d9a481;
+  --color-accent: #fb923c;
+  --color-accent-2: #fde047;
+  --color-accent-3: #f97316;
+  --color-hairline: rgba(255, 233, 214, 0.22);
+
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-jetbrains);
+}
+
+/* ---------------- OSS: cool graph paper + hacker sketch ---------------- */
+html[data-edition="oss"] {
+  --color-bg: #f3f3ee;
+  --color-bg-2: #fbfbf6;
+  --color-bg-3: #e3e3da;
+  --color-ink: #0a0a0a;
+  --color-ink-soft: #4b4b52;
+  --color-ink-dim: #8a8a93;
+  --color-accent: #2563eb;
+  --color-accent-2: #65a30d;
+  --color-accent-3: #f43f5e;
+  --color-hairline: rgba(10, 10, 10, 0.12);
+
+  --font-display: var(--font-space-grotesk);
+  --font-sans: var(--font-jetbrains);
+  --font-mono: var(--font-jetbrains);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    transition: background-color 500ms ease, color 500ms ease;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-bg-2);
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    letter-spacing: -0.01em;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  .font-display { font-family: var(--font-display), ui-serif, serif; }
+  .font-mono-accent {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    letter-spacing: 0.02em;
+  }
+
+  /* Commercial: subtle paper grain */
+  .paper-grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.1  0 0 0 0 0.08  0 0 0 0 0.05  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* OSS: engineering graph paper */
+  .graph-paper {
+    background-color: var(--color-bg);
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--color-ink) 7%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 7%, transparent) 1px, transparent 1px),
+      linear-gradient(to right, color-mix(in srgb, var(--color-ink) 3%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 3%, transparent) 1px, transparent 1px);
+    background-size: 96px 96px, 96px 96px, 16px 16px, 16px 16px;
+  }
+
+  .hairline { background: var(--color-hairline); height: 1px; }
+
+  /* Ticker / scroll band (commercial) */
+  @keyframes ticker {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-50%, 0, 0); }
+  }
+  .ticker { animation: ticker 40s linear infinite; }
+
+  /* Underline sweep for links (commercial) */
+  .lede-link {
+    background: linear-gradient(to top, var(--color-accent) 0 2px, transparent 2px 100%);
+    background-size: 100% 100%;
+  }
+
+  /* Hand-drawn accent (OSS) */
+  .sketch-underline {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 8' preserveAspectRatio='none'><path d='M2 5 Q 30 1, 60 4 T 118 3' stroke='%232563eb' stroke-width='2' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: bottom left;
+    background-size: 100% 6px;
+    padding-bottom: 4px;
+  }
+}
+
+@keyframes slow-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.anim-slow-pulse { animation: slow-pulse 6s ease-in-out infinite; }
