@@ -25,7 +25,7 @@ private:
     static constexpr int oscComponents = 8;
 
     void layoutMasterControls(juce::Rectangle<int> area);
-
+    void configureRotarySlider(juce::Slider& slider, juce::Label& label, const juce::String& text);
 
     // text labels
     juce::Label filterControlTitle, ampControlTitle;

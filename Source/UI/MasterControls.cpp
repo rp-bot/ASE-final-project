@@ -15,7 +15,7 @@ namespace
     {
         "Attack", "Decay", "Sustain", "Release", "Level", "Vel"
     };
-} //this could go into the header; copied from OscilatorModuleComponent.cpp for now
+} //TODO: this could go into the header; copied from OscilatorModuleComponent.cpp for now
 
 namespace UI {
     MasterControls::MasterControls(juce::AudioProcessorValueTreeState &apvts) {
@@ -24,7 +24,7 @@ namespace UI {
         // Text
         filterControlTitle.setText("Master Filter Control", juce::dontSendNotification);
         filterControlTitle.setJustificationType(juce::Justification::topLeft);
-        filterControlTitle.setColor(juce::Label::textColourId, accent.brighter(0.3f));
+        filterControlTitle.setColour(juce::Label::textColourId, accent.brighter(0.3f));
         addAndMakeVisible(filterControlTitle);
 
         // Visualizer Box
@@ -63,7 +63,7 @@ namespace UI {
         // Text
         filterControlTitle.setText("Master Envelope Control", juce::dontSendNotification);
         filterControlTitle.setJustificationType(juce::Justification::topLeft);
-        filterControlTitle.setColor(juce::Label::textColourId, accent.brighter(0.3f));
+        filterControlTitle.setColour(juce::Label::textColourId, accent.brighter(0.3f));
         addAndMakeVisible(filterControlTitle);
 
         // Visualizer Box
@@ -100,6 +100,8 @@ namespace UI {
 
     }
 
+    MasterControls::~MasterControls() {}
+
     void MasterControls::resized()
     {
         auto bounds = getLocalBounds();
@@ -134,7 +136,7 @@ namespace UI {
         // Toggle buttons (2 columns of 4)
         for (int i = 0; i < oscComponents; ++i)
         {
-            int col = i / 4;
+            int col = i / 4; //TODO: hard coded in rn
             int row = i % 4;
             int btnW = filterTogglesArea.getWidth() / 2;
             int btnH = filterTogglesArea.getHeight() / 4;
@@ -164,7 +166,7 @@ namespace UI {
         // Toggle buttons (2 columns of 4)
         for (int i = 0; i < oscComponents; ++i)
         {
-            int col = i / 4;
+            int col = i / 4; //TODO: hard coded in rn
             int row = i % 4;
             int btnW = ampTogglesArea.getWidth() / 2;
             int btnH = ampTogglesArea.getHeight() / 4;
@@ -173,9 +175,16 @@ namespace UI {
                                      btnW, btnH);
         }
     }
-    void MasterControls::layoutMasterControls(juce::Rectangle<int> area) {
 
+    // COPIED FROM OscillatorModuleComponent.cpp
+    void MasterControls::configureRotarySlider (juce::Slider& slider, juce::Label& label, const juce::String& text)
+    {
+        slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
+        slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+        label.setText (text, juce::dontSendNotification);
+        label.setJustificationType (juce::Justification::centred);
     }
+
 
 
 }

@@ -4,6 +4,7 @@
 #include "../UI/CenterControlPanel.h"
 #include "../UI/LabeledPanel.h"
 #include "../UI/OscillatorModuleComponent.h"
+#include "../UI/MasterControls.h"
 #include "../Visualization/GLContextHost.h"
 #include "../Visualization/Renderer3D.h"
 #include "../UI/OutputSection.h"
