@@ -49,6 +49,7 @@ export const ossCopy = {
   licenseNote: "GPLv3 · Source on GitHub · Donations optional but loved",
   footerNote: "Made with open source, paid for with coffee.",
   repoUrl: "https://github.com/rp-bot/ASE-final-project",
+  
 };
 
 export const downloadPlatforms = [
