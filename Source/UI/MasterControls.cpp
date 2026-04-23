@@ -1,6 +1,8 @@
 #pragma once
 #include "MasterControls.h"
 #include "OscillatorModuleComponent.h"
+#include "../Parameters/ParameterIDs.h"
+
 
 namespace
 {
@@ -18,7 +20,8 @@ namespace
 } //TODO: this could go into the header; copied from OscilatorModuleComponent.cpp for now
 
 namespace UI {
-    MasterControls::MasterControls(juce::AudioProcessorValueTreeState &apvts) {
+    MasterControls::MasterControls(juce::AudioProcessorValueTreeState &apvts)
+    {
 
         // DRAW FILTER MASTER CONTROL
         // Text
@@ -42,8 +45,9 @@ namespace UI {
                                                              juce::Colours::whitesmoke.withAlpha (0.9f));
             addChildComponent (filterSliders[static_cast<size_t> (i)]);
             addChildComponent (filterLabels[static_cast<size_t> (i)]);
-            filterParamsAttachments[static_cast<size_t> (i)] =
-                std::make_unique<SliderAttachment> (apvts, getFilterParameterId (i), filterSliders[static_cast<size_t> (i)]);
+            //TODO: LINK UP KNOBS
+            // filterParamsAttachments[static_cast<size_t> (i)] =
+            //     std::make_unique<SliderAttachment> (apvts, , filterSliders[static_cast<size_t> (i)]);
         }
 
         // Toggle Buttons
@@ -55,9 +59,8 @@ namespace UI {
             filterToggles[static_cast<size_t> (i)].setColour (juce::TextButton::buttonOnColourId,
                                                            accent.withAlpha (0.9f));
             addChildComponent (filterToggles[static_cast<size_t> (i)]);
-            filterToggles[static_cast<size_t> (i)] =
-                std::make_unique<ButtonAttachment> (apvts, "osc_filter_" + juce::String (i) + "_enabled", filterToggles[static_cast<size_t> (i)]);
-        }
+            filterToggleAttachments[static_cast<size_t>(i)] =
+                std::make_unique<ButtonAttachment>(apvts, "osc_filter_" + juce::String(i) + "_enabled", filterToggles[static_cast<size_t>(i)]);        }
 
         // DRAW ENVELOPE MASTER CONTROL
         // Text
@@ -81,8 +84,9 @@ namespace UI {
                                                           juce::Colours::whitesmoke.withAlpha (0.9f));
             addChildComponent (ampSliders[static_cast<size_t> (i)]);
             addChildComponent (ampLabels[static_cast<size_t> (i)]);
-            ampAttachments[static_cast<size_t> (i)] =
-                std::make_unique<SliderAttachment> (apvts, getAmpParameterId (i), ampSliders[static_cast<size_t> (i)]);
+            //TODO: LINK UP KNOB TO APVT
+            // ampAttachments[static_cast<size_t> (i)] =
+            //     std::make_unique<SliderAttachment> (apvts, , ampSliders[static_cast<size_t> (i)]);
         }
 
         // Toggle Buttons
@@ -94,8 +98,8 @@ namespace UI {
             ampToggles[static_cast<size_t> (i)].setColour (juce::TextButton::buttonOnColourId,
                                                            accent.withAlpha (0.9f));
             addChildComponent (ampToggles[static_cast<size_t> (i)]);
-            ampToggles[static_cast<size_t> (i)] =
-                std::make_unique<ButtonAttachment> (apvts, "osc_amp_" + juce::String (i) + "_enabled", ampToggles[static_cast<size_t> (i)]);
+            ampToggleAttachments[static_cast<size_t>(i)] =
+                std::make_unique<ButtonAttachment>(apvts, "osc_amp_" + juce::String(i) + "_enabled", ampToggles[static_cast<size_t>(i)]);
         }
 
     }
@@ -131,7 +135,7 @@ namespace UI {
         }
 
         // Filter display box
-        filterDisplay.setBounds (filterSection.reduced(padding));
+        // filterDisplay.setBounds (filterSection.reduced(padding));
 
         // Toggle buttons (2 columns of 4)
         for (int i = 0; i < oscComponents; ++i)
@@ -161,7 +165,7 @@ namespace UI {
         }
 
         // Amp display box
-        ampDisplay.setBounds (ampSection.reduced (padding));
+        // ampDisplay.setBounds (ampSection.reduced (padding));
 
         // Toggle buttons (2 columns of 4)
         for (int i = 0; i < oscComponents; ++i)
@@ -184,6 +188,13 @@ namespace UI {
         label.setText (text, juce::dontSendNotification);
         label.setJustificationType (juce::Justification::centred);
     }
+
+
+    void MasterControls::paint(juce::Graphics& g)
+    {
+        //TODO
+    }
+
 
 
 

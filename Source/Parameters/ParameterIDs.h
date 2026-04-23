@@ -30,6 +30,7 @@ namespace ParameterIDs
     inline juce::String cornerAmpLevel (int cornerIndex)    { return "CORNER" + juce::String (cornerIndex) + "_AMP_LVL"; }
     inline juce::String cornerAmpVelSens (int cornerIndex)  { return "CORNER" + juce::String (cornerIndex) + "_AMP_VEL"; }
 
+
     // Global controls
     inline constexpr const char* outputGain = "outputGain";
     inline constexpr const char* outputPan  = "outputPan";

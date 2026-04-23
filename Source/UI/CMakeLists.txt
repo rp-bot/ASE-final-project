@@ -10,4 +10,6 @@ target_sources("${PROJECT_NAME}"
         CursorJoystick2D.cpp
         OutputSection.h
         OutputSection.cpp
+        MasterControls.h
+        MasterControls.cpp
     )

@@ -40,7 +40,10 @@ VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
     centerPanel = std::make_unique<UI::CenterControlPanel> (apvts);
     addAndMakeVisible (*centerPanel);
 
-    addAndMakeVisible (bottomLeftPanel);
+    // addAndMakeVisible (bottomLeftPanel);
+
+    masterControlSection = std::make_unique<UI::MasterControls> (apvts);
+    addAndMakeVisible(*masterControlSection);
 
     outputSection = std::make_unique<UI::OutputSection> (apvts);
     addAndMakeVisible (*outputSection);

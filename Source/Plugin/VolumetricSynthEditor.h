@@ -68,7 +68,9 @@ public:
     std::array<std::unique_ptr<UI::OscillatorModuleComponent>, modulesPerBank> rightModules;
     std::unique_ptr<UI::CenterControlPanel> centerPanel;
     UI::LabeledPanel bottomLeftPanel { "Placeholder for Additional Functionalities" };
+    std::unique_ptr<UI::MasterControls> masterControlSection;
     std::unique_ptr<UI::OutputSection> outputSection;
+
 
     GLViewportComponent glViewport_;
     Visualization::GLContextHost glContextHost_;

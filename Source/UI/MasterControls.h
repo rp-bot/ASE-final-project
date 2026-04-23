@@ -20,12 +20,17 @@ public:
 
 private:
 
+    juce::Colour accent {juce::Colours::white};
+
     static constexpr int filterParams = 4;
     static constexpr int ampParams = 6;
     static constexpr int oscComponents = 8;
 
     void layoutMasterControls(juce::Rectangle<int> area);
     void configureRotarySlider(juce::Slider& slider, juce::Label& label, const juce::String& text);
+
+    // juce::String getFilterParameterId (int paramIndex) const;
+    // juce::String getAmpParameterId (int paramIndex) const;
 
     // text labels
     juce::Label filterControlTitle, ampControlTitle;
@@ -44,11 +49,11 @@ private:
     std::array<juce::ToggleButton, oscComponents> ampToggles;
 
     // apvt attachment (for param update)
-    std::array<juce::unique_ptr<SliderAttachment>, filterParams> filterParamsAttachments;
-    std::array<juce::unique_ptr<ButtonAttachment>, oscComponents> filterToggleAttachments;
+    std::array<std::unique_ptr<SliderAttachment>, filterParams> filterParamsAttachments;
+    std::array<std::unique_ptr<ButtonAttachment>, oscComponents> filterToggleAttachments;
 
-    std::array<juce::unique_ptr<SliderAttachment>, ampParams> ampAttachments;
-    std::array<juce::unique_ptr<ButtonAttachment>, oscComponents> ampToggleAttachments;
+    std::array<std::unique_ptr<SliderAttachment>, ampParams> ampAttachments;
+    std::array<std::unique_ptr<ButtonAttachment>, oscComponents> ampToggleAttachments;
 
 
 };
