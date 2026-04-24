@@ -43,8 +43,8 @@ namespace UI {
                                                               accent.withAlpha (0.9f));
             filterLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
                                                              juce::Colours::whitesmoke.withAlpha (0.9f));
-            addChildComponent (filterSliders[static_cast<size_t> (i)]);
-            addChildComponent (filterLabels[static_cast<size_t> (i)]);
+            addAndMakeVisible (filterSliders[static_cast<size_t> (i)]);
+            addAndMakeVisible (filterLabels[static_cast<size_t> (i)]);
             //TODO: LINK UP KNOBS
             // filterParamsAttachments[static_cast<size_t> (i)] =
             //     std::make_unique<SliderAttachment> (apvts, , filterSliders[static_cast<size_t> (i)]);
@@ -58,16 +58,16 @@ namespace UI {
                                                            accent.withAlpha (0.25f));
             filterToggles[static_cast<size_t> (i)].setColour (juce::TextButton::buttonOnColourId,
                                                            accent.withAlpha (0.9f));
-            addChildComponent (filterToggles[static_cast<size_t> (i)]);
+            addAndMakeVisible (filterToggles[static_cast<size_t> (i)]);
             filterToggleAttachments[static_cast<size_t>(i)] =
                 std::make_unique<ButtonAttachment>(apvts, "osc_filter_" + juce::String(i) + "_enabled", filterToggles[static_cast<size_t>(i)]);        }
 
         // DRAW ENVELOPE MASTER CONTROL
         // Text
-        filterControlTitle.setText("Master Envelope Control", juce::dontSendNotification);
-        filterControlTitle.setJustificationType(juce::Justification::topLeft);
-        filterControlTitle.setColour(juce::Label::textColourId, accent.brighter(0.3f));
-        addAndMakeVisible(filterControlTitle);
+        ampControlTitle.setText("Master Envelope Control", juce::dontSendNotification);
+        ampControlTitle.setJustificationType(juce::Justification::topLeft);
+        ampControlTitle.setColour(juce::Label::textColourId, accent.brighter(0.3f));
+        addAndMakeVisible(ampControlTitle);
 
         // Visualizer Box
 
@@ -82,8 +82,8 @@ namespace UI {
                                                            accent.withAlpha (0.9f));
             ampLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
                                                           juce::Colours::whitesmoke.withAlpha (0.9f));
-            addChildComponent (ampSliders[static_cast<size_t> (i)]);
-            addChildComponent (ampLabels[static_cast<size_t> (i)]);
+            addAndMakeVisible (ampSliders[static_cast<size_t> (i)]);
+            addAndMakeVisible (ampLabels[static_cast<size_t> (i)]);
             //TODO: LINK UP KNOB TO APVT
             // ampAttachments[static_cast<size_t> (i)] =
             //     std::make_unique<SliderAttachment> (apvts, , ampSliders[static_cast<size_t> (i)]);
@@ -97,7 +97,7 @@ namespace UI {
                                                            accent.withAlpha (0.25f));
             ampToggles[static_cast<size_t> (i)].setColour (juce::TextButton::buttonOnColourId,
                                                            accent.withAlpha (0.9f));
-            addChildComponent (ampToggles[static_cast<size_t> (i)]);
+            addAndMakeVisible (ampToggles[static_cast<size_t> (i)]);
             ampToggleAttachments[static_cast<size_t>(i)] =
                 std::make_unique<ButtonAttachment>(apvts, "osc_amp_" + juce::String(i) + "_enabled", ampToggles[static_cast<size_t>(i)]);
         }
@@ -114,24 +114,23 @@ namespace UI {
         auto filterSection = bounds.removeFromTop (bounds.getHeight() / 2);
         auto ampSection    = bounds; // remainder
 
-        const int toggleAreaWidth = 120; // two columns of buttons
-        const int titleHeight     = 30;
-        const int knobAreaHeight  = 90;
-        const int padding         = 8;
+        const int toggleAreaWidth = 50;
+        const int titleHeight     = 40;
+        const int knobAreaHeight  = 100;
+        const int padding         = 1;
 
         // FILTER SECTOIN
         auto filterTogglesArea = filterSection.removeFromRight (toggleAreaWidth);
 
-        // Title + Knobs
-        auto filterTopRow = filterSection.removeFromTop (knobAreaHeight);
-        filterControlTitle.setBounds (filterTopRow.removeFromLeft (120).withHeight (titleHeight));
-
+        // Title, Knobs (seperate rows)
+        filterControlTitle.setBounds(filterSection.removeFromTop(titleHeight));
+        auto filterTopRow = filterSection.removeFromTop(knobAreaHeight);
         int knobW = filterTopRow.getWidth() / filterParams;
         for (int i = 0; i < filterParams; ++i)
         {
-            auto knobArea = filterTopRow.removeFromLeft (knobW);
-            filterSliders[i].setBounds (knobArea.reduced(padding));
-            filterLabels[i].setBounds  (knobArea.removeFromBottom (20));
+            auto knobArea = filterTopRow.removeFromLeft(knobW);
+            filterLabels[i].setBounds(knobArea.removeFromBottom(20));
+            filterSliders[i].setBounds(knobArea.reduced(padding));
         }
 
         // Filter display box
@@ -153,16 +152,27 @@ namespace UI {
         auto ampTogglesArea = ampSection.removeFromRight (toggleAreaWidth);
 
         // Title + Knobs
-        auto ampTopRow = ampSection.removeFromTop (knobAreaHeight);
-        ampControlTitle.setBounds (ampTopRow.removeFromLeft (120).withHeight (titleHeight));
+        // auto ampTopRow = ampSection.removeFromTop (knobAreaHeight);
+        // ampControlTitle.setBounds (ampTopRow.removeFromLeft (120).withHeight (titleHeight));
+        //
+        // int ampKnobW = ampTopRow.getWidth() / ampParams;
+        // for (int i = 0; i < ampParams; ++i)
+        // {
+        //     auto knobArea = ampTopRow.removeFromLeft (ampKnobW);
+        //     ampSliders[i].setBounds (knobArea.reduced (padding));
+        //     ampLabels[i].setBounds  (knobArea.removeFromBottom (20));
+        // }
 
+        ampControlTitle.setBounds(ampSection.removeFromTop(titleHeight));
+        auto ampTopRow = ampSection.removeFromTop(knobAreaHeight);
         int ampKnobW = ampTopRow.getWidth() / ampParams;
         for (int i = 0; i < ampParams; ++i)
         {
-            auto knobArea = ampTopRow.removeFromLeft (ampKnobW);
-            ampSliders[i].setBounds (knobArea.reduced (padding));
-            ampLabels[i].setBounds  (knobArea.removeFromBottom (20));
+            auto knobArea = ampTopRow.removeFromLeft(ampKnobW);
+            ampLabels[i].setBounds(knobArea.removeFromBottom(20));
+            ampSliders[i].setBounds(knobArea.reduced(padding));
         }
+
 
         // Amp display box
         // ampDisplay.setBounds (ampSection.reduced (padding));

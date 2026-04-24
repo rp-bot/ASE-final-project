@@ -66,7 +66,7 @@ VolumetricSynthEditor::VolumetricSynthEditor (VolumetricSynthAudioProcessor& p)
 
     startTimerHz (25);
 
-    setSize (1220, 700);
+    setSize (1220, 800);
 }
 
 VolumetricSynthEditor::~VolumetricSynthEditor()
@@ -82,6 +82,8 @@ void VolumetricSynthEditor::timerCallback()
     outputSection->setMeterLevels (
         processorRef.getSynthEngine().getMeterLevelLeft(),
         processorRef.getSynthEngine().getMeterLevelRight());
+
+    //TODO: LINK PARAMS
 }
 
 void VolumetricSynthEditor::updateCursorParametersFromPosition (glm::vec3 position)
@@ -124,7 +126,7 @@ void VolumetricSynthEditor::resized()
     topRow.removeFromLeft (columnGap);
     rightBankArea = topRow;
 
-    const int bottomStripHeight = juce::roundToInt (static_cast<float> (topArea.getHeight()) * 0.22f);
+    const int bottomStripHeight = juce::roundToInt (static_cast<float> (topArea.getHeight()) * 0.35f);
     bottomLeftArea = leftBankArea.removeFromBottom (bottomStripHeight);
     bottomRightArea = rightBankArea.removeFromBottom (bottomStripHeight);
 
@@ -148,7 +150,8 @@ void VolumetricSynthEditor::resized()
     layoutBankModules (leftBankArea, leftModules);
     layoutBankModules (rightBankArea, rightModules);
 
-    bottomLeftPanel.setBounds (bottomLeftArea.reduced (8));
+    // bottomLeftPanel.setBounds (bottomLeftArea.reduced (8));
+    masterControlSection->setBounds(bottomLeftArea.reduced(8));
     outputSection->setBounds (bottomRightArea.reduced (8));
 
     auto centerColumn = centerArea.reduced (6);
