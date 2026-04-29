@@ -44,6 +44,13 @@ private:
     void layoutMasterControls(juce::Rectangle<int> area);
     void configureRotarySlider(juce::Slider& slider, juce::Label& label, const juce::String& text);
 
+    void propagateFilterMaster (int paramIndex);
+    void propagateAmpMaster (int paramIndex);
+    void seedCornerFromMaster (int corner, bool isFilter);
+    static void writeNormalised (juce::AudioProcessorValueTreeState& apvts, const juce::String& parameterId,float realValue);
+
+    juce::AudioProcessorValueTreeState* apvtsPtr { nullptr };
+
     // juce::String getFilterParameterId (int paramIndex) const;
     // juce::String getAmpParameterId (int paramIndex) const;
 

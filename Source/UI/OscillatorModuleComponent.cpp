@@ -288,34 +288,12 @@ juce::String OscillatorModuleComponent::getSynthParameterId (int paramIndex) con
 
 juce::String OscillatorModuleComponent::getFilterParameterId (int paramIndex) const
 {
-    switch (paramIndex)
-    {
-        case 0: return ParameterIDs::cornerFilterCutoff (corner);
-        case 1: return ParameterIDs::cornerFilterResonance (corner);
-        case 2: return ParameterIDs::cornerFilterKeyTrack (corner);
-        case 3: return ParameterIDs::cornerFilterDrive (corner);
-        default: break;
-    }
-
-    jassertfalse;
-    return {};
+    return ParameterIDs::cornerFilterById (corner, paramIndex);
 }
 
 juce::String OscillatorModuleComponent::getAmpParameterId (int paramIndex) const
 {
-    switch (paramIndex)
-    {
-        case 0: return ParameterIDs::cornerAmpAttack (corner);
-        case 1: return ParameterIDs::cornerAmpDecay (corner);
-        case 2: return ParameterIDs::cornerAmpSustain (corner);
-        case 3: return ParameterIDs::cornerAmpRelease (corner);
-        case 4: return ParameterIDs::cornerAmpLevel (corner);
-        case 5: return ParameterIDs::cornerAmpVelSens (corner);
-        default: break;
-    }
-
-    jassertfalse;
-    return {};
+    return ParameterIDs::cornerAmpById (corner, paramIndex);
 }
 
 void OscillatorModuleComponent::configureRotarySlider (juce::Slider& slider, juce::Label& label, const juce::String& text)

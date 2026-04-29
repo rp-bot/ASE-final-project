@@ -132,7 +132,79 @@ public:
                 cornerName + "Amp Vel Sens",
                 juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
                 0.5f));
+
+            layout.add (std::make_unique<juce::AudioParameterBool> (
+                ParameterIDs::oscFilterEnabled (corner),
+                cornerName + "Filter Master Enable",
+                false));
+
+            layout.add (std::make_unique<juce::AudioParameterBool> (
+                ParameterIDs::oscAmpEnabled (corner),
+                cornerName + "Amp Master Enable",
+                false));
         }
+
+        // Master filter (ranges/defaults match per-corner filter parameters).
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterFilterCutoff,
+            "Master Filter Cutoff",
+            juce::NormalisableRange<float> (20.0f, 20000.0f, 1.0f, 0.25f),
+            4000.0f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterFilterResonance,
+            "Master Filter Resonance",
+            juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+            0.2f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterFilterKeyTrack,
+            "Master Filter Key Track",
+            juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+            0.5f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterFilterDrive,
+            "Master Filter Drive",
+            juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+            0.0f));
+
+        // Master amp envelope (ranges/defaults match per-corner amp parameters).
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterAmpAttack,
+            "Master Amp Attack",
+            juce::NormalisableRange<float> (0.001f, 5.0f, 0.001f, 0.4f),
+            0.01f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterAmpDecay,
+            "Master Amp Decay",
+            juce::NormalisableRange<float> (0.001f, 5.0f, 0.001f, 0.4f),
+            0.1f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterAmpSustain,
+            "Master Amp Sustain",
+            juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+            0.7f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterAmpRelease,
+            "Master Amp Release",
+            juce::NormalisableRange<float> (0.001f, 10.0f, 0.001f, 0.4f),
+            0.3f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterAmpLevel,
+            "Master Amp Level",
+            juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+            1.0f));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (
+            ParameterIDs::masterAmpVelSens,
+            "Master Amp Vel Sens",
+            juce::NormalisableRange<float> (0.0f, 1.0f, 0.01f),
+            0.5f));
 
         return layout;
     }

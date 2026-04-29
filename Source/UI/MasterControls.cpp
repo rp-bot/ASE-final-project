@@ -34,8 +34,7 @@ namespace
 } //TODO: this could go into the header; copied from OscilatorModuleComponent.cpp for now
 
 namespace UI {
-    MasterControls::MasterControls(juce::AudioProcessorValueTreeState &apvts)
-    {
+    MasterControls::MasterControls(juce::AudioProcessorValueTreeState &apvts) : apvtsPtr (&apvts) {
 
         // DRAW FILTER MASTER CONTROL
         // Text
@@ -59,9 +58,15 @@ namespace UI {
                                                              juce::Colours::whitesmoke.withAlpha (0.9f));
             addAndMakeVisible (filterSliders[static_cast<size_t> (i)]);
             addAndMakeVisible (filterLabels[static_cast<size_t> (i)]);
-            //TODO: LINK UP KNOBS
-            // filterParamsAttachments[static_cast<size_t> (i)] =
-            //     std::make_unique<SliderAttachment> (apvts, , filterSliders[static_cast<size_t> (i)]);
+
+            // SliderAttachment automatically applies the parameter's range, skew and
+            // default to the slider, so no manual setRange/setSkewFactor needed.
+            filterParamsAttachments[static_cast<size_t> (i)] =
+                std::make_unique<SliderAttachment> (apvts,
+                                                    ParameterIDs::masterFilter (i),
+                                                    filterSliders[static_cast<size_t> (i)]);
+
+            filterSliders[static_cast<size_t> (i)].onValueChange = [this, i] { propagateFilterMaster (i); };
         }
 
         // Toggle Buttons (TextButton with toggle behaviour -> coloured rectangles)
@@ -75,8 +80,14 @@ namespace UI {
             tb.setColour (juce::ComboBox::outlineColourId,    oscColour.withAlpha (0.75f));
             tb.setLookAndFeel (&toggleLookAndFeel);
             addAndMakeVisible (tb);
-            filterToggleAttachments[static_cast<size_t>(i)] =
-                std::make_unique<ButtonAttachment>(apvts, "osc_filter_" + juce::String(i) + "_enabled", tb);
+            filterToggleAttachments[static_cast<size_t> (i)] = std::make_unique<ButtonAttachment> (apvts, ParameterIDs::oscFilterEnabled (i), tb);
+
+            // onClick fires after ButtonAttachment has updated state, so reading
+            // getToggleState here reflects the new value (push on off->on only).
+            tb.onClick = [this, i] {
+                if (filterToggles[static_cast<size_t> (i)].getToggleState())
+                    seedCornerFromMaster (i, true);
+            };
         }
 
         // DRAW ENVELOPE MASTER CONTROL
@@ -101,9 +112,11 @@ namespace UI {
                                                           juce::Colours::whitesmoke.withAlpha (0.9f));
             addAndMakeVisible (ampSliders[static_cast<size_t> (i)]);
             addAndMakeVisible (ampLabels[static_cast<size_t> (i)]);
-            //TODO: LINK UP KNOB TO APVT
-            // ampAttachments[static_cast<size_t> (i)] =
-            //     std::make_unique<SliderAttachment> (apvts, , ampSliders[static_cast<size_t> (i)]);
+
+            ampAttachments[static_cast<size_t> (i)] = std::make_unique<SliderAttachment> (apvts,
+                                       ParameterIDs::masterAmp (i), ampSliders[static_cast<size_t> (i)]);
+
+            ampSliders[static_cast<size_t> (i)].onValueChange = [this, i] { propagateAmpMaster (i); };
         }
 
         // Toggle Buttons (TextButton with toggle behaviour -> coloured rectangles)
@@ -117,8 +130,14 @@ namespace UI {
             tb.setColour (juce::ComboBox::outlineColourId,    oscColour.withAlpha (0.75f));
             tb.setLookAndFeel (&toggleLookAndFeel);
             addAndMakeVisible (tb);
-            ampToggleAttachments[static_cast<size_t>(i)] =
-                std::make_unique<ButtonAttachment>(apvts, "osc_amp_" + juce::String(i) + "_enabled", tb);
+            ampToggleAttachments[static_cast<size_t> (i)] =
+                std::make_unique<ButtonAttachment> (apvts, ParameterIDs::oscAmpEnabled (i), tb);
+
+            tb.onClick = [this, i]
+            {
+                if (ampToggles[static_cast<size_t> (i)].getToggleState())
+                    seedCornerFromMaster (i, false);
+            };
         }
 
     }
@@ -236,6 +255,55 @@ namespace UI {
     void MasterControls::paint(juce::Graphics& g)
     {
         //TODO
+    }
+
+    void MasterControls::propagateFilterMaster (int paramIndex)
+    {
+        if (apvtsPtr == nullptr)
+            return;
+
+        const auto value = static_cast<float> (filterSliders[static_cast<size_t> (paramIndex)].getValue());
+        for (int corner = 0; corner < oscComponents; ++corner)
+        {
+            if (filterToggles[static_cast<size_t> (corner)].getToggleState())
+                writeNormalised (*apvtsPtr, ParameterIDs::cornerFilterById (corner, paramIndex), value);
+        }
+    }
+
+    void MasterControls::propagateAmpMaster (int paramIndex)
+    {
+        if (apvtsPtr == nullptr) return;
+
+        const auto value = static_cast<float> (ampSliders[static_cast<size_t> (paramIndex)].getValue());
+        for (int corner = 0; corner < oscComponents; ++corner)
+        {
+            if (ampToggles[static_cast<size_t> (corner)].getToggleState())
+                writeNormalised (*apvtsPtr, ParameterIDs::cornerAmpById (corner, paramIndex), value);
+        }
+    }
+
+    void MasterControls::seedCornerFromMaster (int corner, bool isFilter)
+    {
+        if (apvtsPtr == nullptr) return;
+
+        if (isFilter) {
+            for (int i = 0; i < filterParams; ++i) {
+                const auto value = static_cast<float> (filterSliders[static_cast<size_t> (i)].getValue());
+                writeNormalised (*apvtsPtr, ParameterIDs::cornerFilterById (corner, i), value);
+            }
+        }
+        else {
+            for (int i = 0; i < ampParams; ++i) {
+                const auto value = static_cast<float> (ampSliders[static_cast<size_t> (i)].getValue());
+                writeNormalised (*apvtsPtr, ParameterIDs::cornerAmpById (corner, i), value);
+            }
+        }
+    }
+
+    void MasterControls::writeNormalised (juce::AudioProcessorValueTreeState& apvts,
+                                          const juce::String& parameterId, float realValue) {
+        if (auto* p = apvts.getParameter (parameterId))
+            p->setValueNotifyingHost (p->getNormalisableRange().convertTo0to1 (realValue));
     }
 
 
