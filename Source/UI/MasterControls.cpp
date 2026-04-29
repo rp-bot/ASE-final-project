@@ -75,6 +75,7 @@ namespace UI {
             const auto oscColour = kOscColours[static_cast<size_t> (i)];
             auto& tb = filterToggles[static_cast<size_t> (i)];
             tb.setClickingTogglesState (true);
+            tb.setWantsKeyboardFocus (false);
             tb.setColour (juce::TextButton::buttonColourId,   oscColour.withAlpha (0.25f));
             tb.setColour (juce::TextButton::buttonOnColourId, oscColour.withAlpha (0.9f));
             tb.setColour (juce::ComboBox::outlineColourId,    oscColour.withAlpha (0.75f));
@@ -125,6 +126,7 @@ namespace UI {
             const auto oscColour = kOscColours[static_cast<size_t> (i)];
             auto& tb = ampToggles[static_cast<size_t> (i)];
             tb.setClickingTogglesState (true);
+            tb.setWantsKeyboardFocus (false);
             tb.setColour (juce::TextButton::buttonColourId,   oscColour.withAlpha (0.25f));
             tb.setColour (juce::TextButton::buttonOnColourId, oscColour.withAlpha (0.9f));
             tb.setColour (juce::ComboBox::outlineColourId,    oscColour.withAlpha (0.75f));
