@@ -17,6 +17,20 @@ namespace
     {
         "Attack", "Decay", "Sustain", "Release", "Level", "Vel"
     };
+
+    // Per-oscillator accent palette. Must stay in sync with the moduleColours
+    // array in VolumetricSynthEditor.cpp (corner index -> colour).
+    const std::array<juce::Colour, 8> kOscColours
+    {
+        juce::Colour::fromRGB (231, 76, 60),   // red
+        juce::Colour::fromRGB (230, 126, 34),  // orange
+        juce::Colour::fromRGB (241, 196, 15),  // yellow
+        juce::Colour::fromRGB (46, 204, 113),  // green
+        juce::Colour::fromRGB (26, 188, 156),  // teal
+        juce::Colour::fromRGB (52, 152, 219),  // blue
+        juce::Colour::fromRGB (155, 89, 182),  // purple
+        juce::Colour::fromRGB (236, 112, 173)  // pink
+    };
 } //TODO: this could go into the header; copied from OscilatorModuleComponent.cpp for now
 
 namespace UI {
@@ -50,17 +64,20 @@ namespace UI {
             //     std::make_unique<SliderAttachment> (apvts, , filterSliders[static_cast<size_t> (i)]);
         }
 
-        // Toggle Buttons
+        // Toggle Buttons (TextButton with toggle behaviour -> coloured rectangles)
         for (int i = 0; i < oscComponents; ++i)
         {
-            filterToggles[static_cast<size_t> (i)].setClickingTogglesState (true);
-            filterToggles[static_cast<size_t> (i)].setColour (juce::TextButton::buttonColourId,
-                                                           accent.withAlpha (0.25f));
-            filterToggles[static_cast<size_t> (i)].setColour (juce::TextButton::buttonOnColourId,
-                                                           accent.withAlpha (0.9f));
-            addAndMakeVisible (filterToggles[static_cast<size_t> (i)]);
+            const auto oscColour = kOscColours[static_cast<size_t> (i)];
+            auto& tb = filterToggles[static_cast<size_t> (i)];
+            tb.setClickingTogglesState (true);
+            tb.setColour (juce::TextButton::buttonColourId,   oscColour.withAlpha (0.25f));
+            tb.setColour (juce::TextButton::buttonOnColourId, oscColour.withAlpha (0.9f));
+            tb.setColour (juce::ComboBox::outlineColourId,    oscColour.withAlpha (0.75f));
+            tb.setLookAndFeel (&toggleLookAndFeel);
+            addAndMakeVisible (tb);
             filterToggleAttachments[static_cast<size_t>(i)] =
-                std::make_unique<ButtonAttachment>(apvts, "osc_filter_" + juce::String(i) + "_enabled", filterToggles[static_cast<size_t>(i)]);        }
+                std::make_unique<ButtonAttachment>(apvts, "osc_filter_" + juce::String(i) + "_enabled", tb);
+        }
 
         // DRAW ENVELOPE MASTER CONTROL
         // Text
@@ -89,22 +106,28 @@ namespace UI {
             //     std::make_unique<SliderAttachment> (apvts, , ampSliders[static_cast<size_t> (i)]);
         }
 
-        // Toggle Buttons
+        // Toggle Buttons (TextButton with toggle behaviour -> coloured rectangles)
         for (int i = 0; i < oscComponents; ++i)
         {
-            ampToggles[static_cast<size_t> (i)].setClickingTogglesState (true);
-            ampToggles[static_cast<size_t> (i)].setColour (juce::TextButton::buttonColourId,
-                                                           accent.withAlpha (0.25f));
-            ampToggles[static_cast<size_t> (i)].setColour (juce::TextButton::buttonOnColourId,
-                                                           accent.withAlpha (0.9f));
-            addAndMakeVisible (ampToggles[static_cast<size_t> (i)]);
+            const auto oscColour = kOscColours[static_cast<size_t> (i)];
+            auto& tb = ampToggles[static_cast<size_t> (i)];
+            tb.setClickingTogglesState (true);
+            tb.setColour (juce::TextButton::buttonColourId,   oscColour.withAlpha (0.25f));
+            tb.setColour (juce::TextButton::buttonOnColourId, oscColour.withAlpha (0.9f));
+            tb.setColour (juce::ComboBox::outlineColourId,    oscColour.withAlpha (0.75f));
+            tb.setLookAndFeel (&toggleLookAndFeel);
+            addAndMakeVisible (tb);
             ampToggleAttachments[static_cast<size_t>(i)] =
-                std::make_unique<ButtonAttachment>(apvts, "osc_amp_" + juce::String(i) + "_enabled", ampToggles[static_cast<size_t>(i)]);
+                std::make_unique<ButtonAttachment>(apvts, "osc_amp_" + juce::String(i) + "_enabled", tb);
         }
 
     }
 
-    MasterControls::~MasterControls() {}
+    MasterControls::~MasterControls()
+    {
+        for (auto& tb : filterToggles) tb.setLookAndFeel (nullptr);
+        for (auto& tb : ampToggles)    tb.setLookAndFeel (nullptr);
+    }
 
     void MasterControls::resized()
     {
@@ -117,7 +140,11 @@ namespace UI {
         const int toggleAreaWidth = 50;
         const int titleHeight     = 40;
         const int knobAreaHeight  = 100;
+        const int knobLabelHeight = 20;                     // bottom strip of each knob cell reserved for the text label
         const int padding         = 1;
+        const int toggleSize      = toggleAreaWidth / 2;   // 25x25 cell per button (2 cols * 4 rows)
+        const int toggleGridH     = toggleSize * 4;         // total height occupied by one 4-row group
+        const int toggleSpacing   = 2;                      // visual gap between adjacent toggle squares
 
         // FILTER SECTOIN
         auto filterTogglesArea = filterSection.removeFromRight (toggleAreaWidth);
@@ -129,23 +156,26 @@ namespace UI {
         for (int i = 0; i < filterParams; ++i)
         {
             auto knobArea = filterTopRow.removeFromLeft(knobW);
-            filterLabels[i].setBounds(knobArea.removeFromBottom(20));
+            filterLabels[i].setBounds(knobArea.removeFromBottom(knobLabelHeight));
             filterSliders[i].setBounds(knobArea.reduced(padding));
         }
 
         // Filter display box
         // filterDisplay.setBounds (filterSection.reduced(padding));
 
-        // Toggle buttons (2 columns of 4)
+        // Toggle buttons (2 columns of 4, square, vertically centred on the *circular knob*
+        // itself - i.e. the knob row minus its bottom label strip)
+        const int filterStartY = filterTogglesArea.getY()
+                               + titleHeight
+                               + (knobAreaHeight - knobLabelHeight - toggleGridH) / 2;
         for (int i = 0; i < oscComponents; ++i)
         {
             int col = i / 4; //TODO: hard coded in rn
             int row = i % 4;
-            int btnW = filterTogglesArea.getWidth() / 2;
-            int btnH = filterTogglesArea.getHeight() / 4;
-            filterToggles[i].setBounds (filterTogglesArea.getX() + col * btnW,
-                                        filterTogglesArea.getY() + row * btnH,
-                                        btnW, btnH);
+            juce::Rectangle<int> cell (filterTogglesArea.getX() + col * toggleSize,
+                                       filterStartY + row * toggleSize,
+                                       toggleSize, toggleSize);
+            filterToggles[i].setBounds (cell.reduced (toggleSpacing / 2));
         }
 
         // AMP SECTION
@@ -169,7 +199,7 @@ namespace UI {
         for (int i = 0; i < ampParams; ++i)
         {
             auto knobArea = ampTopRow.removeFromLeft(ampKnobW);
-            ampLabels[i].setBounds(knobArea.removeFromBottom(20));
+            ampLabels[i].setBounds(knobArea.removeFromBottom(knobLabelHeight));
             ampSliders[i].setBounds(knobArea.reduced(padding));
         }
 
@@ -177,16 +207,19 @@ namespace UI {
         // Amp display box
         // ampDisplay.setBounds (ampSection.reduced (padding));
 
-        // Toggle buttons (2 columns of 4)
+        // Toggle buttons (2 columns of 4, square, vertically centred on the *circular knob*
+        // itself - i.e. the knob row minus its bottom label strip)
+        const int ampStartY = ampTogglesArea.getY()
+                            + titleHeight
+                            + (knobAreaHeight - knobLabelHeight - toggleGridH) / 2;
         for (int i = 0; i < oscComponents; ++i)
         {
             int col = i / 4; //TODO: hard coded in rn
             int row = i % 4;
-            int btnW = ampTogglesArea.getWidth() / 2;
-            int btnH = ampTogglesArea.getHeight() / 4;
-            ampToggles[i].setBounds (ampTogglesArea.getX() + col * btnW,
-                                     ampTogglesArea.getY() + row * btnH,
-                                     btnW, btnH);
+            juce::Rectangle<int> cell (ampTogglesArea.getX() + col * toggleSize,
+                                       ampStartY + row * toggleSize,
+                                       toggleSize, toggleSize);
+            ampToggles[i].setBounds (cell.reduced (toggleSpacing / 2));
         }
     }
 

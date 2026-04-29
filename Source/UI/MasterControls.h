@@ -20,6 +20,21 @@ public:
 
 private:
 
+    // LookAndFeel override that suppresses the mouse-hover highlight on the
+    // toggle buttons (click-down feedback is preserved).
+    class NoHoverButtonLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        void drawButtonBackground (juce::Graphics& g, juce::Button& button,
+                                   const juce::Colour& backgroundColour,
+                                   bool /*shouldDrawButtonAsHighlighted*/,
+                                   bool shouldDrawButtonAsDown) override
+        {
+            juce::LookAndFeel_V4::drawButtonBackground (g, button, backgroundColour,
+                                                        false, shouldDrawButtonAsDown);
+        }
+    };
+
     juce::Colour accent {juce::Colours::white};
 
     static constexpr int filterParams = 4;
@@ -44,9 +59,11 @@ private:
     // visualizers
 
 
-    // toggle buttons
-    std::array<juce::ToggleButton, oscComponents> filterToggles;
-    std::array<juce::ToggleButton, oscComponents> ampToggles;
+    // toggle buttons (TextButton in togglesState mode; gives us a coloured
+    // "lit when on" look that honours buttonColourId / buttonOnColourId)
+    std::array<juce::TextButton, oscComponents> filterToggles;
+    std::array<juce::TextButton, oscComponents> ampToggles;
+    NoHoverButtonLookAndFeel toggleLookAndFeel;
 
     // apvt attachment (for param update)
     std::array<std::unique_ptr<SliderAttachment>, filterParams> filterParamsAttachments;
