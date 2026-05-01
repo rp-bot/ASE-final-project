@@ -288,7 +288,7 @@ namespace Audio
         m_mixer.processBlock(m_oscillatorOutputs, m_mixerOutput, 0, numSamples, cursor, pan);
 
         const int numChannels = juce::jmin(outputBuffer.getNumChannels(), 2);
-        constexpr float kHeadroomGain = 0.02f;
+        constexpr float kHeadroomGain = 0.89f;
         const float velScale =
             juce::jlimit(0.0f, 1.0f, (1.0f - m_blendedVelSens) + m_blendedVelSens * m_currentVelocity);
 
@@ -299,10 +299,13 @@ namespace Audio
             const float mixedR = m_mixerOutput.getNumChannels() > 1 ? m_mixerOutput.getSample(1, s) : mixedL;
             const float gain = kHeadroomGain * envVal * velScale * m_blendedAmpLevel;
 
+            const float outL = mixedL * gain;
+            const float outR = mixedR * gain;
+
             const int outIndex = startSample + s;
-            outputBuffer.addSample(0, outIndex, mixedL * gain);
+            outputBuffer.addSample(0, outIndex, outL);
             if (numChannels >= 2)
-                outputBuffer.addSample(1, outIndex, mixedR * gain);
+                outputBuffer.addSample(1, outIndex, outR);
 
             if (!m_envelope.isActive())
             {

@@ -160,6 +160,17 @@ int VolumetricSynthAudioProcessor::getLastControllerValue() const noexcept
     return synthEngine != nullptr ? synthEngine->getLastControllerValue() : 0;
 }
 
+bool VolumetricSynthAudioProcessor::isEngineHardOff() const noexcept
+{
+    return synthEngine != nullptr ? synthEngine->isEngineHardOff() : false;
+}
+
+void VolumetricSynthAudioProcessor::resetEngineHardOff() noexcept
+{
+    if (synthEngine != nullptr)
+        synthEngine->resetEngineHardOff();
+}
+
 //==============================================================================
 const juce::String VolumetricSynthAudioProcessor::getName() const
 {
