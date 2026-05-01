@@ -1,5 +1,5 @@
 #include "OscillatorModuleComponent.h"
-#include "../Parameters/ParameterIDs.h"
+#include "Parameters/ParameterIDs.h"
 #include <cmath>
 
 namespace
@@ -144,7 +144,14 @@ void OscillatorModuleComponent::paint (juce::Graphics& g)
 
 void OscillatorModuleComponent::resized()
 {
-    auto inner = getLocalBounds().reduced (4);
+    // Reduce inner padding as the module shrinks so knobs keep more of their size.
+    // Natural module width at default window size is ~384 px; minimum is ~280 px.
+    const float ms = juce::jlimit (0.0f, 1.0f,
+        (static_cast<float> (getWidth()) - 280.0f) / (384.0f - 280.0f));
+    const int innerPad  = 2 + juce::roundToInt (2.0f * ms); // 2..4, was fixed 4
+    const int headerGap = 2 + juce::roundToInt (2.0f * ms); // 2..4, was fixed 4
+
+    auto inner = getLocalBounds().reduced (innerPad);
     auto header = inner.removeFromTop (22);
     titleLabel.setBounds (header.removeFromLeft (juce::jmin (88, header.getWidth() / 2)));
     header.removeFromLeft (6);
@@ -155,7 +162,7 @@ void OscillatorModuleComponent::resized()
     header.removeFromLeft (4);
     tabAmp.setBounds (header.removeFromLeft (tabW));
 
-    inner.removeFromTop (4);
+    inner.removeFromTop (headerGap);
     if (activePage == Page::Synth)
         layoutSynthPage (inner);
     else if (activePage == Page::Filter)
@@ -211,7 +218,11 @@ void OscillatorModuleComponent::refreshTabColours()
 
 void OscillatorModuleComponent::layoutSynthPage (juce::Rectangle<int> area)
 {
-    constexpr int knobGap = 4;
+    // Reduce gap between cells first so knobs shrink less when module width is small.
+    // Natural content width ~364 px (6 cells * ~60 px + 5 gaps * 4 px).
+    const float gs = juce::jlimit (0.0f, 1.0f,
+        (static_cast<float> (area.getWidth()) - 240.0f) / (364.0f - 240.0f));
+    const int knobGap  = 1 + juce::roundToInt (3.0f * gs); // 1..4, was fixed 4
     const auto knobCount = static_cast<int> (kSynthKnobIndices.size());
     const auto totalCells = knobCount + 1;
     const auto cellWidth = (area.getWidth() - (knobGap * (totalCells - 1))) / totalCells;
@@ -239,7 +250,9 @@ void OscillatorModuleComponent::layoutSynthPage (juce::Rectangle<int> area)
 
 void OscillatorModuleComponent::layoutFilterPage (juce::Rectangle<int> area)
 {
-    constexpr int gap = 4;
+    const float gs = juce::jlimit (0.0f, 1.0f,
+        (static_cast<float> (area.getWidth()) - 180.0f) / (300.0f - 180.0f));
+    const int gap = 1 + juce::roundToInt (3.0f * gs); // 1..4, was fixed 4
     const int n = filterParams;
     const int cellW = (area.getWidth() - gap * (n - 1)) / n;
     for (int i = 0; i < n; ++i)
@@ -255,7 +268,9 @@ void OscillatorModuleComponent::layoutFilterPage (juce::Rectangle<int> area)
 
 void OscillatorModuleComponent::layoutAmpPage (juce::Rectangle<int> area)
 {
-    constexpr int gap = 4;
+    const float gs = juce::jlimit (0.0f, 1.0f,
+        (static_cast<float> (area.getWidth()) - 200.0f) / (320.0f - 200.0f));
+    const int gap = 1 + juce::roundToInt (3.0f * gs); // 1..4, was fixed 4
     const int n = ampParams;
     const int cellW = (area.getWidth() - gap * (n - 1)) / n;
     for (int i = 0; i < n; ++i)

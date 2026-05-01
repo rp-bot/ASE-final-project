@@ -56,8 +56,8 @@ namespace UI
         }
 
         const auto cutoffNorm = std::log10(values[0] / kCutoffMin) / std::log10(kCutoffMax / kCutoffMin);
-        // Frequency-gain (main handle / resonance) is visually constrained to 50%-100%.
-        const auto visualQBoost = juce::jmap(values[1], 0.0f, 1.0f, 0.5f, 1.0f);
+        // Bump height follows raw resonance 0→1 so at visual minimum dot (50%, res=0) peak is gone.
+        const auto resonanceBumpScale = values[1];
         const auto driveBoost = values[3] * 8.0f;
         const auto slopeDepth = 52.0f + values[2] * 28.0f;
 
@@ -71,7 +71,7 @@ namespace UI
             const auto dx = nx - cutoffNorm;
             const auto postCut = juce::jmax(0.0f, dx);
             const auto lowPassShape = -(std::pow(postCut * 1.85f, 1.25f)) * slopeDepth;
-            const auto resonancePeak = std::exp(-120.0f * dx * dx) * (visualQBoost * 12.0f);
+            const auto resonancePeak = std::exp(-120.0f * dx * dx) * (resonanceBumpScale * 12.0f);
             const auto db = juce::jlimit(-24.0f, 12.0f, lowPassShape + resonancePeak + driveBoost);
             const auto y = juce::jmap(db, 12.0f, -24.0f, plot.getY(), plot.getBottom());
 

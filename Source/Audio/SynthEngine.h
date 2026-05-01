@@ -52,7 +52,7 @@ namespace Audio
         int getLastControllerValue() const noexcept;
 
     private:
-        double m_sampleRate { 44100.0 };
+        double m_sampleRate { 0.0 };
         int m_blockSize { 0 };
 
         Threading::AtomicGuiState* m_guiState { nullptr };

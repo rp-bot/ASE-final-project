@@ -145,7 +145,7 @@ inline juce::String formatMasterParameterDisplayValue (const juce::String& name,
     return juce::String (value, 2);
 }
 
-/** Per-oscillator accent palette; keep in sync with `moduleColours` in VolumetricSynthEditor.cpp. */
+/** Per-oscillator accent palette; keep in sync with `moduleColours` in SynthEditorWorkspace.cpp. */
 inline const std::array<juce::Colour, 8>& masterSectionOscColours()
 {
     static const std::array<juce::Colour, 8> colours {

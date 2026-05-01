@@ -103,7 +103,7 @@ private:
     int spectrumFifoIndex { 0 };
     std::array<float, spectrumFFTSize * 2> spectrumFFTData {};
     std::array<std::atomic<float>, spectrumBinCount> spectrumBins {};
-    std::atomic<float> spectrumSampleRateHz { 44100.0f };
+    std::atomic<float> spectrumSampleRateHz { 0.0f };
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VolumetricSynthAudioProcessor)

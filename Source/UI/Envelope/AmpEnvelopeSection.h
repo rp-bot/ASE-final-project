@@ -3,8 +3,8 @@
 #include <array>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "EnvelopeGraphEditor.h"
-#include "MasterControlsShared.h"
+#include "UI/Common/MasterControlsShared.h"
+#include "UI/Widgets/EnvelopeGraphEditor.h"
 
 namespace UI
 {

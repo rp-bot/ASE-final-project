@@ -243,6 +243,7 @@ void VolumetricSynthAudioProcessor::changeProgramName (int index, const juce::St
 //==============================================================================
 void VolumetricSynthAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    // Host graph sample rate and maximum samples per processBlock callback — propagate through DSP.
     if (synthEngine != nullptr)
         synthEngine->prepare (sampleRate, samplesPerBlock);
 
@@ -286,6 +287,9 @@ void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
                                               juce::MidiBuffer& midiMessages)
 {
     Utils::ScopedDenormals scopedDenormals;
+
+    if (const double sr = getSampleRate(); sr > 0.0)
+        spectrumSampleRateHz.store (static_cast<float> (sr), std::memory_order_relaxed);
 
     // Read GUI snapshot once per block (cursor drives mixer gains in SynthVoice).
     const auto cursorPosition = getGuiCursorPosition();
@@ -378,7 +382,10 @@ void VolumetricSynthAudioProcessor::analyseOutputSpectrum (const juce::AudioBuff
         spectrumWindow.multiplyWithWindowingTable (spectrumFFTData.data(), spectrumFFTSize);
         spectrumFFT.performFrequencyOnlyForwardTransform (spectrumFFTData.data());
 
-        const auto sampleRate = spectrumSampleRateHz.load (std::memory_order_relaxed);
+        const float srStored = spectrumSampleRateHz.load (std::memory_order_relaxed);
+        const float srLive = static_cast<float> (getSampleRate());
+        const auto sampleRate =
+            srLive > 0.0f ? srLive : (srStored > 0.0f ? srStored : 44100.0f);
         const auto nyquist = juce::jmax (1000.0f, sampleRate * 0.5f);
         constexpr float minHz = 20.0f;
 

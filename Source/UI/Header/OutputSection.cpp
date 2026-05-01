@@ -1,5 +1,5 @@
 #include "OutputSection.h"
-#include "../Parameters/ParameterIDs.h"
+#include "Parameters/ParameterIDs.h"
 
 namespace UI
 {

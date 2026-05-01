@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CursorJoystick2D.h"
+#include "UI/Widgets/CursorJoystick2D.h"
 #include <functional>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>

@@ -1,5 +1,5 @@
 #include "AmpEnvelopeSection.h"
-#include "../Parameters/ParameterIDs.h"
+#include "Parameters/ParameterIDs.h"
 
 namespace
 {

@@ -1,24 +1,26 @@
 target_sources("${PROJECT_NAME}"
     PRIVATE
-        LabeledPanel.h
-        LabeledPanel.cpp
-        OscillatorModuleComponent.h
-        OscillatorModuleComponent.cpp
-        CenterControlPanel.h
-        CenterControlPanel.cpp
-        CursorJoystick2D.h
-        CursorJoystick2D.cpp
-        OutputSection.h
-        OutputSection.cpp
-        TopBar.h
-        TopBar.cpp
-        AmpEnvelopeSection.h
-        AmpEnvelopeSection.cpp
-        FilterSection.h
-        FilterSection.cpp
-        MasterControlsShared.h
-        FilterResponseEditor.h
-        FilterResponseEditor.cpp
-        EnvelopeGraphEditor.h
-        EnvelopeGraphEditor.cpp
+        Widgets/LabeledPanel.h
+        Widgets/LabeledPanel.cpp
+        Widgets/CursorJoystick2D.h
+        Widgets/CursorJoystick2D.cpp
+        Widgets/EnvelopeGraphEditor.h
+        Widgets/EnvelopeGraphEditor.cpp
+        Widgets/FilterResponseEditor.h
+        Widgets/FilterResponseEditor.cpp
+        Common/MasterControlsShared.h
+        Header/OutputSection.h
+        Header/OutputSection.cpp
+        Header/TopBar.h
+        Header/TopBar.cpp
+        Oscillator/OscillatorModuleComponent.h
+        Oscillator/OscillatorModuleComponent.cpp
+        Envelope/AmpEnvelopeSection.h
+        Envelope/AmpEnvelopeSection.cpp
+        Filter/FilterSection.h
+        Filter/FilterSection.cpp
+        Center/CenterControlPanel.h
+        Center/CenterControlPanel.cpp
+        Workspace/SynthEditorWorkspace.h
+        Workspace/SynthEditorWorkspace.cpp
     )

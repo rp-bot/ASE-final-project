@@ -4,8 +4,8 @@
 #include <atomic>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
-#include "FilterResponseEditor.h"
-#include "MasterControlsShared.h"
+#include "UI/Common/MasterControlsShared.h"
+#include "UI/Widgets/FilterResponseEditor.h"
 
 namespace UI
 {

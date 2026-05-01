@@ -1,5 +1,5 @@
 #include "CenterControlPanel.h"
-#include "../Parameters/ParameterIDs.h"
+#include "Parameters/ParameterIDs.h"
 
 namespace UI
 {
@@ -117,7 +117,13 @@ void CenterControlPanel::paint (juce::Graphics& g)
 
 void CenterControlPanel::resized()
 {
-    auto inner = getLocalBounds().reduced (8);
+    // Reduce inner padding and knob gap first as the panel shrinks.
+    // Natural center panel width at default window size is ~372 px.
+    const float ps = juce::jlimit (0.0f, 1.0f,
+        (static_cast<float> (getWidth()) - 250.0f) / (372.0f - 250.0f));
+    const int innerPad = 2 + juce::roundToInt (6.0f * ps); // 2..8, was fixed 8
+
+    auto inner = getLocalBounds().reduced (innerPad);
     auto bottomRow = inner.removeFromBottom (juce::jmax (100, juce::roundToInt (inner.getHeight() * 0.28f)));
     inner.removeFromBottom (6);
 
@@ -134,9 +140,10 @@ void CenterControlPanel::resized()
     heightLabel.setBounds (heightColumn.removeFromTop (labelH));
     heightSlider.setBounds (heightColumn);
 
-    constexpr int knobGap = 8;
-    const int knobW = (bottomRow.getWidth() - knobGap * 2) / 3;
+    // Knob gap also shrinks with the panel so the three knobs keep more of their size.
+    const int knobGap = 2 + juce::roundToInt (6.0f * ps); // 2..8, was fixed 8
     constexpr int knobLabelH = 18;
+    const int knobW = (bottomRow.getWidth() - knobGap * 2) / 3;
 
     auto placeKnob = [knobLabelH] (juce::Rectangle<int> cell, juce::Label& label, juce::Slider& slider)
     {

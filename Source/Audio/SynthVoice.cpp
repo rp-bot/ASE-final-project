@@ -223,13 +223,16 @@ namespace Audio
     {
         Utils::ScopedDenormals scopedDenormals;
 
-        const int maxSamples = m_oscillatorOutputs.getNumSamples();
-        if (numSamples <= 0 || maxSamples <= 0)
+        if (numSamples <= 0 || m_sampleRate <= 0.0)
             return;
-        numSamples = juce::jmin(numSamples, maxSamples);
-        if (m_mixerOutput.getNumSamples() < numSamples || m_mixerOutput.getNumChannels() < 2)
-            return;
-        if (m_oscScratch.getNumSamples() < numSamples)
+
+        // Internal buffers are sized from prepare(samplesPerBlock). If the host delivers a larger
+        // sub-block than the last prepare hint, grow once rather than truncating the callback.
+        if (numSamples > m_oscillatorOutputs.getNumSamples() || m_oscScratch.getNumSamples() < numSamples
+            || m_mixerOutput.getNumSamples() < numSamples || m_mixerOutput.getNumChannels() < 2)
+            prepare(m_sampleRate, numSamples);
+
+        if (numSamples > m_oscillatorOutputs.getNumSamples())
             return;
 
         if (m_snapshot != nullptr)
