@@ -12,4 +12,8 @@ target_sources("${PROJECT_NAME}"
         OutputSection.cpp
         MasterControls.h
         MasterControls.cpp
+        FilterResponseEditor.h
+        FilterResponseEditor.cpp
+        EnvelopeGraphEditor.h
+        EnvelopeGraphEditor.cpp
     )

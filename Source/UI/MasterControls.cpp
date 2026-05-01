@@ -1,19 +1,16 @@
-#pragma once
 #include "MasterControls.h"
-#include "OscillatorModuleComponent.h"
 #include "../Parameters/ParameterIDs.h"
+#include <cmath>
 
 
 namespace
 {
-    constexpr std::array<int, 5> kSynthKnobIndices { 0, 1, 3, 4, 5 };
-
-    constexpr std::array<const char*, UI::OscillatorModuleComponent::filterParams> kFilterNames
+    constexpr std::array<const char*, 4> kFilterNames
     {
         "Cutoff", "Res", "Key", "Drive"
     };
 
-    constexpr std::array<const char*, UI::OscillatorModuleComponent::ampParams> kAmpNames
+    constexpr std::array<const char*, 6> kAmpNames
     {
         "Attack", "Decay", "Sustain", "Release", "Level", "Vel"
     };
@@ -31,10 +28,85 @@ namespace
         juce::Colour::fromRGB (155, 89, 182),  // purple
         juce::Colour::fromRGB (236, 112, 173)  // pink
     };
+
+    float parseTextValue (juce::String text, bool preferMilliseconds)
+    {
+        text = text.trim();
+        if (text.endsWithIgnoreCase ("khz"))
+            return static_cast<float> (text.dropLastCharacters (3).trimEnd().getDoubleValue() * 1000.0);
+        if (text.endsWithIgnoreCase ("hz"))
+            return static_cast<float> (text.dropLastCharacters (2).trimEnd().getDoubleValue());
+        if (text.endsWithIgnoreCase ("ms"))
+            return static_cast<float> (text.dropLastCharacters (2).trimEnd().getDoubleValue() / 1000.0);
+        if (text.endsWithIgnoreCase ("s"))
+            return static_cast<float> (text.dropLastCharacters (1).trimEnd().getDoubleValue());
+        if (text.endsWith ("%"))
+            return static_cast<float> (text.dropLastCharacters (1).trimEnd().getDoubleValue() / 100.0);
+        if (text.endsWithIgnoreCase ("k"))
+            return static_cast<float> (text.dropLastCharacters (1).getDoubleValue() * 1000.0);
+        const auto raw = static_cast<float> (text.getDoubleValue());
+        return preferMilliseconds ? raw / 1000.0f : raw;
+    }
 } //TODO: this could go into the header; copied from OscilatorModuleComponent.cpp for now
 
 namespace UI {
+    void MasterControls::DragValueEditor::configure (float minValue, float maxValue,
+                                                     std::function<float()> valueGetter,
+                                                     std::function<void(float)> valueSetter,
+                                                     bool useLogDrag)
+    {
+        minV = minValue;
+        maxV = maxValue;
+        getter = std::move (valueGetter);
+        setter = std::move (valueSetter);
+        logDrag = useLogDrag;
+    }
+
+    void MasterControls::DragValueEditor::mouseDown (const juce::MouseEvent& event)
+    {
+        didDrag = false;
+        dragStartY = event.getPosition().y;
+        dragStartValue = getter != nullptr ? getter() : 0.0f;
+        TextEditor::mouseDown (event);
+    }
+
+    void MasterControls::DragValueEditor::mouseDrag (const juce::MouseEvent& event)
+    {
+        if (setter == nullptr)
+            return;
+
+        const auto deltaY = static_cast<float> (dragStartY - event.getPosition().y);
+        if (std::abs (deltaY) < 2.0f)
+            return;
+
+        didDrag = true;
+        float newValue = dragStartValue;
+        if (logDrag && minV > 0.0f && maxV > minV)
+        {
+            const auto ratio = maxV / minV;
+            const auto startNorm = std::log (juce::jmax (dragStartValue, minV) / minV) / std::log (ratio);
+            const auto normDelta = deltaY / 180.0f;
+            const auto nextNorm = juce::jlimit (0.0f, 1.0f, startNorm + normDelta);
+            newValue = minV * std::pow (ratio, nextNorm);
+        }
+        else
+        {
+            const auto sensitivity = juce::jmax (0.0001f, (maxV - minV) / 160.0f);
+            newValue = juce::jlimit (minV, maxV, dragStartValue + deltaY * sensitivity);
+        }
+        setter (newValue);
+    }
+
+    void MasterControls::DragValueEditor::mouseUp (const juce::MouseEvent& event)
+    {
+        if (! didDrag)
+            TextEditor::mouseUp (event);
+        didDrag = false;
+    }
+
     MasterControls::MasterControls(juce::AudioProcessorValueTreeState &apvts) : apvtsPtr (&apvts) {
+        setWantsKeyboardFocus (false);
+        setMouseClickGrabsKeyboardFocus (false);
 
         // DRAW FILTER MASTER CONTROL
         // Text
@@ -43,7 +115,18 @@ namespace UI {
         filterControlTitle.setColour(juce::Label::textColourId, accent.brighter(0.3f));
         addAndMakeVisible(filterControlTitle);
 
-        // Visualizer Box
+        filterEditor = std::make_unique<FilterResponseEditor> (
+            apvts,
+            std::array<juce::String, 4> {
+                ParameterIDs::masterFilter (0),
+                ParameterIDs::masterFilter (1),
+                ParameterIDs::masterFilter (2),
+                ParameterIDs::masterFilter (3)
+            },
+            accent);
+        filterEditor->setWantsKeyboardFocus (false);
+        filterEditor->setMouseClickGrabsKeyboardFocus (false);
+        addAndMakeVisible (*filterEditor);
 
         // Knobs
         for (int i = 0; i < filterParams; ++i)
@@ -56,8 +139,8 @@ namespace UI {
                                                               accent.withAlpha (0.9f));
             filterLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
                                                              juce::Colours::whitesmoke.withAlpha (0.9f));
-            addAndMakeVisible (filterSliders[static_cast<size_t> (i)]);
-            addAndMakeVisible (filterLabels[static_cast<size_t> (i)]);
+            addChildComponent (filterSliders[static_cast<size_t> (i)]);
+            addChildComponent (filterLabels[static_cast<size_t> (i)]);
 
             // SliderAttachment automatically applies the parameter's range, skew and
             // default to the slider, so no manual setRange/setSkewFactor needed.
@@ -67,6 +150,18 @@ namespace UI {
                                                     filterSliders[static_cast<size_t> (i)]);
 
             filterSliders[static_cast<size_t> (i)].onValueChange = [this, i] { propagateFilterMaster (i); };
+
+            auto& valueEditor = filterValueEditors[static_cast<size_t> (i)];
+            valueEditor.setMultiLine (false);
+            valueEditor.setReturnKeyStartsNewLine (false);
+            valueEditor.setJustification (juce::Justification::centred);
+            valueEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colours::black.withAlpha (0.2f));
+            valueEditor.setColour (juce::TextEditor::outlineColourId, accent.withAlpha (0.5f));
+            valueEditor.setColour (juce::TextEditor::textColourId, juce::Colours::whitesmoke);
+            valueEditor.onReturnKey = [this, i] { commitFilterValueFromEditor (i); };
+            valueEditor.onFocusLost = [this, i] { commitFilterValueFromEditor (i); };
+            configureValueEditor (valueEditor, true, i);
+            addAndMakeVisible (valueEditor);
         }
 
         // Toggle Buttons (TextButton with toggle behaviour -> coloured rectangles)
@@ -86,6 +181,8 @@ namespace UI {
             // onClick fires after ButtonAttachment has updated state, so reading
             // getToggleState here reflects the new value (push on off->on only).
             tb.onClick = [this, i] {
+                if (auto* focused = juce::Component::getCurrentlyFocusedComponent())
+                    focused->giveAwayKeyboardFocus();
                 if (filterToggles[static_cast<size_t> (i)].getToggleState())
                     seedCornerFromMaster (i, true);
             };
@@ -98,7 +195,20 @@ namespace UI {
         ampControlTitle.setColour(juce::Label::textColourId, accent.brighter(0.3f));
         addAndMakeVisible(ampControlTitle);
 
-        // Visualizer Box
+        envelopeEditor = std::make_unique<EnvelopeGraphEditor> (
+            apvts,
+            std::array<juce::String, 6> {
+                ParameterIDs::masterAmp (0),
+                ParameterIDs::masterAmp (1),
+                ParameterIDs::masterAmp (2),
+                ParameterIDs::masterAmp (3),
+                ParameterIDs::masterAmp (4),
+                ParameterIDs::masterAmp (5)
+            },
+            accent);
+        envelopeEditor->setWantsKeyboardFocus (false);
+        envelopeEditor->setMouseClickGrabsKeyboardFocus (false);
+        addAndMakeVisible (*envelopeEditor);
 
         // Knobs
         for (int i = 0; i < ampParams; ++i)
@@ -111,13 +221,25 @@ namespace UI {
                                                            accent.withAlpha (0.9f));
             ampLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
                                                           juce::Colours::whitesmoke.withAlpha (0.9f));
-            addAndMakeVisible (ampSliders[static_cast<size_t> (i)]);
-            addAndMakeVisible (ampLabels[static_cast<size_t> (i)]);
+            addChildComponent (ampSliders[static_cast<size_t> (i)]);
+            addChildComponent (ampLabels[static_cast<size_t> (i)]);
 
             ampAttachments[static_cast<size_t> (i)] = std::make_unique<SliderAttachment> (apvts,
                                        ParameterIDs::masterAmp (i), ampSliders[static_cast<size_t> (i)]);
 
             ampSliders[static_cast<size_t> (i)].onValueChange = [this, i] { propagateAmpMaster (i); };
+
+            auto& valueEditor = ampValueEditors[static_cast<size_t> (i)];
+            valueEditor.setMultiLine (false);
+            valueEditor.setReturnKeyStartsNewLine (false);
+            valueEditor.setJustification (juce::Justification::centred);
+            valueEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colours::black.withAlpha (0.2f));
+            valueEditor.setColour (juce::TextEditor::outlineColourId, accent.withAlpha (0.5f));
+            valueEditor.setColour (juce::TextEditor::textColourId, juce::Colours::whitesmoke);
+            valueEditor.onReturnKey = [this, i] { commitAmpValueFromEditor (i); };
+            valueEditor.onFocusLost = [this, i] { commitAmpValueFromEditor (i); };
+            configureValueEditor (valueEditor, false, i);
+            addAndMakeVisible (valueEditor);
         }
 
         // Toggle Buttons (TextButton with toggle behaviour -> coloured rectangles)
@@ -137,17 +259,22 @@ namespace UI {
 
             tb.onClick = [this, i]
             {
+                if (auto* focused = juce::Component::getCurrentlyFocusedComponent())
+                    focused->giveAwayKeyboardFocus();
                 if (ampToggles[static_cast<size_t> (i)].getToggleState())
                     seedCornerFromMaster (i, false);
             };
         }
 
+        syncEditorsFromParameters();
+        startTimerHz (20);
     }
 
     MasterControls::~MasterControls()
     {
         for (auto& tb : filterToggles) tb.setLookAndFeel (nullptr);
         for (auto& tb : ampToggles)    tb.setLookAndFeel (nullptr);
+        stopTimer();
     }
 
     void MasterControls::resized()
@@ -159,36 +286,34 @@ namespace UI {
         auto ampSection    = bounds; // remainder
 
         const int toggleAreaWidth = 50;
-        const int titleHeight     = 40;
-        const int knobAreaHeight  = 100;
-        const int knobLabelHeight = 20;                     // bottom strip of each knob cell reserved for the text label
+        const int titleHeight     = 24;
+        const int valueEditorHeight = 24;
         const int padding         = 1;
         const int toggleSize      = toggleAreaWidth / 2;   // 25x25 cell per button (2 cols * 4 rows)
         const int toggleGridH     = toggleSize * 4;         // total height occupied by one 4-row group
         const int toggleSpacing   = 2;                      // visual gap between adjacent toggle squares
 
-        // FILTER SECTOIN
+        // FILTER SECTION
         auto filterTogglesArea = filterSection.removeFromRight (toggleAreaWidth);
 
-        // Title, Knobs (seperate rows)
+        // Title + visual editor (knobs are hidden to prioritize graph area)
         filterControlTitle.setBounds(filterSection.removeFromTop(titleHeight));
-        auto filterTopRow = filterSection.removeFromTop(knobAreaHeight);
-        int knobW = filterTopRow.getWidth() / filterParams;
+
+        auto filterValueRow = filterSection.removeFromBottom (valueEditorHeight);
+        if (filterEditor != nullptr)
+            filterEditor->setBounds (filterSection.reduced (padding));
+        const int filterCellW = juce::jmax (1, filterValueRow.getWidth() / filterParams);
         for (int i = 0; i < filterParams; ++i)
         {
-            auto knobArea = filterTopRow.removeFromLeft(knobW);
-            filterLabels[i].setBounds(knobArea.removeFromBottom(knobLabelHeight));
-            filterSliders[i].setBounds(knobArea.reduced(padding));
+            const auto idx = static_cast<size_t> (i);
+            auto cell = filterValueRow.removeFromLeft (filterCellW).reduced (1);
+            filterValueEditors[idx].setBounds (cell);
         }
 
-        // Filter display box
-        // filterDisplay.setBounds (filterSection.reduced(padding));
-
-        // Toggle buttons (2 columns of 4, square, vertically centred on the *circular knob*
-        // itself - i.e. the knob row minus its bottom label strip)
+        // Toggle buttons (2 columns of 4), centred in available section below title
         const int filterStartY = filterTogglesArea.getY()
-                               + titleHeight
-                               + (knobAreaHeight - knobLabelHeight - toggleGridH) / 2;
+                              + titleHeight
+                              + (filterTogglesArea.getHeight() - titleHeight - toggleGridH) / 2;
         for (int i = 0; i < oscComponents; ++i)
         {
             int col = i / 4; //TODO: hard coded in rn
@@ -196,43 +321,29 @@ namespace UI {
             juce::Rectangle<int> cell (filterTogglesArea.getX() + col * toggleSize,
                                        filterStartY + row * toggleSize,
                                        toggleSize, toggleSize);
-            filterToggles[i].setBounds (cell.reduced (toggleSpacing / 2));
+            filterToggles[static_cast<size_t> (i)].setBounds (cell.reduced (toggleSpacing / 2));
         }
 
         // AMP SECTION
         auto ampTogglesArea = ampSection.removeFromRight (toggleAreaWidth);
 
-        // Title + Knobs
-        // auto ampTopRow = ampSection.removeFromTop (knobAreaHeight);
-        // ampControlTitle.setBounds (ampTopRow.removeFromLeft (120).withHeight (titleHeight));
-        //
-        // int ampKnobW = ampTopRow.getWidth() / ampParams;
-        // for (int i = 0; i < ampParams; ++i)
-        // {
-        //     auto knobArea = ampTopRow.removeFromLeft (ampKnobW);
-        //     ampSliders[i].setBounds (knobArea.reduced (padding));
-        //     ampLabels[i].setBounds  (knobArea.removeFromBottom (20));
-        // }
-
         ampControlTitle.setBounds(ampSection.removeFromTop(titleHeight));
-        auto ampTopRow = ampSection.removeFromTop(knobAreaHeight);
-        int ampKnobW = ampTopRow.getWidth() / ampParams;
+
+        auto ampValueRow = ampSection.removeFromBottom (valueEditorHeight);
+        if (envelopeEditor != nullptr)
+            envelopeEditor->setBounds (ampSection.reduced (padding));
+        const int ampCellW = juce::jmax (1, ampValueRow.getWidth() / ampParams);
         for (int i = 0; i < ampParams; ++i)
         {
-            auto knobArea = ampTopRow.removeFromLeft(ampKnobW);
-            ampLabels[i].setBounds(knobArea.removeFromBottom(knobLabelHeight));
-            ampSliders[i].setBounds(knobArea.reduced(padding));
+            const auto idx = static_cast<size_t> (i);
+            auto cell = ampValueRow.removeFromLeft (ampCellW).reduced (1);
+            ampValueEditors[idx].setBounds (cell);
         }
 
-
-        // Amp display box
-        // ampDisplay.setBounds (ampSection.reduced (padding));
-
-        // Toggle buttons (2 columns of 4, square, vertically centred on the *circular knob*
-        // itself - i.e. the knob row minus its bottom label strip)
+        // Toggle buttons (2 columns of 4), centred in available section below title
         const int ampStartY = ampTogglesArea.getY()
                             + titleHeight
-                            + (knobAreaHeight - knobLabelHeight - toggleGridH) / 2;
+                            + (ampTogglesArea.getHeight() - titleHeight - toggleGridH) / 2;
         for (int i = 0; i < oscComponents; ++i)
         {
             int col = i / 4; //TODO: hard coded in rn
@@ -240,7 +351,7 @@ namespace UI {
             juce::Rectangle<int> cell (ampTogglesArea.getX() + col * toggleSize,
                                        ampStartY + row * toggleSize,
                                        toggleSize, toggleSize);
-            ampToggles[i].setBounds (cell.reduced (toggleSpacing / 2));
+            ampToggles[static_cast<size_t> (i)].setBounds (cell.reduced (toggleSpacing / 2));
         }
     }
 
@@ -256,7 +367,115 @@ namespace UI {
 
     void MasterControls::paint(juce::Graphics& g)
     {
-        //TODO
+        juce::ignoreUnused (g);
+    }
+
+    void MasterControls::timerCallback()
+    {
+        syncEditorsFromParameters();
+    }
+
+    void MasterControls::setSpectrumDataSource (const std::array<std::atomic<float>, 128>* bins,
+                                                const std::atomic<float>* sampleRateHz)
+    {
+        if (filterEditor != nullptr)
+            filterEditor->setSpectrumData (bins, sampleRateHz);
+    }
+
+    void MasterControls::configureValueEditor (DragValueEditor& editor, bool isFilter, int index)
+    {
+        if (apvtsPtr == nullptr)
+            return;
+
+        const auto parameterId = isFilter ? ParameterIDs::masterFilter (index) : ParameterIDs::masterAmp (index);
+        auto* parameter = apvtsPtr->getParameter (parameterId);
+        if (parameter == nullptr)
+            return;
+
+        const auto range = parameter->getNormalisableRange();
+        editor.configure (
+            range.start,
+            range.end,
+            [this, isFilter, index]()
+            {
+                return static_cast<float> (isFilter
+                    ? filterSliders[static_cast<size_t> (index)].getValue()
+                    : ampSliders[static_cast<size_t> (index)].getValue());
+            },
+            [this, isFilter, index, range](float value)
+            {
+                const auto clamped = juce::jlimit (range.start, range.end, value);
+                if (auto* p = apvtsPtr->getParameter (isFilter ? ParameterIDs::masterFilter (index)
+                                                               : ParameterIDs::masterAmp (index)))
+                    p->setValueNotifyingHost (range.convertTo0to1 (clamped));
+            },
+            isFilter && index == 0);
+    }
+
+    void MasterControls::syncEditorsFromParameters()
+    {
+        for (int i = 0; i < filterParams; ++i)
+        {
+            const auto idx = static_cast<size_t> (i);
+            auto& editor = filterValueEditors[idx];
+            if (! editor.hasKeyboardFocus (true) || editor.isDraggingValue())
+                editor.setText (formatParameterValue (kFilterNames[idx],
+                                                      static_cast<float> (filterSliders[idx].getValue())),
+                                juce::dontSendNotification);
+        }
+
+        for (int i = 0; i < ampParams; ++i)
+        {
+            const auto idx = static_cast<size_t> (i);
+            auto& editor = ampValueEditors[idx];
+            if (! editor.hasKeyboardFocus (true) || editor.isDraggingValue())
+                editor.setText (formatParameterValue (kAmpNames[idx],
+                                                      static_cast<float> (ampSliders[idx].getValue())),
+                                juce::dontSendNotification);
+        }
+    }
+
+    void MasterControls::commitFilterValueFromEditor (int index)
+    {
+        if (apvtsPtr == nullptr)
+            return;
+        const auto idx = static_cast<size_t> (index);
+        const auto typed = parseTextValue (filterValueEditors[idx].getText(), false);
+        if (auto* p = apvtsPtr->getParameter (ParameterIDs::masterFilter (index)))
+        {
+            const auto range = p->getNormalisableRange();
+            const auto clamped = juce::jlimit (range.start, range.end, typed);
+            p->setValueNotifyingHost (range.convertTo0to1 (clamped));
+        }
+    }
+
+    void MasterControls::commitAmpValueFromEditor (int index)
+    {
+        if (apvtsPtr == nullptr)
+            return;
+        const auto idx = static_cast<size_t> (index);
+        const auto typed = parseTextValue (ampValueEditors[idx].getText(), true);
+        if (auto* p = apvtsPtr->getParameter (ParameterIDs::masterAmp (index)))
+        {
+            const auto range = p->getNormalisableRange();
+            const auto clamped = juce::jlimit (range.start, range.end, typed);
+            p->setValueNotifyingHost (range.convertTo0to1 (clamped));
+        }
+    }
+
+    juce::String MasterControls::formatParameterValue (const juce::String& name, float value)
+    {
+        if (name == "Cutoff")
+            return value >= 1000.0f ? juce::String (value / 1000.0f, 2) + " kHz" : juce::String (value, 0) + " Hz";
+        if (name == "Res" || name == "Key" || name == "Drive")
+            return juce::String (juce::roundToInt (value * 100.0f)) + " %";
+        if (name == "Attack" || name == "Decay" || name == "Release")
+        {
+            if (value < 1.0f)
+                return juce::String (juce::roundToInt (value * 1000.0f)) + " ms";
+            return juce::String (value, 2) + " s";
+        }
+        return juce::String (value, 2);
     }
 
     void MasterControls::propagateFilterMaster (int paramIndex)

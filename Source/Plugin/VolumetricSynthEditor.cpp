@@ -42,6 +42,8 @@ VolumetricSynthEditor::VolumetricSynthEditor(VolumetricSynthAudioProcessor &p)
     // addAndMakeVisible (bottomLeftPanel);
 
     masterControlSection = std::make_unique<UI::MasterControls> (apvts);
+    masterControlSection->setSpectrumDataSource (&processorRef.getSpectrumData(),
+                                                 &processorRef.getSpectrumSampleRateHz());
     addAndMakeVisible(*masterControlSection);
 
     outputSection = std::make_unique<UI::OutputSection>(apvts, [this]()

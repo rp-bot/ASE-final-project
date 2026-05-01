@@ -5,6 +5,7 @@
 #include "Utils/ScopedDenormals.h"
 #include "Audio/SynthEngine.h"
 #include "IO/MidiManager.h"
+#include <cmath>
 
 //==============================================================================
 VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
@@ -41,6 +42,9 @@ VolumetricSynthAudioProcessor::VolumetricSynthAudioProcessor()
     // syncCursorParamsToGuiState();
     // syncCornerParamsToGuiState();
     syncParamsToGuiState();
+
+    for (auto& bin : spectrumBins)
+        bin.store (0.0f, std::memory_order_relaxed);
 }
 
 VolumetricSynthAudioProcessor::~VolumetricSynthAudioProcessor()
@@ -241,6 +245,11 @@ void VolumetricSynthAudioProcessor::prepareToPlay (double sampleRate, int sample
 {
     if (synthEngine != nullptr)
         synthEngine->prepare (sampleRate, samplesPerBlock);
+
+    spectrumSampleRateHz.store (static_cast<float> (sampleRate), std::memory_order_relaxed);
+    spectrumFifo.fill (0.0f);
+    spectrumFFTData.fill (0.0f);
+    spectrumFifoIndex = 0;
 }
 
 void VolumetricSynthAudioProcessor::releaseResources()
@@ -287,6 +296,8 @@ void VolumetricSynthAudioProcessor::processBlock (juce::AudioBuffer<float>& buff
 
     if (synthEngine != nullptr)
         synthEngine->processBlock (buffer, midiMessages);
+
+    analyseOutputSpectrum (buffer);
 }
 
 //==============================================================================
@@ -323,6 +334,7 @@ void VolumetricSynthAudioProcessor::setStateInformation (const void* data, int s
 }
 
 void VolumetricSynthAudioProcessor::parameterChanged(const juce::String &parameterID, float newValue) {
+    juce::ignoreUnused (parameterID, newValue);
     syncParamsToGuiState();
 }
 
@@ -330,6 +342,68 @@ void VolumetricSynthAudioProcessor::parameterChanged(const juce::String &paramet
 Audio::SynthEngine& VolumetricSynthAudioProcessor::getSynthEngine() noexcept
 {
     return *synthEngine;
+}
+
+const std::array<std::atomic<float>, VolumetricSynthAudioProcessor::spectrumBinCount>&
+VolumetricSynthAudioProcessor::getSpectrumData() const noexcept
+{
+    return spectrumBins;
+}
+
+const std::atomic<float>& VolumetricSynthAudioProcessor::getSpectrumSampleRateHz() const noexcept
+{
+    return spectrumSampleRateHz;
+}
+
+void VolumetricSynthAudioProcessor::analyseOutputSpectrum (const juce::AudioBuffer<float>& buffer)
+{
+    const auto numSamples = buffer.getNumSamples();
+    const auto numChannels = juce::jmax (1, buffer.getNumChannels());
+    if (numSamples <= 0)
+        return;
+
+    for (int sample = 0; sample < numSamples; ++sample)
+    {
+        float mono = 0.0f;
+        for (int channel = 0; channel < numChannels; ++channel)
+            mono += buffer.getSample (channel, sample);
+        mono /= static_cast<float> (numChannels);
+
+        spectrumFifo[static_cast<size_t> (spectrumFifoIndex++)] = mono;
+        if (spectrumFifoIndex != spectrumFFTSize)
+            continue;
+
+        std::fill (spectrumFFTData.begin(), spectrumFFTData.end(), 0.0f);
+        std::copy (spectrumFifo.begin(), spectrumFifo.end(), spectrumFFTData.begin());
+        spectrumWindow.multiplyWithWindowingTable (spectrumFFTData.data(), spectrumFFTSize);
+        spectrumFFT.performFrequencyOnlyForwardTransform (spectrumFFTData.data());
+
+        const auto sampleRate = spectrumSampleRateHz.load (std::memory_order_relaxed);
+        const auto nyquist = juce::jmax (1000.0f, sampleRate * 0.5f);
+        constexpr float minHz = 20.0f;
+
+        for (size_t bin = 0; bin < spectrumBinCount; ++bin)
+        {
+            const auto t0 = static_cast<float> (bin) / static_cast<float> (spectrumBinCount);
+            const auto t1 = static_cast<float> (bin + 1) / static_cast<float> (spectrumBinCount);
+            const auto hz0 = minHz * std::pow (nyquist / minHz, t0);
+            const auto hz1 = minHz * std::pow (nyquist / minHz, t1);
+            const auto fft0 = juce::jlimit (1, spectrumFFTSize / 2 - 1, static_cast<int> (hz0 * spectrumFFTSize / sampleRate));
+            const auto fft1 = juce::jlimit (fft0, spectrumFFTSize / 2 - 1, static_cast<int> (hz1 * spectrumFFTSize / sampleRate));
+
+            float mag = 0.0f;
+            for (int i = fft0; i <= fft1; ++i)
+                mag = juce::jmax (mag, spectrumFFTData[static_cast<size_t> (i)]);
+
+            const auto db = juce::Decibels::gainToDecibels (mag / static_cast<float> (spectrumFFTSize), -100.0f);
+            const auto norm = juce::jlimit (0.0f, 1.0f, juce::jmap (db, -90.0f, 0.0f, 0.0f, 1.0f));
+            const auto prev = spectrumBins[bin].load (std::memory_order_relaxed);
+            const auto smoothed = juce::jmax (norm, prev * 0.93f);
+            spectrumBins[bin].store (smoothed, std::memory_order_relaxed);
+        }
+
+        spectrumFifoIndex = 0;
+    }
 }
 
 //==============================================================================

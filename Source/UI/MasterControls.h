@@ -1,12 +1,16 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "EnvelopeGraphEditor.h"
+#include "FilterResponseEditor.h"
 
 namespace UI {
 
-class MasterControls: public juce::Component {
+class MasterControls: public juce::Component,
+                      private juce::Timer {
 
 public:
 
@@ -17,8 +21,35 @@ public:
 
     void paint (juce::Graphics& g) override;
     void resized() override;
+    void setSpectrumDataSource (const std::array<std::atomic<float>, 128>* bins,
+                                const std::atomic<float>* sampleRateHz);
+    void timerCallback() override;
 
 private:
+    class DragValueEditor : public juce::TextEditor
+    {
+    public:
+        void configure (float minValue, float maxValue,
+                        std::function<float()> valueGetter,
+                        std::function<void(float)> valueSetter,
+                        bool useLogDrag = false);
+
+        void mouseDown (const juce::MouseEvent& event) override;
+        void mouseDrag (const juce::MouseEvent& event) override;
+        void mouseUp (const juce::MouseEvent& event) override;
+        bool isDraggingValue() const noexcept { return didDrag; }
+
+    private:
+        float minV { 0.0f };
+        float maxV { 1.0f };
+        float dragStartValue { 0.0f };
+        int dragStartY { 0 };
+        bool didDrag { false };
+        bool logDrag { false };
+        std::function<float()> getter;
+        std::function<void(float)> setter;
+    };
+
 
     // LookAndFeel override that suppresses the mouse-hover highlight on the
     // toggle buttons (click-down feedback is preserved).
@@ -48,6 +79,11 @@ private:
     void propagateAmpMaster (int paramIndex);
     void seedCornerFromMaster (int corner, bool isFilter);
     static void writeNormalised (juce::AudioProcessorValueTreeState& apvts, const juce::String& parameterId,float realValue);
+    void syncEditorsFromParameters();
+    void commitFilterValueFromEditor (int index);
+    void commitAmpValueFromEditor (int index);
+    void configureValueEditor (DragValueEditor& editor, bool isFilter, int index);
+    static juce::String formatParameterValue (const juce::String& name, float value);
 
     juce::AudioProcessorValueTreeState* apvtsPtr { nullptr };
 
@@ -62,9 +98,12 @@ private:
     // sliders
     std::array<juce::Slider, filterParams> filterSliders;
     std::array<juce::Slider, ampParams> ampSliders;
+    std::array<DragValueEditor, filterParams> filterValueEditors;
+    std::array<DragValueEditor, ampParams> ampValueEditors;
 
     // visualizers
-
+    std::unique_ptr<FilterResponseEditor> filterEditor;
+    std::unique_ptr<EnvelopeGraphEditor> envelopeEditor;
 
     // toggle buttons (TextButton in togglesState mode; gives us a coloured
     // "lit when on" look that honours buttonColourId / buttonOnColourId)
