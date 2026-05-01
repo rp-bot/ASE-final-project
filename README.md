@@ -91,6 +91,9 @@ At its core, this plugin provides an intuitive **three-dimensional sound design 
 
 
 
+
+
+
 ### The "Glass Cube" Interface
 
 ```mermaid
