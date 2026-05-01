@@ -52,5 +52,8 @@ private:
 
     std::array<float, 4> values { 4000.0f, 0.2f, 0.5f, 0.0f };
     DragTarget dragTarget { DragTarget::none };
+    juce::Point<float> dragStartPos {};
+    float dragStartCutoff { 4000.0f };
+    float dragStartResonance { 0.5f };
 };
 } // namespace UI

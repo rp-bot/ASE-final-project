@@ -90,6 +90,8 @@ namespace UI
 
     void OutputSection::paint(juce::Graphics &g)
     {
+        const bool compactLayout = getHeight() < 130;
+
         // Panel border
         g.setColour(juce::Colours::grey.withAlpha(0.6f));
         g.drawRect(getLocalBounds(), 1);
@@ -98,13 +100,16 @@ namespace UI
         auto bounds = getLocalBounds().reduced(6);
         const int colW = bounds.getWidth() / 3;
 
-        bounds.removeFromLeft(colW);
-        bounds.removeFromLeft(4);
+        // volume | pan | meter (left to right)
+        bounds.removeFromLeft(colW); // volume
+        bounds.removeFromLeft(4);    // gap
+        bounds.removeFromLeft(colW); // pan
+        bounds.removeFromLeft(4);    // gap
 
-        // calculate meter column area
-        auto meterCol = bounds.removeFromLeft(colW - 4);
-        meterCol.removeFromTop(18);    // label height
-        meterCol.removeFromBottom(20); // readout height
+        // meter column area (right-most)
+        auto meterCol = bounds;
+        meterCol.removeFromTop(compactLayout ? 6 : 18);
+        meterCol.removeFromBottom(compactLayout ? 18 : 20);
 
         const int barW = (meterCol.getWidth() - 4) / 2;
 
@@ -139,44 +144,56 @@ namespace UI
 
     void OutputSection::resized()
     {
+        const bool compactLayout = getHeight() < 130;
         auto inner = getLocalBounds().reduced(6);
         const int colW = inner.getWidth() / 3;
 
-        // 左列：fader
+        // left: volume
         auto faderCol = inner.removeFromLeft(colW);
         inner.removeFromLeft(4);
 
-        // 中列：meter
-        auto meterCol = inner.removeFromLeft(colW - 4);
+        // center: pan
+        auto panCol = inner.removeFromLeft(colW);
         inner.removeFromLeft(4);
 
-        // 右列：pan
-        auto panCol = inner;
+        // right: meter
+        auto meterCol = inner;
 
         // --- fader ---
-        faderLabel.setBounds(faderCol.removeFromTop(18));
-        const int knobSize = juce::jmin(faderCol.getWidth(), faderCol.getHeight());
+        faderLabel.setBounds(faderCol.removeFromTop(compactLayout ? 14 : 18));
+        const int knobSize = compactLayout
+                                 ? juce::jlimit(28, 52, juce::jmin(faderCol.getWidth(), faderCol.getHeight()))
+                                 : juce::jmin(faderCol.getWidth(), faderCol.getHeight());
         gainKnob.setBounds(faderCol.withSizeKeepingCentre(knobSize, knobSize));
 
-        // --- meter ---
-        // label at top, readout and reset at bottom, meter bars in the middle
-        meterCol.removeFromTop(18); // label height
-        const int readoutHeight = 20;
-        const int buttonHeight = 24;
-        dbReadoutLabel.setBounds(meterCol.removeFromBottom(readoutHeight));
-        meterCol.removeFromBottom(4);
-        resetEngineButton.setBounds(meterCol.removeFromBottom(buttonHeight));
-
         // --- pan ---
-        panLabel.setBounds(panCol.removeFromTop(18));
+        panLabel.setBounds(panCol.removeFromTop(compactLayout ? 14 : 18));
         panSlider.setBounds(panCol.withSizeKeepingCentre(knobSize, knobSize));
+
+        // --- meter ---
+        if (compactLayout)
+        {
+            dbReadoutLabel.setBounds(meterCol.removeFromBottom(18));
+            resetEngineButton.setBounds(juce::Rectangle<int>());
+        }
+        else
+        {
+            // label at top, readout and reset at bottom, meter bars in the middle
+            meterCol.removeFromTop(18); // label height
+            const int readoutHeight = 20;
+            const int buttonHeight = 24;
+            dbReadoutLabel.setBounds(meterCol.removeFromBottom(readoutHeight));
+            meterCol.removeFromBottom(4);
+            resetEngineButton.setBounds(meterCol.removeFromBottom(buttonHeight));
+        }
+
     }
 
     //==============================================================================
     void OutputSection::configureGainKnob(juce::Slider &slider, juce::Label &label)
     {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 56, 18);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey.withAlpha(0.6f));
         slider.setRange(-60.0, 6.0, 0.1);
         slider.setValue(0.0);
@@ -188,7 +205,7 @@ namespace UI
     void OutputSection::configurePanKnob(juce::Slider &slider, juce::Label &label)
     {
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-        slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 56, 18);
+        slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey.withAlpha(0.6f));
         slider.setRange(-1.0, 1.0, 0.01);
         slider.setValue(0.0);

@@ -10,8 +10,13 @@ target_sources("${PROJECT_NAME}"
         CursorJoystick2D.cpp
         OutputSection.h
         OutputSection.cpp
-        MasterControls.h
-        MasterControls.cpp
+        TopBar.h
+        TopBar.cpp
+        AmpEnvelopeSection.h
+        AmpEnvelopeSection.cpp
+        FilterSection.h
+        FilterSection.cpp
+        MasterControlsShared.h
         FilterResponseEditor.h
         FilterResponseEditor.cpp
         EnvelopeGraphEditor.h

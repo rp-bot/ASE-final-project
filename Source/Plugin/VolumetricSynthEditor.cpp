@@ -39,16 +39,17 @@ VolumetricSynthEditor::VolumetricSynthEditor(VolumetricSynthAudioProcessor &p)
     centerPanel = std::make_unique<UI::CenterControlPanel>(apvts);
     addAndMakeVisible(*centerPanel);
 
-    // addAndMakeVisible (bottomLeftPanel);
+    topBar = std::make_unique<UI::TopBar> (apvts, [this]()
+                                           { processorRef.resetEngineHardOff(); });
+    addAndMakeVisible (*topBar);
 
-    masterControlSection = std::make_unique<UI::MasterControls> (apvts);
-    masterControlSection->setSpectrumDataSource (&processorRef.getSpectrumData(),
-                                                 &processorRef.getSpectrumSampleRateHz());
-    addAndMakeVisible(*masterControlSection);
+    ampSection = std::make_unique<UI::AmpEnvelopeSection> (apvts);
+    addAndMakeVisible (*ampSection);
 
-    outputSection = std::make_unique<UI::OutputSection>(apvts, [this]()
-                                                         { processorRef.resetEngineHardOff(); });
-    addAndMakeVisible(*outputSection);
+    filterSection = std::make_unique<UI::FilterSection> (apvts);
+    filterSection->setSpectrumDataSource (&processorRef.getSpectrumData(),
+                                          &processorRef.getSpectrumSampleRateHz());
+    addAndMakeVisible (*filterSection);
 
     addAndMakeVisible(glViewport_);
     glContextHost_.setRenderer(&renderer3D_);
@@ -68,7 +69,7 @@ VolumetricSynthEditor::VolumetricSynthEditor(VolumetricSynthAudioProcessor &p)
 
     startTimerHz(25);
 
-    setSize (1220, 800);
+    setSize (1220, 880);
 }
 
 VolumetricSynthEditor::~VolumetricSynthEditor()
@@ -81,7 +82,7 @@ void VolumetricSynthEditor::timerCallback()
 {
     renderer3D_.setCursorFromUnitPosition(processorRef.getGuiCursorPosition());
 
-    outputSection->setMeterLevels(
+    topBar->setMeterLevels(
         processorRef.getSynthEngine().getMeterLevelLeft(),
         processorRef.getSynthEngine().getMeterLevelRight());
 
@@ -108,15 +109,15 @@ void VolumetricSynthEditor::paint(juce::Graphics &g)
     g.drawRect(rightBankArea, 1);
     g.drawRect(centerArea, 1);
 
-    g.setColour(juce::Colours::white);
-    g.setFont(16.0f);
-
-    g.drawText("Volumetric Synth", getLocalBounds().removeFromTop(24), juce::Justification::centred, false);
 }
 
 void VolumetricSynthEditor::resized()
 {
     auto bounds = getLocalBounds().reduced(8);
+    constexpr int topBarHeight = 84;
+    topBarArea = bounds.removeFromTop (topBarHeight);
+    topBar->setBounds (topBarArea);
+    bounds.removeFromTop (8);
     topArea = bounds;
 
     auto topRow = topArea;
@@ -152,9 +153,8 @@ void VolumetricSynthEditor::resized()
     layoutBankModules(leftBankArea, leftModules);
     layoutBankModules(rightBankArea, rightModules);
 
-    // bottomLeftPanel.setBounds (bottomLeftArea.reduced (8));
-    masterControlSection->setBounds(bottomLeftArea.reduced(8));
-    outputSection->setBounds (bottomRightArea.reduced (8));
+    ampSection->setBounds (bottomLeftArea.reduced (8));
+    filterSection->setBounds (bottomRightArea.reduced (8));
 
     auto centerColumn = centerArea.reduced(6);
     const auto viewportHeight = juce::roundToInt(static_cast<float>(centerColumn.getHeight()) * 0.6f);

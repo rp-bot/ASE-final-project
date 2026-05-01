@@ -4,268 +4,282 @@
 
 namespace UI
 {
-namespace
-{
-constexpr float kCutoffMin = 20.0f;
-constexpr float kCutoffMax = 20000.0f;
-constexpr float kResMin = 0.0f;
-constexpr float kResMax = 1.0f;
-constexpr float kKeyMin = 0.0f;
-constexpr float kKeyMax = 1.0f;
-constexpr float kDriveMin = 0.0f;
-constexpr float kDriveMax = 1.0f;
-} // namespace
-
-FilterResponseEditor::FilterResponseEditor (juce::AudioProcessorValueTreeState& state,
-                                            std::array<juce::String, 4> parameterIds,
-                                            juce::Colour accentColour)
-    : apvts (state), ids (std::move (parameterIds)), accent (accentColour)
-{
-    refreshFromParameters();
-    startTimerHz (30);
-}
-
-void FilterResponseEditor::paint (juce::Graphics& g)
-{
-    const auto plot = getPlotBounds();
-    g.setColour (juce::Colours::black.withAlpha (0.25f));
-    g.fillRoundedRectangle (plot, 4.0f);
-    g.setColour (accent.withAlpha (0.55f));
-    g.drawRoundedRectangle (plot, 4.0f, 1.0f);
-
-    // Frequency decade guides.
-    constexpr std::array<float, 4> guides { 100.0f, 1000.0f, 10000.0f, 20000.0f };
-    g.setColour (accent.withAlpha (0.2f));
-    for (const auto hz : guides)
+    namespace
     {
-        const auto nx = std::log10 (hz / kCutoffMin) / std::log10 (kCutoffMax / kCutoffMin);
-        const auto x = plot.getX() + (nx * plot.getWidth());
-        g.drawVerticalLine (juce::roundToInt (x), plot.getY(), plot.getBottom());
-    }
-    g.setFont (10.0f);
-    g.setColour (juce::Colours::whitesmoke.withAlpha (0.75f));
-    for (const auto hz : guides)
+        constexpr float kCutoffMin = 20.0f;
+        constexpr float kCutoffMax = 20000.0f;
+        constexpr float kResMin = 0.0f;
+        constexpr float kResMax = 1.0f;
+        constexpr float kKeyMin = 0.0f;
+        constexpr float kKeyMax = 1.0f;
+        constexpr float kDriveMin = 0.0f;
+        constexpr float kDriveMax = 1.0f;
+    } // namespace
+
+    FilterResponseEditor::FilterResponseEditor(juce::AudioProcessorValueTreeState& state,
+        std::array<juce::String, 4> parameterIds,
+        juce::Colour accentColour)
+        : apvts(state), ids(std::move(parameterIds)), accent(accentColour)
     {
-        const auto nx = std::log10 (hz / kCutoffMin) / std::log10 (kCutoffMax / kCutoffMin);
-        const auto x = plot.getX() + (nx * plot.getWidth());
-        juce::Rectangle<int> labelArea (juce::roundToInt (x - 22.0f),
-                                        juce::roundToInt (plot.getBottom() - 14.0f),
-                                        44, 12);
-        const auto label = hz >= 1000.0f ? juce::String (hz / 1000.0f, 0) + "k" : juce::String (hz, 0);
-        g.drawFittedText (label, labelArea, juce::Justification::centred, 1);
+        refreshFromParameters();
+        startTimerHz(30);
     }
 
-    const auto cutoffNorm = std::log10 (values[0] / kCutoffMin) / std::log10 (kCutoffMax / kCutoffMin);
-    const auto qBoost = values[1];
-    const auto driveBoost = values[3] * 8.0f;
-    const auto slopeDepth = 52.0f + values[2] * 28.0f;
-
-    juce::Path response;
-    constexpr int samples = 128;
-    for (int i = 0; i < samples; ++i)
+    void FilterResponseEditor::paint(juce::Graphics& g)
     {
-        const auto nx = static_cast<float> (i) / static_cast<float> (samples - 1);
-        const auto x = plot.getX() + nx * plot.getWidth();
+        const auto plot = getPlotBounds();
+        g.setColour(juce::Colours::black.withAlpha(0.25f));
+        g.fillRoundedRectangle(plot, 4.0f);
+        g.setColour(accent.withAlpha(0.55f));
+        g.drawRoundedRectangle(plot, 4.0f, 1.0f);
 
-        const auto dx = nx - cutoffNorm;
-        const auto postCut = juce::jmax (0.0f, dx);
-        const auto lowPassShape = -(std::pow (postCut * 1.85f, 1.25f)) * slopeDepth;
-        const auto resonancePeak = std::exp (-120.0f * dx * dx) * (qBoost * 12.0f);
-        const auto db = juce::jlimit (-24.0f, 12.0f, lowPassShape + resonancePeak + driveBoost);
-        const auto y = juce::jmap (db, 12.0f, -24.0f, plot.getY(), plot.getBottom());
-
-        if (i == 0)
-            response.startNewSubPath (x, y);
-        else
-            response.lineTo (x, y);
-    }
-
-    g.setColour (accent.brighter (0.2f));
-    g.strokePath (response, juce::PathStrokeType (1.5f));
-
-    if (spectrumBins != nullptr)
-    {
-        juce::Path spectrumPath;
-        for (size_t i = 0; i < spectrumBins->size(); ++i)
+        // Frequency decade guides.
+        constexpr std::array<float, 4> guides{ 100.0f, 1000.0f, 10000.0f, 20000.0f };
+        g.setColour(accent.withAlpha(0.2f));
+        for (const auto hz : guides)
         {
-            const auto t = static_cast<float> (i) / static_cast<float> (spectrumBins->size() - 1);
-            const auto x = plot.getX() + t * plot.getWidth();
-            const auto mag = (*spectrumBins)[i].load (std::memory_order_relaxed);
-            const auto y = juce::jmap (mag, 0.0f, 1.0f, plot.getBottom(), plot.getY());
-            if (i == 0)
-                spectrumPath.startNewSubPath (x, y);
-            else
-                spectrumPath.lineTo (x, y);
+            const auto nx = std::log10(hz / kCutoffMin) / std::log10(kCutoffMax / kCutoffMin);
+            const auto x = plot.getX() + (nx * plot.getWidth());
+            g.drawVerticalLine(juce::roundToInt(x), plot.getY(), plot.getBottom());
+        }
+        g.setFont(10.0f);
+        g.setColour(juce::Colours::whitesmoke.withAlpha(0.75f));
+        for (const auto hz : guides)
+        {
+            const auto nx = std::log10(hz / kCutoffMin) / std::log10(kCutoffMax / kCutoffMin);
+            const auto x = plot.getX() + (nx * plot.getWidth());
+            juce::Rectangle<int> labelArea(juce::roundToInt(x - 22.0f),
+                juce::roundToInt(plot.getBottom() - 14.0f),
+                44, 12);
+            const auto label = hz >= 1000.0f ? juce::String(hz / 1000.0f, 0) + "k" : juce::String(hz, 0);
+            g.drawFittedText(label, labelArea, juce::Justification::centred, 1);
         }
 
-        g.setColour (juce::Colours::cyan.withAlpha (0.8f));
-        g.strokePath (spectrumPath, juce::PathStrokeType (1.1f));
+        const auto cutoffNorm = std::log10(values[0] / kCutoffMin) / std::log10(kCutoffMax / kCutoffMin);
+        // Frequency-gain (main handle / resonance) is visually constrained to 50%-100%.
+        const auto visualQBoost = juce::jmap(values[1], 0.0f, 1.0f, 0.5f, 1.0f);
+        const auto driveBoost = values[3] * 8.0f;
+        const auto slopeDepth = 52.0f + values[2] * 28.0f;
+
+        juce::Path response;
+        constexpr int samples = 128;
+        for (int i = 0; i < samples; ++i)
+        {
+            const auto nx = static_cast<float>(i) / static_cast<float>(samples - 1);
+            const auto x = plot.getX() + nx * plot.getWidth();
+
+            const auto dx = nx - cutoffNorm;
+            const auto postCut = juce::jmax(0.0f, dx);
+            const auto lowPassShape = -(std::pow(postCut * 1.85f, 1.25f)) * slopeDepth;
+            const auto resonancePeak = std::exp(-120.0f * dx * dx) * (visualQBoost * 12.0f);
+            const auto db = juce::jlimit(-24.0f, 12.0f, lowPassShape + resonancePeak + driveBoost);
+            const auto y = juce::jmap(db, 12.0f, -24.0f, plot.getY(), plot.getBottom());
+
+            if (i == 0)
+                response.startNewSubPath(x, y);
+            else
+                response.lineTo(x, y);
+        }
+
+        g.setColour(accent.brighter(0.2f));
+        g.strokePath(response, juce::PathStrokeType(1.5f));
+
+        if (spectrumBins != nullptr)
+        {
+            juce::Path spectrumPath;
+            for (size_t i = 0; i < spectrumBins->size(); ++i)
+            {
+                const auto t = static_cast<float>(i) / static_cast<float>(spectrumBins->size() - 1);
+                const auto x = plot.getX() + t * plot.getWidth();
+                const auto mag = (*spectrumBins)[i].load(std::memory_order_relaxed);
+                const auto y = juce::jmap(mag, 0.0f, 1.0f, plot.getBottom(), plot.getY());
+                if (i == 0)
+                    spectrumPath.startNewSubPath(x, y);
+                else
+                    spectrumPath.lineTo(x, y);
+            }
+
+            g.setColour(juce::Colours::cyan.withAlpha(0.8f));
+            g.strokePath(spectrumPath, juce::PathStrokeType(1.1f));
+        }
+
+        const auto main = getMainHandlePosition();
+        g.setColour(accent.withAlpha(0.85f));
+        g.fillEllipse(juce::Rectangle<float>(10.0f, 10.0f).withCentre(main));
+        g.setColour(juce::Colours::black.withAlpha(0.35f));
+        g.drawEllipse(juce::Rectangle<float>(10.0f, 10.0f).withCentre(main), 1.0f);
+        g.setColour(juce::Colours::whitesmoke.withAlpha(0.95f));
+        g.setFont(10.5f);
+        const auto cutoffLabel = values[0] >= 1000.0f
+            ? juce::String(values[0] / 1000.0f, 2) + " kHz"
+            : juce::String(values[0], 0) + " Hz";
+        juce::Rectangle<int> cutoffArea(juce::roundToInt(main.x + 8.0f),
+            juce::roundToInt(main.y - 16.0f),
+            64, 14);
+        g.drawFittedText(cutoffLabel, cutoffArea, juce::Justification::centredLeft, 1);
+
+        const auto keyBounds = getMiniControlBounds(true);
+        const auto driveBounds = getMiniControlBounds(false);
+        g.setColour(accent.withAlpha(0.14f));
+        g.fillRoundedRectangle(keyBounds, 3.0f);
+        g.fillRoundedRectangle(driveBounds, 3.0f);
+        g.setColour(accent.withAlpha(0.6f));
+        g.drawRoundedRectangle(keyBounds, 3.0f, 1.0f);
+        g.drawRoundedRectangle(driveBounds, 3.0f, 1.0f);
+
+        const auto keyX = juce::jmap(values[2], 0.0f, 1.0f, keyBounds.getX(), keyBounds.getRight());
+        const auto driveX = juce::jmap(values[3], 0.0f, 1.0f, driveBounds.getX(), driveBounds.getRight());
+        g.setColour(accent.brighter(0.4f));
+        g.drawLine(keyX, keyBounds.getY(), keyX, keyBounds.getBottom(), 2.0f);
+        g.drawLine(driveX, driveBounds.getY(), driveX, driveBounds.getBottom(), 2.0f);
+
+        g.setColour(juce::Colours::whitesmoke.withAlpha(0.9f));
+        g.setFont(11.0f);
+        g.drawFittedText("Key", keyBounds.toNearestInt(), juce::Justification::centredLeft, 1);
+        g.drawFittedText("Drive", driveBounds.toNearestInt(), juce::Justification::centredLeft, 1);
     }
 
-    const auto main = getMainHandlePosition();
-    g.setColour (accent.withAlpha (0.85f));
-    g.fillEllipse (juce::Rectangle<float> (10.0f, 10.0f).withCentre (main));
-    g.setColour (juce::Colours::black.withAlpha (0.35f));
-    g.drawEllipse (juce::Rectangle<float> (10.0f, 10.0f).withCentre (main), 1.0f);
-    g.setColour (juce::Colours::whitesmoke.withAlpha (0.95f));
-    g.setFont (10.5f);
-    const auto cutoffLabel = values[0] >= 1000.0f
-        ? juce::String (values[0] / 1000.0f, 2) + " kHz"
-        : juce::String (values[0], 0) + " Hz";
-    juce::Rectangle<int> cutoffArea (juce::roundToInt (main.x + 8.0f),
-                                     juce::roundToInt (main.y - 16.0f),
-                                     64, 14);
-    g.drawFittedText (cutoffLabel, cutoffArea, juce::Justification::centredLeft, 1);
+    void FilterResponseEditor::resized() {}
 
-    const auto keyBounds = getMiniControlBounds (true);
-    const auto driveBounds = getMiniControlBounds (false);
-    g.setColour (accent.withAlpha (0.14f));
-    g.fillRoundedRectangle (keyBounds, 3.0f);
-    g.fillRoundedRectangle (driveBounds, 3.0f);
-    g.setColour (accent.withAlpha (0.6f));
-    g.drawRoundedRectangle (keyBounds, 3.0f, 1.0f);
-    g.drawRoundedRectangle (driveBounds, 3.0f, 1.0f);
-
-    const auto keyX = juce::jmap (values[2], 0.0f, 1.0f, keyBounds.getX(), keyBounds.getRight());
-    const auto driveX = juce::jmap (values[3], 0.0f, 1.0f, driveBounds.getX(), driveBounds.getRight());
-    g.setColour (accent.brighter (0.4f));
-    g.drawLine (keyX, keyBounds.getY(), keyX, keyBounds.getBottom(), 2.0f);
-    g.drawLine (driveX, driveBounds.getY(), driveX, driveBounds.getBottom(), 2.0f);
-
-    g.setColour (juce::Colours::whitesmoke.withAlpha (0.9f));
-    g.setFont (11.0f);
-    g.drawFittedText ("Key", keyBounds.toNearestInt(), juce::Justification::centredLeft, 1);
-    g.drawFittedText ("Drive", driveBounds.toNearestInt(), juce::Justification::centredLeft, 1);
-}
-
-void FilterResponseEditor::resized() {}
-
-void FilterResponseEditor::mouseDown (const juce::MouseEvent& e)
-{
-    const auto pos = e.position;
-    if (juce::Rectangle<float> (12.0f, 12.0f).withCentre (getMainHandlePosition()).contains (pos))
+    void FilterResponseEditor::mouseDown(const juce::MouseEvent& e)
     {
-        dragTarget = DragTarget::main;
-        return;
+        const auto pos = e.position;
+        if (juce::Rectangle<float>(12.0f, 12.0f).withCentre(getMainHandlePosition()).contains(pos))
+        {
+            dragTarget = DragTarget::main;
+            dragStartPos = pos;
+            dragStartCutoff = values[0];
+            dragStartResonance = juce::jmap(values[1], 0.0f, 1.0f, 0.5f, 1.0f);
+            return;
+        }
+
+        if (getMiniControlBounds(true).contains(pos))
+        {
+            dragTarget = DragTarget::keyTrack;
+            mouseDrag(e);
+            return;
+        }
+
+        if (getMiniControlBounds(false).contains(pos))
+        {
+            dragTarget = DragTarget::drive;
+            mouseDrag(e);
+            return;
+        }
+
+        dragTarget = DragTarget::none;
     }
 
-    if (getMiniControlBounds (true).contains (pos))
+    void FilterResponseEditor::mouseDrag(const juce::MouseEvent& e)
     {
-        dragTarget = DragTarget::keyTrack;
-        mouseDrag (e);
-        return;
-    }
+        if (dragTarget == DragTarget::none)
+            return;
 
-    if (getMiniControlBounds (false).contains (pos))
-    {
-        dragTarget = DragTarget::drive;
-        mouseDrag (e);
-        return;
-    }
+        if (dragTarget == DragTarget::main)
+        {
+            const auto plot = getPlotBounds();
+            const auto dxNorm = (e.position.x - dragStartPos.x) / juce::jmax(1.0f, plot.getWidth());
+            const auto dyNorm = (dragStartPos.y - e.position.y) / juce::jmax(1.0f, plot.getHeight());
 
-    dragTarget = DragTarget::none;
-}
+            // Cutoff drag is logarithmic for even control across octaves.
+            const auto ratio = kCutoffMax / kCutoffMin;
+            const auto startCutoffNorm = std::log10(dragStartCutoff / kCutoffMin) / std::log10(ratio);
+            const auto nextCutoffNorm = juce::jlimit(0.0f, 1.0f, startCutoffNorm + dxNorm);
+            writeParameterRealValue(0, kCutoffMin * std::pow(ratio, nextCutoffNorm));
 
-void FilterResponseEditor::mouseDrag (const juce::MouseEvent& e)
-{
-    if (dragTarget == DragTarget::none)
-        return;
+            // Frequency gain / resonance drag is relative and smoothed for precision.
+            const auto nextVisualRes = juce::jlimit(0.5f, 1.0f, dragStartResonance + (dyNorm * 0.6f));
+            writeParameterRealValue(1, juce::jmap(nextVisualRes, 0.5f, 1.0f, 0.0f, 1.0f));
+        } else if (dragTarget == DragTarget::keyTrack)
+        {
+            writeParameterRealValue(2, xToMiniValue(e.position.x, true));
+        } else if (dragTarget == DragTarget::drive)
+        {
+            writeParameterRealValue(3, xToMiniValue(e.position.x, false));
+        }
 
-    if (dragTarget == DragTarget::main)
-    {
-        writeParameterRealValue (0, xToCutoff (e.position.x));
-        writeParameterRealValue (1, yToResonance (e.position.y));
-    }
-    else if (dragTarget == DragTarget::keyTrack)
-    {
-        writeParameterRealValue (2, xToMiniValue (e.position.x, true));
-    }
-    else if (dragTarget == DragTarget::drive)
-    {
-        writeParameterRealValue (3, xToMiniValue (e.position.x, false));
-    }
-
-    refreshFromParameters();
-    repaint();
-}
-
-void FilterResponseEditor::mouseUp (const juce::MouseEvent&)
-{
-    dragTarget = DragTarget::none;
-}
-
-void FilterResponseEditor::timerCallback()
-{
-    const auto previous = values;
-    refreshFromParameters();
-    if (spectrumBins != nullptr || previous != values)
+        refreshFromParameters();
         repaint();
-}
-
-void FilterResponseEditor::setSpectrumData (const std::array<std::atomic<float>, 128>* bins,
-                                            const std::atomic<float>* sampleRateHz)
-{
-    spectrumBins = bins;
-    spectrumSampleRate = sampleRateHz;
-}
-
-void FilterResponseEditor::refreshFromParameters()
-{
-    for (size_t i = 0; i < ids.size(); ++i)
-    {
-        if (const auto* raw = apvts.getRawParameterValue (ids[i]))
-            values[i] = raw->load();
     }
-}
 
-void FilterResponseEditor::writeParameterRealValue (int index, float realValue)
-{
-    if (auto* p = apvts.getParameter (ids[static_cast<size_t> (index)]))
-        p->setValueNotifyingHost (p->getNormalisableRange().convertTo0to1 (realValue));
-}
+    void FilterResponseEditor::mouseUp(const juce::MouseEvent&)
+    {
+        dragTarget = DragTarget::none;
+    }
 
-juce::Rectangle<float> FilterResponseEditor::getPlotBounds() const
-{
-    auto r = getLocalBounds().toFloat().reduced (4.0f);
-    return r.removeFromTop (r.getHeight() - 24.0f);
-}
+    void FilterResponseEditor::timerCallback()
+    {
+        const auto previous = values;
+        refreshFromParameters();
+        if (spectrumBins != nullptr || previous != values)
+            repaint();
+    }
 
-juce::Rectangle<float> FilterResponseEditor::getMiniControlBounds (bool forKeyTrack) const
-{
-    auto r = getLocalBounds().toFloat().reduced (4.0f);
-    auto strip = r.removeFromBottom (20.0f);
-    auto half = strip.removeFromLeft (strip.getWidth() * 0.5f).reduced (2.0f, 1.0f);
-    auto other = strip.reduced (2.0f, 1.0f);
-    return forKeyTrack ? half : other;
-}
+    void FilterResponseEditor::setSpectrumData(const std::array<std::atomic<float>, 128>* bins,
+        const std::atomic<float>* sampleRateHz)
+    {
+        spectrumBins = bins;
+        spectrumSampleRate = sampleRateHz;
+    }
 
-juce::Point<float> FilterResponseEditor::getMainHandlePosition() const
-{
-    const auto plot = getPlotBounds();
-    const auto nx = std::log10 (values[0] / kCutoffMin) / std::log10 (kCutoffMax / kCutoffMin);
-    const auto ny = 1.0f - values[1];
-    return { plot.getX() + nx * plot.getWidth(), plot.getY() + ny * plot.getHeight() };
-}
+    void FilterResponseEditor::refreshFromParameters()
+    {
+        for (size_t i = 0; i < ids.size(); ++i)
+        {
+            if (const auto* raw = apvts.getRawParameterValue(ids[i]))
+                values[i] = raw->load();
+        }
+    }
 
-float FilterResponseEditor::xToCutoff (float x) const
-{
-    const auto plot = getPlotBounds();
-    const auto nx = juce::jlimit (0.0f, 1.0f, (x - plot.getX()) / juce::jmax (1.0f, plot.getWidth()));
-    const auto ratio = kCutoffMax / kCutoffMin;
-    return kCutoffMin * std::pow (ratio, nx);
-}
+    void FilterResponseEditor::writeParameterRealValue(int index, float realValue)
+    {
+        if (auto* p = apvts.getParameter(ids[static_cast<size_t>(index)]))
+            p->setValueNotifyingHost(p->getNormalisableRange().convertTo0to1(realValue));
+    }
 
-float FilterResponseEditor::yToResonance (float y) const
-{
-    const auto plot = getPlotBounds();
-    const auto ny = juce::jlimit (0.0f, 1.0f, (y - plot.getY()) / juce::jmax (1.0f, plot.getHeight()));
-    return juce::jmap (1.0f - ny, kResMin, kResMax);
-}
+    juce::Rectangle<float> FilterResponseEditor::getPlotBounds() const
+    {
+        auto r = getLocalBounds().toFloat().reduced(4.0f);
+        return r.removeFromTop(r.getHeight() - 24.0f);
+    }
 
-float FilterResponseEditor::xToMiniValue (float x, bool forKeyTrack) const
-{
-    const auto b = getMiniControlBounds (forKeyTrack);
-    const auto nx = juce::jlimit (0.0f, 1.0f, (x - b.getX()) / juce::jmax (1.0f, b.getWidth()));
-    return forKeyTrack ? juce::jmap (nx, kKeyMin, kKeyMax) : juce::jmap (nx, kDriveMin, kDriveMax);
-}
+    juce::Rectangle<float> FilterResponseEditor::getMiniControlBounds(bool forKeyTrack) const
+    {
+        auto r = getLocalBounds().toFloat().reduced(4.0f);
+        auto strip = r.removeFromBottom(20.0f);
+        auto half = strip.removeFromLeft(strip.getWidth() * 0.5f).reduced(2.0f, 1.0f);
+        auto other = strip.reduced(2.0f, 1.0f);
+        return forKeyTrack ? half : other;
+    }
+
+    juce::Point<float> FilterResponseEditor::getMainHandlePosition() const
+    {
+        const auto plot = getPlotBounds();
+        const auto nx = std::log10(values[0] / kCutoffMin) / std::log10(kCutoffMax / kCutoffMin);
+        const auto visualQ = juce::jmap(values[1], 0.0f, 1.0f, 0.5f, 1.0f);
+        const auto ny = 1.0f - visualQ;
+        return { plot.getX() + nx * plot.getWidth(), plot.getY() + ny * plot.getHeight() };
+    }
+
+    float FilterResponseEditor::xToCutoff(float x) const
+    {
+        const auto plot = getPlotBounds();
+        const auto nx = juce::jlimit(0.0f, 1.0f, (x - plot.getX()) / juce::jmax(1.0f, plot.getWidth()));
+        const auto ratio = kCutoffMax / kCutoffMin;
+        return kCutoffMin * std::pow(ratio, nx);
+    }
+
+    float FilterResponseEditor::yToResonance(float y) const
+    {
+        const auto plot = getPlotBounds();
+        const auto ny = juce::jlimit(0.0f, 1.0f, (y - plot.getY()) / juce::jmax(1.0f, plot.getHeight()));
+        return juce::jmap(1.0f - ny, 0.5f, kResMax);
+    }
+
+    float FilterResponseEditor::xToMiniValue(float x, bool forKeyTrack) const
+    {
+        const auto b = getMiniControlBounds(forKeyTrack);
+        const auto nx = juce::jlimit(0.0f, 1.0f, (x - b.getX()) / juce::jmax(1.0f, b.getWidth()));
+        return forKeyTrack ? juce::jmap(nx, kKeyMin, kKeyMax) : juce::jmap(nx, kDriveMin, kDriveMax);
+    }
 } // namespace UI

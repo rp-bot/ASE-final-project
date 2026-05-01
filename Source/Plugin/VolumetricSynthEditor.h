@@ -1,13 +1,13 @@
 #pragma once
 
 #include "VolumetricSynthAudioProcessor.h"
+#include "../UI/AmpEnvelopeSection.h"
 #include "../UI/CenterControlPanel.h"
-#include "../UI/LabeledPanel.h"
+#include "../UI/FilterSection.h"
 #include "../UI/OscillatorModuleComponent.h"
-#include "../UI/MasterControls.h"
+#include "../UI/TopBar.h"
 #include "../Visualization/GLContextHost.h"
 #include "../Visualization/Renderer3D.h"
-#include "../UI/OutputSection.h"
 #include <glm/glm.hpp>
 #include <array>
 
@@ -56,6 +56,7 @@ public:
     void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 
     static constexpr int modulesPerBank = 4;
+    juce::Rectangle<int> topBarArea;
     juce::Rectangle<int> topArea;
     juce::Rectangle<int> leftBankArea;
     juce::Rectangle<int> centerArea;
@@ -67,9 +68,9 @@ public:
     std::array<std::unique_ptr<UI::OscillatorModuleComponent>, modulesPerBank> leftModules;
     std::array<std::unique_ptr<UI::OscillatorModuleComponent>, modulesPerBank> rightModules;
     std::unique_ptr<UI::CenterControlPanel> centerPanel;
-    UI::LabeledPanel bottomLeftPanel { "Placeholder for Additional Functionalities" };
-    std::unique_ptr<UI::MasterControls> masterControlSection;
-    std::unique_ptr<UI::OutputSection> outputSection;
+    std::unique_ptr<UI::TopBar> topBar;
+    std::unique_ptr<UI::AmpEnvelopeSection> ampSection;
+    std::unique_ptr<UI::FilterSection> filterSection;
 
 
     GLViewportComponent glViewport_;
