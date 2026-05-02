@@ -42,6 +42,8 @@ namespace Audio
 
         float getMeterLevelLeft()  const noexcept { return meterLevelLeft_.load  (std::memory_order_relaxed); }
         float getMeterLevelRight() const noexcept { return meterLevelRight_.load (std::memory_order_relaxed); }
+        bool isEngineHardOff() const noexcept { return engineHardOff_.load (std::memory_order_relaxed); }
+        void resetEngineHardOff() noexcept;
 
         int getLastMidiNote() const noexcept;
         float getLastVelocity() const noexcept;
@@ -50,7 +52,7 @@ namespace Audio
         int getLastControllerValue() const noexcept;
 
     private:
-        double m_sampleRate { 44100.0 };
+        double m_sampleRate { 0.0 };
         int m_blockSize { 0 };
 
         Threading::AtomicGuiState* m_guiState { nullptr };
@@ -66,6 +68,8 @@ namespace Audio
 
         std::atomic<float> meterLevelLeft_  { -96.0f };
         std::atomic<float> meterLevelRight_ { -96.0f };
+        std::atomic<bool> engineHardOff_ { false };
+        std::atomic<bool> pendingResetHardOff_ { false };
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SynthEngine)
     };

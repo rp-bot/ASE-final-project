@@ -1,6 +1,7 @@
 #pragma once
 
-#include "CursorJoystick2D.h"
+#include "UI/Widgets/CursorJoystick2D.h"
+#include "UI/Widgets/LabelledKnob.h"
 #include <functional>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -26,7 +27,7 @@ public:
 
 private:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
-    static void configureCursorKnob (juce::Slider& slider, juce::Label& label, const juce::String& text);
+    static void configureCursorKnob (LabelledKnob& knob, const juce::String& text);
     static void configureHeightSlider (juce::Slider& slider, juce::Label& label, const juce::String& text);
     void updateCursorFromControls();
     void updateReadoutFromParams();
@@ -36,13 +37,10 @@ private:
 
     juce::AudioProcessorValueTreeState* apvtsPtr { nullptr };
 
-    juce::Slider xSlider;
-    juce::Slider ySlider;
-    juce::Slider zSlider;
+    LabelledKnob xKnob;
+    LabelledKnob yKnob;
+    LabelledKnob zKnob;
     juce::Slider heightSlider;
-    juce::Label xLabel;
-    juce::Label yLabel;
-    juce::Label zLabel;
     juce::Label heightLabel;
     CursorJoystick2D xyJoystick;
 

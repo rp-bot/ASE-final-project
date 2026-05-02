@@ -27,6 +27,9 @@ namespace Audio
 
         void renderNextBlock (juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples);
 
+        /** True if any voice is still generating audio (note or release tail). */
+        bool hasAnyVoiceRendering() noexcept;
+
         void allNotesOff (bool allowTailOff = true);
 
         void reset();

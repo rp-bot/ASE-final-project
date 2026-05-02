@@ -18,20 +18,20 @@ namespace DSP
         TrilinearMixer8();
         ~TrilinearMixer8() = default;
 
-        void prepare (double sampleRate);
+        void prepare(double sampleRate);
 
-        void processBlock (const float* const* inputPointers, float* const* outputPointers,
-                           int numChannels, int numSamples, glm::vec3 cursor, const GainArray& pan);
+        void processBlock(const float *const *inputPointers, float *const *outputPointers,
+                          int numChannels, int numSamples, glm::vec3 cursor, const GainArray &pan);
 
-        void processBlock (juce::AudioBuffer<float>& inputBuffer, juce::AudioBuffer<float>& outputBuffer,
-                           int startSample, int numSamples, glm::vec3 cursor, const GainArray& pan);
+        void processBlock(juce::AudioBuffer<float> &inputBuffer, juce::AudioBuffer<float> &outputBuffer,
+                          int startSample, int numSamples, glm::vec3 cursor, const GainArray &pan);
 
-        void updateGainsFromPosition (float x, float y, float z);
-        void updateGainsFromPosition (glm::vec3 position);
+        void updateGainsFromPosition(float x, float y, float z);
+        void updateGainsFromPosition(glm::vec3 position);
 
         GainArray getCurrentGains() const;
 
     private:
-        std::array<float, 8> m_gains {};
+        std::array<float, 8> m_gains{};
     };
 }

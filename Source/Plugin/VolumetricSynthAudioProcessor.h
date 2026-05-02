@@ -2,6 +2,8 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <memory>
+#include <array>
+#include <atomic>
 #include "../Parameters/ParameterManager.h"
 #include "../Parameters/ParameterCorners.h"
 #include "../Threading/AtomicGuiState.h"
@@ -73,6 +75,12 @@ public:
     int getLastPitchWheel() const noexcept;
     int getLastController() const noexcept;
     int getLastControllerValue() const noexcept;
+    bool isEngineHardOff() const noexcept;
+    void resetEngineHardOff() noexcept;
+
+    static constexpr size_t spectrumBinCount = 128;
+    const std::array<std::atomic<float>, spectrumBinCount>& getSpectrumData() const noexcept;
+    const std::atomic<float>& getSpectrumSampleRateHz() const noexcept;
 
 private:
     void parameterChanged (const juce::String& parameterID, float newValue) override;
@@ -80,11 +88,22 @@ private:
     void syncParamsToGuiState();
     void syncCursorParamsToGuiState();
     void syncCornerParamsToGuiState();
+    void analyseOutputSpectrum (const juce::AudioBuffer<float>& buffer);
 
     ParameterManager parameterManager;
     Threading::AtomicGuiState atomicGuiState;
     std::unique_ptr<Audio::SynthEngine> synthEngine;
     std::unique_ptr<IO::MidiManager> midiManager;
+
+    static constexpr int spectrumFFTOrder = 11;
+    static constexpr int spectrumFFTSize = 1 << spectrumFFTOrder;
+    juce::dsp::FFT spectrumFFT { spectrumFFTOrder };
+    juce::dsp::WindowingFunction<float> spectrumWindow { spectrumFFTSize, juce::dsp::WindowingFunction<float>::hann };
+    std::array<float, spectrumFFTSize> spectrumFifo {};
+    int spectrumFifoIndex { 0 };
+    std::array<float, spectrumFFTSize * 2> spectrumFFTData {};
+    std::array<std::atomic<float>, spectrumBinCount> spectrumBins {};
+    std::atomic<float> spectrumSampleRateHz { 0.0f };
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (VolumetricSynthAudioProcessor)

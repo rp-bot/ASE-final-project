@@ -1,4 +1,5 @@
 #include "CursorJoystick2D.h"
+#include "UI/Common/SynthLookAndFeel.h"
 
 namespace UI {
 
@@ -41,15 +42,15 @@ void CursorJoystick2D::sliderValueChanged (juce::Slider*)
 void CursorJoystick2D::paint (juce::Graphics& g)
 {
     auto pad = getLocalBounds().toFloat().reduced (3.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.06f));
+    g.setColour (SynthLookAndFeel::panelSurface());
     g.fillRoundedRectangle (pad, 4.0f);
-    g.setColour (juce::Colours::lightgrey.withAlpha (0.5f));
+    g.setColour (SynthLookAndFeel::panelBorder());
     g.drawRoundedRectangle (pad, 4.0f, 1.0f);
 
     // Subtle grid to help precise placement.
     {
         const int gridDivs = 4; // draws 3 interior lines each direction
-        g.setColour (juce::Colours::white.withAlpha (0.06f));
+        g.setColour (SynthLookAndFeel::panelBorder().withAlpha (0.5f));
         for (int i = 1; i < gridDivs; ++i)
         {
             const float t = static_cast<float> (i) / static_cast<float> (gridDivs);
@@ -66,14 +67,14 @@ void CursorJoystick2D::paint (juce::Graphics& g)
     const float px = pad.getX() + x * pad.getWidth();
     const float py = pad.getBottom() - y * pad.getHeight();
 
-    g.setColour (juce::Colours::white.withAlpha (0.15f));
+    g.setColour (SynthLookAndFeel::arcTrack());
     g.drawLine (pad.getX(), py, pad.getRight(), py, 1.0f);
     g.drawLine (px, pad.getY(), px, pad.getBottom(), 1.0f);
 
     const float r = 6.0f;
-    g.setColour (juce::Colour (0xff4a9eff));
+    g.setColour (SynthLookAndFeel::teal());
     g.fillEllipse (px - r, py - r, r * 2.0f, r * 2.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.85f));
+    g.setColour (SynthLookAndFeel::panelBorder());
     g.drawEllipse (px - r, py - r, r * 2.0f, r * 2.0f, 1.2f);
 }
 
