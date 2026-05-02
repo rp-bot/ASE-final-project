@@ -172,13 +172,6 @@ struct KnobValueInputFilter final : public juce::TextEditor::InputFilter
 LabelledKnob::LabelledKnob()
 {
     nameLabel_.setJustificationType (juce::Justification::centred);
-    {
-        juce::Font font;
-        font.setTypefaceName ("Helvetica Neue");
-        font.setHeight (11.5f);
-        font.setStyleFlags (juce::Font::plain);
-        nameLabel_.setFont (font);
-    }
     nameLabel_.setColour (juce::Label::textColourId, SynthLookAndFeel::textDim());
     nameLabel_.setBorderSize ({});
     nameLabel_.setInterceptsMouseClicks (false, false);
@@ -187,13 +180,6 @@ LabelledKnob::LabelledKnob()
     rotary_.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
 
     valueLabel_.setJustificationType (juce::Justification::centred);
-    {
-        juce::Font font;
-        font.setTypefaceName ("Helvetica Neue");
-        font.setHeight (11.5f);
-        font.setStyleFlags (juce::Font::plain);
-        valueLabel_.setFont (font);
-    }
     valueLabel_.setColour (juce::Label::textColourId, SynthLookAndFeel::textPrimary());
     valueLabel_.setBorderSize ({});
     valueLabel_.setInterceptsMouseClicks (true, false);
@@ -267,7 +253,8 @@ void LabelledKnob::updateValueLabel()
 
 void LabelledKnob::centerEditorText (juce::TextEditor& editor)
 {
-    const auto textWidth = static_cast<float> (editor.getFont().getStringWidth (editor.getText()));
+    // Avoid deprecated/removed JUCE string-width APIs by estimating from glyph height.
+    const auto textWidth = static_cast<float> (editor.getText().length()) * editor.getFont().getHeight() * 0.55f;
     const int leftIndent = juce::jmax (2, juce::roundToInt ((editor.getWidth() - textWidth) * 0.5f));
     editor.setIndents (leftIndent, 1);
 }
