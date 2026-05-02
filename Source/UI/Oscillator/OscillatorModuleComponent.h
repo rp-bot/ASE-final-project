@@ -1,6 +1,8 @@
 #pragma once
 
+#include "UI/Widgets/LabelledKnob.h"
 #include <array>
+#include <functional>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -55,6 +57,34 @@ private:
         juce::Colour accent { juce::Colours::white };
     };
 
+    /** Minimal text tabs: no fill; active tab gets accent underline (used by Synth / Filter / Amp). */
+    class TabLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        void setAccent (juce::Colour c) noexcept { accent = c; }
+        void setTabSelectedPredicate (std::function<bool (const juce::Button&)> p)
+        {
+            isTabSelected = std::move (p);
+        }
+
+        void drawButtonBackground (juce::Graphics& g,
+                                   juce::Button& button,
+                                   const juce::Colour& /*backgroundColour*/,
+                                   bool shouldDrawButtonAsHighlighted,
+                                   bool shouldDrawButtonAsDown) override;
+
+        void drawButtonText (juce::Graphics& g,
+                              juce::TextButton& textButton,
+                              bool shouldDrawButtonAsHighlighted,
+                              bool shouldDrawButtonAsDown) override;
+
+        juce::Font getTextButtonFont (juce::TextButton&, int buttonHeight) override;
+
+    private:
+        juce::Colour accent { juce::Colours::white };
+        std::function<bool (const juce::Button&)> isTabSelected;
+    };
+
     class WaveformPreviewComponent : public juce::Component
     {
     public:
@@ -71,7 +101,7 @@ private:
     juce::String getFilterParameterId (int paramIndex) const;
     juce::String getAmpParameterId (int paramIndex) const;
 
-    static void configureRotarySlider (juce::Slider& slider, juce::Label& label, const juce::String& text);
+    static void configureRotaryKnob (LabelledKnob& knob, const juce::String& text);
     void updateWaveformPreviewFromSelector();
     void setPage (Page page);
     void refreshTabColours();
@@ -81,10 +111,11 @@ private:
 
     int corner { 0 };
     juce::Colour accent;
+    juce::String moduleTitle_;
     Page activePage { Page::Synth };
 
     AccentComboLookAndFeel comboLookAndFeel;
-    juce::Label titleLabel;
+    TabLookAndFeel tabLookAndFeel;
     juce::TextButton tabSynth { "Synth" };
     juce::TextButton tabFilter { "Filter" };
     juce::TextButton tabAmp { "Amp" };
@@ -92,16 +123,13 @@ private:
     juce::ComboBox waveformSelector;
     WaveformPreviewComponent waveformPreview;
 
-    std::array<juce::Slider, synthParams> synthSliders;
-    std::array<juce::Label, synthParams> synthLabels;
+    std::array<LabelledKnob, synthParams> synthKnobs;
     std::array<std::unique_ptr<SliderAttachment>, synthParams> synthAttachments;
 
-    std::array<juce::Slider, filterParams> filterSliders;
-    std::array<juce::Label, filterParams> filterLabels;
+    std::array<LabelledKnob, filterParams> filterKnobs;
     std::array<std::unique_ptr<SliderAttachment>, filterParams> filterAttachments;
 
-    std::array<juce::Slider, ampParams> ampSliders;
-    std::array<juce::Label, ampParams> ampLabels;
+    std::array<LabelledKnob, ampParams> ampKnobs;
     std::array<std::unique_ptr<SliderAttachment>, ampParams> ampAttachments;
 
     std::unique_ptr<ComboBoxAttachment> waveformAttachment;
