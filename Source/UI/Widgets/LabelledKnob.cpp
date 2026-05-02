@@ -172,7 +172,7 @@ struct KnobValueInputFilter final : public juce::TextEditor::InputFilter
 LabelledKnob::LabelledKnob()
 {
     nameLabel_.setJustificationType (juce::Justification::centred);
-    nameLabel_.setFont (juce::Font (11.5f, juce::Font::plain).withTypefaceName ("Helvetica Neue"));
+    nameLabel_.setFont (juce::Font ("Helvetica Neue", 11.5f, juce::Font::plain));
     nameLabel_.setColour (juce::Label::textColourId, SynthLookAndFeel::textDim());
     nameLabel_.setBorderSize ({});
     nameLabel_.setInterceptsMouseClicks (false, false);
@@ -181,7 +181,7 @@ LabelledKnob::LabelledKnob()
     rotary_.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
 
     valueLabel_.setJustificationType (juce::Justification::centred);
-    valueLabel_.setFont (juce::Font (11.5f, juce::Font::plain).withTypefaceName ("Helvetica Neue"));
+    valueLabel_.setFont (juce::Font ("Helvetica Neue", 11.5f, juce::Font::plain));
     valueLabel_.setColour (juce::Label::textColourId, SynthLookAndFeel::textPrimary());
     valueLabel_.setBorderSize ({});
     valueLabel_.setInterceptsMouseClicks (true, false);
@@ -255,8 +255,8 @@ void LabelledKnob::updateValueLabel()
 
 void LabelledKnob::centerEditorText (juce::TextEditor& editor)
 {
-    const auto textWidth = editor.getFont().getStringWidth (editor.getText());
-    const int leftIndent = juce::jmax (2, (editor.getWidth() - textWidth) / 2);
+    const auto textWidth = editor.getFont().getStringWidthFloat (editor.getText());
+    const int leftIndent = juce::jmax (2, juce::roundToInt ((editor.getWidth() - textWidth) * 0.5f));
     editor.setIndents (leftIndent, 1);
 }
 
