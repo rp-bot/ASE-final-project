@@ -28,6 +28,13 @@ void GLViewportComponent::mouseUp (const juce::MouseEvent& e)
         w->mouseUp (e.getEventRelativeTo (w));
 }
 
+void GLViewportComponent::mouseExit (const juce::MouseEvent& e)
+{
+    juce::ignoreUnused (e);
+    if (auto* w = getWorkspace())
+        w->cancelViewportInteraction();
+}
+
 void GLViewportComponent::mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& w)
 {
     if (auto* ws = getWorkspace())
@@ -206,12 +213,18 @@ void SynthEditorWorkspace::mouseDown (const juce::MouseEvent& event)
     if (vpBounds.contains (event.getPosition()))
     {
         renderer3D_.mouseDown (event, vpBounds);
-        if (! event.mods.isShiftDown())
+        const bool shiftDown = event.mods.isShiftDown()
+                               || juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
+        if (! shiftDown)
         {
             const auto newCursor = renderer3D_.getCursorAsUnitPosition();
             processorRef.setGuiCursorPosition (newCursor);
             updateCursorParametersFromPosition (newCursor);
         }
+    }
+    else
+    {
+        cancelViewportInteraction();
     }
 }
 
@@ -228,10 +241,20 @@ void SynthEditorWorkspace::mouseDrag (const juce::MouseEvent& event)
     }
 }
 
+void SynthEditorWorkspace::mouseUp (const juce::MouseEvent& event)
+{
+    renderer3D_.mouseUp (event);
+}
+
 void SynthEditorWorkspace::mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel)
 {
     if (glViewport_.getBounds().contains (event.getPosition()))
         renderer3D_.mouseWheelMove (event, wheel);
+}
+
+void SynthEditorWorkspace::cancelViewportInteraction()
+{
+    renderer3D_.cancelInteraction();
 }
 
 } // namespace UI

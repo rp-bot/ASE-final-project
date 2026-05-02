@@ -16,11 +16,6 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
     void timerCallback() override;
-    void updateCursorParametersFromPosition (glm::vec3 position);
-    void mouseDown (const juce::MouseEvent& event) override;
-    void mouseDrag (const juce::MouseEvent& event) override;
-    void mouseUp   (const juce::MouseEvent& event) override;
-    void mouseWheelMove (const juce::MouseEvent& event, const juce::MouseWheelDetails& wheel) override;
 
 private:
     UI::SynthLookAndFeel synthLAF_;

@@ -27,6 +27,7 @@ namespace Visualization
         void mouseDrag(const juce::MouseEvent& e, const juce::Rectangle<int>& viewportBounds);
         void mouseUp(const juce::MouseEvent& e);
         void mouseWheelMove(const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel);
+        void cancelInteraction() noexcept;
 
     private:
         Scene scene_;

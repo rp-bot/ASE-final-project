@@ -646,6 +646,8 @@ void main()
     {
         lastMousePosition_ = e.getPosition();
         isDragging_ = true;
+        const bool shiftDown = e.mods.isShiftDown()
+                               || juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
 
         const int vpW = viewportBounds.getWidth();
         const int vpH = viewportBounds.getHeight();
@@ -662,7 +664,7 @@ void main()
                                             static_cast<float>(vpH));
 
         // Gizmo hit-test takes priority over cube picking.
-        if (!e.mods.isShiftDown())
+        if (!shiftDown)
         {
             const float gs   = camera_.getRadius() * kGizmoScale;
             const auto  part = gizmo_.hitTest(ray, cursorPositionCube_, gs);
@@ -675,7 +677,7 @@ void main()
             }
         }
 
-        if (e.mods.isShiftDown())
+        if (shiftDown)
             return;
 
         // Default: move cursor to cube surface where the ray hits.
@@ -720,7 +722,9 @@ void main()
         }
 
         // ── Camera orbit (Shift held) ─────────────────────────────────────────
-        if (e.mods.isShiftDown())
+        const bool shiftDown = e.mods.isShiftDown()
+                               || juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
+        if (shiftDown)
         {
             camera_.orbit(static_cast<float>(delta.x),
                           static_cast<float>(delta.y));
@@ -770,6 +774,12 @@ void main()
         activePart_ = TransformGizmo::Part::None;
     }
 
+    void Renderer3D::cancelInteraction() noexcept
+    {
+        isDragging_ = false;
+        activePart_ = TransformGizmo::Part::None;
+    }
+
     void Renderer3D::applyGizmoDrag(const Ray& ray)
     {
         // Helper: find the scalar position `s` along an axis through dragCursorStart_
@@ -797,6 +807,8 @@ void main()
 
         switch (activePart_)
         {
+            case TransformGizmo::Part::None:
+                break;
             case TransformGizmo::Part::AxisX:
             {
                 float s = 0.0f;
