@@ -11,6 +11,8 @@ target_sources("${PROJECT_NAME}"
         Widgets/FilterResponseEditor.h
         Widgets/FilterResponseEditor.cpp
         Common/MasterControlsShared.h
+        Common/SynthLookAndFeel.h
+        Common/SynthLookAndFeel.cpp
         Header/OutputSection.h
         Header/OutputSection.cpp
         Header/TopBar.h

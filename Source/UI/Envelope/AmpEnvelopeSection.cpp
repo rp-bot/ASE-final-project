@@ -1,4 +1,5 @@
 #include "AmpEnvelopeSection.h"
+#include "UI/Common/SynthLookAndFeel.h"
 #include "Parameters/ParameterIDs.h"
 
 namespace
@@ -19,7 +20,7 @@ AmpEnvelopeSection::AmpEnvelopeSection (juce::AudioProcessorValueTreeState& apvt
 
     ampControlTitle.setText ("Master Envelope Control", juce::dontSendNotification);
     ampControlTitle.setJustificationType (juce::Justification::topLeft);
-    ampControlTitle.setColour (juce::Label::textColourId, accent.brighter (0.3f));
+    ampControlTitle.setColour (juce::Label::textColourId, SynthLookAndFeel::teal());
     addAndMakeVisible (ampControlTitle);
 
     envelopeEditor = std::make_unique<EnvelopeGraphEditor> (
@@ -45,9 +46,9 @@ AmpEnvelopeSection::AmpEnvelopeSection (juce::AudioProcessorValueTreeState& apvt
         ampSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderOutlineColourId,
                                                        accent.withAlpha (0.25f));
         ampSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderFillColourId,
-                                                        accent.withAlpha (0.9f));
+                                                        accent);
         ampLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
-                                                      juce::Colours::whitesmoke.withAlpha (0.9f));
+                                                      SynthLookAndFeel::textDim());
         addChildComponent (ampSliders[static_cast<size_t> (i)]);
         addChildComponent (ampLabels[static_cast<size_t> (i)]);
 
@@ -62,9 +63,7 @@ AmpEnvelopeSection::AmpEnvelopeSection (juce::AudioProcessorValueTreeState& apvt
         valueEditor.setMultiLine (false);
         valueEditor.setReturnKeyStartsNewLine (false);
         valueEditor.setJustification (juce::Justification::centred);
-        valueEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colours::black.withAlpha (0.2f));
         valueEditor.setColour (juce::TextEditor::outlineColourId, accent.withAlpha (0.5f));
-        valueEditor.setColour (juce::TextEditor::textColourId, juce::Colours::whitesmoke);
         valueEditor.onReturnKey = [this, i] { commitAmpValueFromEditor (i); };
         valueEditor.onFocusLost = [this, i] { commitAmpValueFromEditor (i); };
         configureValueEditor (valueEditor, i);

@@ -1,4 +1,5 @@
 #include "OutputSection.h"
+#include "UI/Common/SynthLookAndFeel.h"
 #include "Parameters/ParameterIDs.h"
 
 namespace UI
@@ -29,7 +30,7 @@ namespace UI
 
         dbReadoutLabel.setJustificationType(juce::Justification::centred);
         dbReadoutLabel.setText("-inf dB", juce::dontSendNotification);
-        dbReadoutLabel.setFont(juce::Font(12.0f));
+        dbReadoutLabel.setFont(juce::Font("Helvetica Neue", 12.0f, juce::Font::plain));
 
         gainAttachment = std::make_unique<SliderAttachment>(apvts, ParameterIDs::outputGain, volumeKnob.getSlider());
         panAttachment = std::make_unique<SliderAttachment>(apvts, ParameterIDs::outputPan, panKnob.getSlider());
@@ -64,8 +65,8 @@ namespace UI
                 onResetEngineHardOff_();
         };
         resetEngineButton.setButtonText("Reset Engine");
-        resetEngineButton.setColour(juce::TextButton::buttonColourId, juce::Colours::darkslategrey);
-        resetEngineButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+        resetEngineButton.setColour(juce::TextButton::buttonColourId, SynthLookAndFeel::panelBorder());
+        resetEngineButton.setColour(juce::TextButton::textColourOffId, SynthLookAndFeel::textPrimary());
         resetEngineButton.setEnabled(false);
         resetEngineButton.setVisible(false);
 
@@ -88,8 +89,9 @@ namespace UI
         resetEngineButton.setEnabled(isHardOff);
         resetEngineButton.setVisible(isHardOff);
         resetEngineButton.setColour(juce::TextButton::buttonColourId,
-                                    isHardOff ? juce::Colours::red : juce::Colours::darkslategrey);
-        resetEngineButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+                                    isHardOff ? juce::Colours::red : SynthLookAndFeel::panelBorder());
+        resetEngineButton.setColour(juce::TextButton::textColourOffId,
+                                    isHardOff ? juce::Colours::white : SynthLookAndFeel::textPrimary());
     }
 
     void OutputSection::timerCallback()
@@ -116,7 +118,7 @@ namespace UI
         const bool compactLayout = getHeight() < 130;
 
         // Panel border
-        g.setColour(juce::Colours::grey.withAlpha(0.6f));
+        g.setColour(SynthLookAndFeel::panelBorder());
         g.drawRect(getLocalBounds(), 1);
 
         // calculate meter bar areas
@@ -134,11 +136,15 @@ namespace UI
         meterCol.removeFromTop(compactLayout ? 6 : 18);
         meterCol.removeFromBottom(compactLayout ? 18 : 20);
 
-        const int barW = (meterCol.getWidth() - 4) / 2;
+        const int barGap = 4;
+        const int barW = compactLayout ? 4 : 5;
+        const int totalBarsW = (barW * 2) + barGap;
+        if (meterCol.getWidth() > totalBarsW)
+            meterCol = meterCol.withSizeKeepingCentre (totalBarsW, meterCol.getHeight());
 
         auto drawBar = [&](juce::Rectangle<int> area, float db)
         {
-            g.setColour(juce::Colours::darkgrey.withAlpha(0.4f));
+            g.setColour(SynthLookAndFeel::arcTrack());
             g.fillRect(area);
 
             const float norm = dbToNorm(db);
@@ -158,7 +164,7 @@ namespace UI
         };
 
         auto leftBar = meterCol.removeFromLeft(barW);
-        meterCol.removeFromLeft(4);
+        meterCol.removeFromLeft(barGap);
         auto rightBar = meterCol.removeFromLeft(barW);
 
         drawBar(leftBar, displayLeftDb);
@@ -215,7 +221,7 @@ namespace UI
         auto &slider = knob.getSlider();
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey.withAlpha(0.6f));
+        slider.setColour(juce::Slider::textBoxOutlineColourId, SynthLookAndFeel::panelBorder());
         slider.setRange(-60.0, 6.0, 0.1);
         slider.setNumDecimalPlacesToDisplay(1);
         slider.setTextValueSuffix(" dB");
@@ -230,7 +236,7 @@ namespace UI
         auto &slider = knob.getSlider();
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-        slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey.withAlpha(0.6f));
+        slider.setColour(juce::Slider::textBoxOutlineColourId, SynthLookAndFeel::panelBorder());
         slider.setRange(-1.0, 1.0, 0.01);
         slider.setNumDecimalPlacesToDisplay(2);
         slider.setValue(0.0);

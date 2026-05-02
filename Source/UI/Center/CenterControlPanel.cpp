@@ -1,4 +1,5 @@
 #include "CenterControlPanel.h"
+#include "UI/Common/SynthLookAndFeel.h"
 #include "Parameters/ParameterIDs.h"
 
 namespace UI
@@ -126,7 +127,7 @@ void CenterControlPanel::setCursorPosition (float x, float y, float z)
 
 void CenterControlPanel::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colours::grey.withAlpha (0.6f));
+    g.setColour (SynthLookAndFeel::panelBorder());
     g.drawRect (getLocalBounds(), 1);
 }
 
@@ -181,7 +182,7 @@ void CenterControlPanel::configureCursorKnob (LabelledKnob& knob, const juce::St
     slider.setRange (0.0, 1.0, 0.001);
     slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
     slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-    slider.setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::grey.withAlpha (0.6f));
+    slider.setColour (juce::Slider::textBoxOutlineColourId, SynthLookAndFeel::panelBorder());
     slider.textFromValueFunction = [] (double v)
     {
         return juce::String (v, 3);

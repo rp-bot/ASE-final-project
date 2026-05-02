@@ -1,4 +1,5 @@
 #include "LabelledKnob.h"
+#include "UI/Common/SynthLookAndFeel.h"
 
 #include <cmath>
 
@@ -171,7 +172,8 @@ struct KnobValueInputFilter final : public juce::TextEditor::InputFilter
 LabelledKnob::LabelledKnob()
 {
     nameLabel_.setJustificationType (juce::Justification::centred);
-    nameLabel_.setFont (juce::Font (11.0f));
+    nameLabel_.setFont (juce::Font ("Helvetica Neue", 11.5f, juce::Font::plain));
+    nameLabel_.setColour (juce::Label::textColourId, SynthLookAndFeel::textDim());
     nameLabel_.setBorderSize ({});
     nameLabel_.setInterceptsMouseClicks (false, false);
 
@@ -179,7 +181,8 @@ LabelledKnob::LabelledKnob()
     rotary_.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
 
     valueLabel_.setJustificationType (juce::Justification::centred);
-    valueLabel_.setFont (juce::Font (11.0f));
+    valueLabel_.setFont (juce::Font ("Helvetica Neue", 11.5f, juce::Font::plain));
+    valueLabel_.setColour (juce::Label::textColourId, SynthLookAndFeel::textPrimary());
     valueLabel_.setBorderSize ({});
     valueLabel_.setInterceptsMouseClicks (true, false);
 
@@ -270,9 +273,8 @@ void LabelledKnob::showValueEditor()
     valueEditor_->setCaretVisible (true);
     valueEditor_->setPopupMenuEnabled (false);
     valueEditor_->setSelectAllWhenFocused (true);
-    valueEditor_->setColour (juce::TextEditor::backgroundColourId, juce::Colours::black.withAlpha (0.9f));
-    valueEditor_->setColour (juce::TextEditor::outlineColourId, juce::Colours::grey.withAlpha (0.8f));
-    valueEditor_->setColour (juce::TextEditor::focusedOutlineColourId, juce::Colours::cyan.withAlpha (0.9f));
+    // Colours are inherited from the global SynthLookAndFeel; just carry over
+    // the value label's text colour so per-module tinting is respected.
     valueEditor_->setColour (juce::TextEditor::textColourId, valueLabel_.findColour (juce::Label::textColourId));
     valueEditor_->setFont (valueLabel_.getFont());
     valueEditor_->setText (rotary_.getTextFromValue (rotary_.getValue()), juce::dontSendNotification);

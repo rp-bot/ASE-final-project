@@ -1,4 +1,5 @@
 #include "TopBar.h"
+#include "UI/Common/SynthLookAndFeel.h"
 
 namespace UI
 {
@@ -6,12 +7,12 @@ namespace UI
 void LogoPlaceholder::paint (juce::Graphics& g)
 {
     auto r = getLocalBounds().toFloat().reduced (2.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.12f));
+    g.setColour (SynthLookAndFeel::teal().withAlpha (0.15f));
     g.fillRoundedRectangle (r, 6.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.35f));
+    g.setColour (SynthLookAndFeel::teal().withAlpha (0.55f));
     g.drawRoundedRectangle (r, 6.0f, 1.0f);
-    g.setColour (juce::Colours::white.withAlpha (0.85f));
-    g.setFont (juce::Font (16.0f, juce::Font::bold));
+    g.setColour (SynthLookAndFeel::teal());
+    g.setFont (juce::Font ("Helvetica Neue", 16.0f, juce::Font::bold));
     g.drawText ("VS", getLocalBounds(), juce::Justification::centred, false);
 }
 
@@ -22,15 +23,15 @@ TopBar::TopBar (juce::AudioProcessorValueTreeState& apvts,
     addAndMakeVisible (logoPlaceholder);
     titleLabel.setText ("Volumetric Synth", juce::dontSendNotification);
     titleLabel.setJustificationType (juce::Justification::centred);
-    titleLabel.setColour (juce::Label::textColourId, juce::Colours::white);
-    titleLabel.setFont (juce::Font (18.0f, juce::Font::bold));
+    titleLabel.setColour (juce::Label::textColourId, SynthLookAndFeel::textPrimary());
+    titleLabel.setFont (juce::Font ("Helvetica Neue", 16.0f, juce::Font::bold));
     addAndMakeVisible (titleLabel);
     addAndMakeVisible (outputSection);
 }
 
 void TopBar::paint (juce::Graphics& g)
 {
-    g.setColour (juce::Colours::grey.withAlpha (0.35f));
+    g.setColour (SynthLookAndFeel::panelBorder());
     g.drawHorizontalLine (getHeight() - 1, 0.0f, static_cast<float> (getWidth()));
 }
 

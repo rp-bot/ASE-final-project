@@ -1,4 +1,5 @@
 #include "FilterResponseEditor.h"
+#include "UI/Common/SynthLookAndFeel.h"
 
 #include <cmath>
 
@@ -28,9 +29,9 @@ namespace UI
     void FilterResponseEditor::paint(juce::Graphics& g)
     {
         const auto plot = getPlotBounds();
-        g.setColour(juce::Colours::black.withAlpha(0.25f));
+        g.setColour(SynthLookAndFeel::panelSurface());
         g.fillRoundedRectangle(plot, 4.0f);
-        g.setColour(accent.withAlpha(0.55f));
+        g.setColour(SynthLookAndFeel::panelBorder());
         g.drawRoundedRectangle(plot, 4.0f, 1.0f);
 
         // Frequency decade guides.
@@ -42,8 +43,8 @@ namespace UI
             const auto x = plot.getX() + (nx * plot.getWidth());
             g.drawVerticalLine(juce::roundToInt(x), plot.getY(), plot.getBottom());
         }
-        g.setFont(10.0f);
-        g.setColour(juce::Colours::whitesmoke.withAlpha(0.75f));
+        g.setFont(juce::Font("Helvetica Neue", 10.0f, juce::Font::plain));
+        g.setColour(SynthLookAndFeel::textDim());
         for (const auto hz : guides)
         {
             const auto nx = std::log10(hz / kCutoffMin) / std::log10(kCutoffMax / kCutoffMin);
@@ -81,7 +82,7 @@ namespace UI
                 response.lineTo(x, y);
         }
 
-        g.setColour(accent.brighter(0.2f));
+        g.setColour(accent.darker(0.55f));
         g.strokePath(response, juce::PathStrokeType(1.5f));
 
         if (spectrumBins != nullptr)
@@ -99,17 +100,17 @@ namespace UI
                     spectrumPath.lineTo(x, y);
             }
 
-            g.setColour(juce::Colours::cyan.withAlpha(0.8f));
+            g.setColour(SynthLookAndFeel::teal().withAlpha(0.5f));
             g.strokePath(spectrumPath, juce::PathStrokeType(1.1f));
         }
 
         const auto main = getMainHandlePosition();
-        g.setColour(accent.withAlpha(0.85f));
+        g.setColour(accent.darker(0.35f));
         g.fillEllipse(juce::Rectangle<float>(10.0f, 10.0f).withCentre(main));
-        g.setColour(juce::Colours::black.withAlpha(0.35f));
+        g.setColour(SynthLookAndFeel::panelBorder());
         g.drawEllipse(juce::Rectangle<float>(10.0f, 10.0f).withCentre(main), 1.0f);
-        g.setColour(juce::Colours::whitesmoke.withAlpha(0.95f));
-        g.setFont(10.5f);
+        g.setColour(SynthLookAndFeel::textPrimary());
+        g.setFont(juce::Font("Helvetica Neue", 10.5f, juce::Font::plain));
         const auto cutoffLabel = values[0] >= 1000.0f
             ? juce::String(values[0] / 1000.0f, 2) + " kHz"
             : juce::String(values[0], 0) + " Hz";
@@ -120,21 +121,35 @@ namespace UI
 
         const auto keyBounds = getMiniControlBounds(true);
         const auto driveBounds = getMiniControlBounds(false);
-        g.setColour(accent.withAlpha(0.14f));
+        const auto barColour = accent.darker(0.55f);
+
+        // Dark track behind each mini control.
+        g.setColour(SynthLookAndFeel::arcTrack());
         g.fillRoundedRectangle(keyBounds, 3.0f);
         g.fillRoundedRectangle(driveBounds, 3.0f);
-        g.setColour(accent.withAlpha(0.6f));
+
+        // Filled progress by percentage (0..1).
+        auto fillByPercent = [&g, &barColour] (juce::Rectangle<float> bounds, float percent)
+        {
+            const float p = juce::jlimit(0.0f, 1.0f, percent);
+            const float fillW = bounds.getWidth() * p;
+            if (fillW <= 0.5f)
+                return;
+
+            auto fill = bounds.withWidth(fillW);
+            g.setColour(barColour);
+            g.fillRoundedRectangle(fill, 3.0f);
+        };
+
+        fillByPercent(keyBounds, values[2]);
+        fillByPercent(driveBounds, values[3]);
+
+        g.setColour(SynthLookAndFeel::panelBorder());
         g.drawRoundedRectangle(keyBounds, 3.0f, 1.0f);
         g.drawRoundedRectangle(driveBounds, 3.0f, 1.0f);
 
-        const auto keyX = juce::jmap(values[2], 0.0f, 1.0f, keyBounds.getX(), keyBounds.getRight());
-        const auto driveX = juce::jmap(values[3], 0.0f, 1.0f, driveBounds.getX(), driveBounds.getRight());
-        g.setColour(accent.brighter(0.4f));
-        g.drawLine(keyX, keyBounds.getY(), keyX, keyBounds.getBottom(), 2.0f);
-        g.drawLine(driveX, driveBounds.getY(), driveX, driveBounds.getBottom(), 2.0f);
-
-        g.setColour(juce::Colours::whitesmoke.withAlpha(0.9f));
-        g.setFont(11.0f);
+        g.setColour(SynthLookAndFeel::textPrimary());
+        g.setFont(juce::Font("Helvetica Neue", 11.0f, juce::Font::plain));
         g.drawFittedText("Key", keyBounds.toNearestInt(), juce::Justification::centredLeft, 1);
         g.drawFittedText("Drive", driveBounds.toNearestInt(), juce::Justification::centredLeft, 1);
     }

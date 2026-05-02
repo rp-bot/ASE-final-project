@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SynthLookAndFeel.h"
 #include <array>
 #include <cmath>
 #include <functional>
@@ -108,8 +109,8 @@ inline void MasterDragValueEditor::mouseUp (const juce::MouseEvent& event)
     didDrag = false;
 }
 
-/** Suppresses mouse-hover highlight on toggle buttons (click-down feedback preserved). */
-class NoHoverToggleLookAndFeel : public juce::LookAndFeel_V4
+/** Suppresses mouse-hover highlight on toggle buttons; uses SynthLookAndFeel style. */
+class NoHoverToggleLookAndFeel : public SynthLookAndFeel
 {
 public:
     void drawButtonBackground (juce::Graphics& g, juce::Button& button,
@@ -117,8 +118,8 @@ public:
                                bool /*shouldDrawButtonAsHighlighted*/,
                                bool shouldDrawButtonAsDown) override
     {
-        juce::LookAndFeel_V4::drawButtonBackground (g, button, backgroundColour,
-                                                    false, shouldDrawButtonAsDown);
+        SynthLookAndFeel::drawButtonBackground (g, button, backgroundColour,
+                                               false, shouldDrawButtonAsDown);
     }
 };
 

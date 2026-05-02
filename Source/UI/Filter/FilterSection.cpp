@@ -1,4 +1,5 @@
 #include "FilterSection.h"
+#include "UI/Common/SynthLookAndFeel.h"
 #include "Parameters/ParameterIDs.h"
 
 namespace
@@ -6,6 +7,7 @@ namespace
     constexpr std::array<const char*, 4> kFilterNames {
         "Cutoff", "Res", "Key", "Drive"
     };
+    constexpr int kVisibleFilterEditors = 2; // show only Cutoff + Res text editors
 }
 
 namespace UI
@@ -19,7 +21,7 @@ FilterSection::FilterSection (juce::AudioProcessorValueTreeState& apvts)
 
     filterControlTitle.setText ("Master Filter Control", juce::dontSendNotification);
     filterControlTitle.setJustificationType (juce::Justification::topLeft);
-    filterControlTitle.setColour (juce::Label::textColourId, accent.brighter (0.3f));
+    filterControlTitle.setColour (juce::Label::textColourId, SynthLookAndFeel::teal());
     addAndMakeVisible (filterControlTitle);
 
     filterEditor = std::make_unique<FilterResponseEditor> (
@@ -43,9 +45,9 @@ FilterSection::FilterSection (juce::AudioProcessorValueTreeState& apvts)
         filterSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderOutlineColourId,
                                                           accent.withAlpha (0.25f));
         filterSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderFillColourId,
-                                                           accent.withAlpha (0.9f));
+                                                           accent);
         filterLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
-                                                          juce::Colours::whitesmoke.withAlpha (0.9f));
+                                                          SynthLookAndFeel::textDim());
         addChildComponent (filterSliders[static_cast<size_t> (i)]);
         addChildComponent (filterLabels[static_cast<size_t> (i)]);
 
@@ -60,13 +62,14 @@ FilterSection::FilterSection (juce::AudioProcessorValueTreeState& apvts)
         valueEditor.setMultiLine (false);
         valueEditor.setReturnKeyStartsNewLine (false);
         valueEditor.setJustification (juce::Justification::centred);
-        valueEditor.setColour (juce::TextEditor::backgroundColourId, juce::Colours::black.withAlpha (0.2f));
         valueEditor.setColour (juce::TextEditor::outlineColourId, accent.withAlpha (0.5f));
-        valueEditor.setColour (juce::TextEditor::textColourId, juce::Colours::whitesmoke);
         valueEditor.onReturnKey = [this, i] { commitFilterValueFromEditor (i); };
         valueEditor.onFocusLost = [this, i] { commitFilterValueFromEditor (i); };
         configureValueEditor (valueEditor, i);
-        addAndMakeVisible (valueEditor);
+        if (i < kVisibleFilterEditors)
+            addAndMakeVisible (valueEditor);
+        else
+            valueEditor.setVisible (false);
     }
 
     const auto& kOscColours = masterSectionOscColours();
@@ -128,12 +131,19 @@ void FilterSection::resized()
     if (filterEditor != nullptr)
         filterEditor->setBounds (bounds.reduced (padding));
 
-    const int filterCellW = juce::jmax (1, filterValueRow.getWidth() / filterParams);
+    const int filterCellW = juce::jmax (1, filterValueRow.getWidth() / kVisibleFilterEditors);
     for (int i = 0; i < filterParams; ++i)
     {
         const auto idx = static_cast<size_t> (i);
-        auto cell = filterValueRow.removeFromLeft (filterCellW).reduced (1);
-        filterValueEditors[idx].setBounds (cell);
+        if (i < kVisibleFilterEditors)
+        {
+            auto cell = filterValueRow.removeFromLeft (filterCellW).reduced (1);
+            filterValueEditors[idx].setBounds (cell);
+        }
+        else
+        {
+            filterValueEditors[idx].setBounds ({});
+        }
     }
 
     const int filterStartY = filterTogglesArea.getY()

@@ -1,4 +1,5 @@
 #include "EnvelopeGraphEditor.h"
+#include "UI/Common/SynthLookAndFeel.h"
 #include <cmath>
 
 namespace UI
@@ -49,12 +50,12 @@ namespace UI
     void EnvelopeGraphEditor::paint(juce::Graphics& g)
     {
         const auto plot = getPlotBounds();
-        g.setColour(juce::Colours::black.withAlpha(0.25f));
+        g.setColour(SynthLookAndFeel::panelSurface());
         g.fillRoundedRectangle(plot, 4.0f);
-        g.setColour(accent.withAlpha(0.55f));
+        g.setColour(SynthLookAndFeel::panelBorder());
         g.drawRoundedRectangle(plot, 4.0f, 1.0f);
 
-        g.setColour(accent.withAlpha(0.2f));
+        g.setColour(SynthLookAndFeel::textDim().withAlpha(0.6f));
         const auto midY = juce::jmap(0.5f, 1.0f, 0.0f, plot.getY(), plot.getBottom());
         g.drawHorizontalLine(juce::roundToInt(midY), plot.getX(), plot.getRight());
 
@@ -74,16 +75,16 @@ namespace UI
         envPath.lineTo(sustain);
         envPath.lineTo(release);
         envPath.lineTo(endPoint);
-        g.setColour(accent.brighter(0.2f));
+        g.setColour(accent.darker(0.55f));
         g.strokePath(envPath, juce::PathStrokeType(1.6f));
 
-        g.setColour(accent.withAlpha(0.9f));
+        g.setColour(accent.darker(0.35f));
         g.fillEllipse(juce::Rectangle<float>(9.0f, 9.0f).withCentre(attack));
         g.fillEllipse(juce::Rectangle<float>(9.0f, 9.0f).withCentre(decay));
         g.fillEllipse(juce::Rectangle<float>(9.0f, 9.0f).withCentre(release));
 
-        g.setColour(juce::Colours::whitesmoke.withAlpha(0.9f));
-        g.setFont(11.0f);
+        g.setColour(SynthLookAndFeel::textDim());
+        g.setFont(juce::Font("Helvetica Neue", 11.0f, juce::Font::plain));
         const juce::String overlay = "Lvl " + juce::String(values[4], 2) + "  Vel " + juce::String(values[5], 2);
         g.drawFittedText(overlay, getLocalBounds().removeFromBottom(16), juce::Justification::centredRight, 1);
     }

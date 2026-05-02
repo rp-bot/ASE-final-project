@@ -1,4 +1,5 @@
 #include "OscillatorModuleComponent.h"
+#include "UI/Common/SynthLookAndFeel.h"
 #include "Parameters/ParameterIDs.h"
 #include <cmath>
 
@@ -54,6 +55,92 @@ void applyNumericTextFormatting (juce::Slider& slider, int decimals)
         return formatNumericValue (value, decimals);
     };
 }
+
+double parseNumericWithOptionalUnits (juce::String text)
+{
+    text = text.trim();
+
+    auto dropSuffix = [&text] (const juce::String& suffix)
+    {
+        if (text.endsWithIgnoreCase (suffix))
+            text = text.dropLastCharacters (suffix.length()).trimEnd();
+    };
+
+    if (text.endsWithIgnoreCase ("khz"))
+    {
+        dropSuffix ("khz");
+        return text.getDoubleValue() * 1000.0;
+    }
+
+    if (text.endsWithIgnoreCase ("hz"))
+        dropSuffix ("hz");
+    else if (text.endsWithIgnoreCase ("ms"))
+    {
+        dropSuffix ("ms");
+        return text.getDoubleValue() / 1000.0;
+    }
+    else if (text.endsWithIgnoreCase ("s"))
+        dropSuffix ("s");
+    else if (text.endsWithIgnoreCase ("st"))
+        dropSuffix ("st");
+    else if (text.endsWithIgnoreCase ("ct"))
+        dropSuffix ("ct");
+    else if (text.endsWithChar ('%'))
+    {
+        text = text.dropLastCharacters (1).trimEnd();
+        return text.getDoubleValue() / 100.0;
+    }
+
+    return text.getDoubleValue();
+}
+
+void applyFilterTextFormatting (juce::Slider& slider, int filterParamIndex)
+{
+    slider.textFromValueFunction = [filterParamIndex] (double value)
+    {
+        if (std::abs (value) < 0.0000001)
+            value = 0.0;
+
+        if (filterParamIndex == 0)
+            return value >= 1000.0 ? juce::String (value / 1000.0, 2) + " kHz"
+                                   : juce::String (value, 0) + " Hz";
+
+        return juce::String (juce::roundToInt (value * 100.0)) + " %";
+    };
+
+    slider.valueFromTextFunction = [filterParamIndex] (const juce::String& text)
+    {
+        const double parsed = parseNumericWithOptionalUnits (text);
+        if (filterParamIndex == 0)
+            return parsed;
+
+        // Res/Key/Drive display as percent but underlying params are 0..1.
+        return parsed;
+    };
+}
+
+void applyAmpTextFormatting (juce::Slider& slider, int ampParamIndex)
+{
+    slider.textFromValueFunction = [ampParamIndex] (double value)
+    {
+        if (std::abs (value) < 0.0000001)
+            value = 0.0;
+
+        if (ampParamIndex == 0 || ampParamIndex == 1 || ampParamIndex == 3)
+        {
+            if (value < 1.0)
+                return juce::String (juce::roundToInt (value * 1000.0)) + " ms";
+            return juce::String (value, 2) + " s";
+        }
+
+        return juce::String (juce::roundToInt (value * 100.0)) + " %";
+    };
+
+    slider.valueFromTextFunction = [] (const juce::String& text)
+    {
+        return parseNumericWithOptionalUnits (text);
+    };
+}
 }
 
 namespace UI
@@ -90,7 +177,7 @@ void OscillatorModuleComponent::TabLookAndFeel::drawButtonText (juce::Graphics& 
                                                                 bool shouldDrawButtonAsDown)
 {
     const bool selected = isTabSelected != nullptr && isTabSelected (textButton);
-    auto col = selected ? accent.brighter (0.28f) : juce::Colours::lightgrey.withAlpha (0.55f);
+    auto col = selected ? accent : SynthLookAndFeel::textDim();
 
     if (shouldDrawButtonAsHighlighted)
         col = col.brighter (0.12f);
@@ -181,9 +268,9 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
         auto& knob = synthKnobs[static_cast<size_t> (paramIndex)];
         configureRotaryKnob (knob, kSynthNames[static_cast<size_t> (paramIndex)]);
         knob.getSlider().setColour (juce::Slider::rotarySliderOutlineColourId, accent.withAlpha (0.25f));
-        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId, accent.withAlpha (0.9f));
-        knob.getNameLabel().setColour (juce::Label::textColourId, juce::Colours::whitesmoke.withAlpha (0.9f));
-        knob.getValueLabel().setColour (juce::Label::textColourId, juce::Colours::whitesmoke.withAlpha (0.9f));
+        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId, accent);
+        knob.getNameLabel().setColour (juce::Label::textColourId, SynthLookAndFeel::textDim());
+        knob.getValueLabel().setColour (juce::Label::textColourId, SynthLookAndFeel::textPrimary());
         addChildComponent (knob);
 
         synthAttachments[static_cast<size_t> (paramIndex)] =
@@ -200,18 +287,15 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
         configureRotaryKnob (knob, kFilterNames[static_cast<size_t> (i)]);
         knob.getSlider().setColour (juce::Slider::rotarySliderOutlineColourId,
                                    accent.withAlpha (0.25f));
-        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId,
-                                   accent.withAlpha (0.9f));
-        knob.getNameLabel().setColour (juce::Label::textColourId,
-                                      juce::Colours::whitesmoke.withAlpha (0.9f));
-        knob.getValueLabel().setColour (juce::Label::textColourId,
-                                       juce::Colours::whitesmoke.withAlpha (0.9f));
+        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId, accent);
+        knob.getNameLabel().setColour (juce::Label::textColourId, SynthLookAndFeel::textDim());
+        knob.getValueLabel().setColour (juce::Label::textColourId, SynthLookAndFeel::textPrimary());
         addChildComponent (knob);
         filterAttachments[static_cast<size_t> (i)] =
             std::make_unique<SliderAttachment> (apvts, getFilterParameterId (i), knob.getSlider());
         const int decimals = filterKnobDecimalPlaces (i);
         knob.getSlider().setNumDecimalPlacesToDisplay (decimals);
-        applyNumericTextFormatting (knob.getSlider(), decimals);
+        applyFilterTextFormatting (knob.getSlider(), i);
         knob.refreshValueText();
     }
 
@@ -221,18 +305,15 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
         configureRotaryKnob (knob, kAmpNames[static_cast<size_t> (i)]);
         knob.getSlider().setColour (juce::Slider::rotarySliderOutlineColourId,
                                    accent.withAlpha (0.25f));
-        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId,
-                                   accent.withAlpha (0.9f));
-        knob.getNameLabel().setColour (juce::Label::textColourId,
-                                      juce::Colours::whitesmoke.withAlpha (0.9f));
-        knob.getValueLabel().setColour (juce::Label::textColourId,
-                                       juce::Colours::whitesmoke.withAlpha (0.9f));
+        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId, accent);
+        knob.getNameLabel().setColour (juce::Label::textColourId, SynthLookAndFeel::textDim());
+        knob.getValueLabel().setColour (juce::Label::textColourId, SynthLookAndFeel::textPrimary());
         addChildComponent (knob);
         ampAttachments[static_cast<size_t> (i)] =
             std::make_unique<SliderAttachment> (apvts, getAmpParameterId (i), knob.getSlider());
         const int decimals = ampKnobDecimalPlaces (i);
         knob.getSlider().setNumDecimalPlacesToDisplay (decimals);
-        applyNumericTextFormatting (knob.getSlider(), decimals);
+        applyAmpTextFormatting (knob.getSlider(), i);
         knob.refreshValueText();
     }
 
@@ -264,9 +345,7 @@ void OscillatorModuleComponent::paint (juce::Graphics& g)
     const auto tabRailArea = tabArea;
     const auto titleArea = tabArea.withTrimmedRight (juce::jmin (tabLaneW, tabArea.getWidth() - 72));
 
-    // Subtle rail keeps tab text visually separate from knob labels.
-    g.setColour (juce::Colours::black.withAlpha (0.2f));
-    g.fillRoundedRectangle (tabRailArea.toFloat().reduced (1.0f, 0.0f), 2.0f);
+    juce::ignoreUnused (tabRailArea);
 
     g.setColour (accent.withAlpha (0.72f));
     g.setFont (juce::Font (9.5f));
@@ -436,6 +515,7 @@ void OscillatorModuleComponent::configureRotaryKnob (LabelledKnob& knob, const j
 {
     knob.setNameLabelText (text);
     knob.setValueFormatter (nullptr);
+    knob.setValueEditExtraChars ("kKhHzZmsMSstct% ");
     auto& slider = knob.getSlider();
     slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
     slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
@@ -450,7 +530,7 @@ void OscillatorModuleComponent::updateWaveformPreviewFromSelector()
 void OscillatorModuleComponent::WaveformPreviewComponent::paint (juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat().reduced (2.0f);
-    g.setColour (juce::Colours::black.withAlpha (0.2f));
+    g.setColour (SynthLookAndFeel::panelSurface());
     g.fillRoundedRectangle (bounds, 3.0f);
     g.setColour (accent.withAlpha (0.5f));
     g.drawRoundedRectangle (bounds, 3.0f, 1.0f);
