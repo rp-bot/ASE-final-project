@@ -19,13 +19,11 @@ namespace UI
         : apvtsPtr(&apvts),
           onResetEngineHardOff_(std::move(onResetEngineHardOff))
     {
-        configureGainKnob(gainKnob, faderLabel);
-        configurePanKnob(panSlider, panLabel);
+        configureVolumeKnob(volumeKnob);
+        configurePanKnob(panKnob);
 
-        addAndMakeVisible(gainKnob);
-        addAndMakeVisible(faderLabel);
-        addAndMakeVisible(panSlider);
-        addAndMakeVisible(panLabel);
+        addAndMakeVisible(volumeKnob);
+        addAndMakeVisible(panKnob);
         addAndMakeVisible(resetEngineButton);
         addAndMakeVisible(dbReadoutLabel);
 
@@ -33,8 +31,33 @@ namespace UI
         dbReadoutLabel.setText("-inf dB", juce::dontSendNotification);
         dbReadoutLabel.setFont(juce::Font(12.0f));
 
-        gainAttachment = std::make_unique<SliderAttachment>(apvts, ParameterIDs::outputGain, gainKnob);
-        panAttachment = std::make_unique<SliderAttachment>(apvts, ParameterIDs::outputPan, panSlider);
+        gainAttachment = std::make_unique<SliderAttachment>(apvts, ParameterIDs::outputGain, volumeKnob.getSlider());
+        panAttachment = std::make_unique<SliderAttachment>(apvts, ParameterIDs::outputPan, panKnob.getSlider());
+
+        // Re-apply display format after APVTS attachment (attachment can override text formatting).
+        volumeKnob.getSlider().textFromValueFunction = [] (double v)
+        {
+            return juce::String (v, 1) + " dB";
+        };
+        volumeKnob.getSlider().valueFromTextFunction = [] (const juce::String& text)
+        {
+            auto t = text.trim();
+            if (t.endsWithIgnoreCase ("db"))
+                t = t.dropLastCharacters (2).trimEnd();
+            return juce::jlimit (-60.0, 6.0, t.getDoubleValue());
+        };
+
+        panKnob.getSlider().textFromValueFunction = [] (double v)
+        {
+            return juce::String (v, 2);
+        };
+        panKnob.getSlider().valueFromTextFunction = [] (const juce::String& text)
+        {
+            return juce::jlimit(-1.0, 1.0, text.getDoubleValue());
+        };
+
+        volumeKnob.refreshValueText();
+        panKnob.refreshValueText();
         resetEngineButton.onClick = [this]()
         {
             if (onResetEngineHardOff_ != nullptr)
@@ -160,15 +183,10 @@ namespace UI
         auto meterCol = inner;
 
         // --- fader ---
-        faderLabel.setBounds(faderCol.removeFromTop(compactLayout ? 14 : 18));
-        const int knobSize = compactLayout
-                                 ? juce::jlimit(28, 52, juce::jmin(faderCol.getWidth(), faderCol.getHeight()))
-                                 : juce::jmin(faderCol.getWidth(), faderCol.getHeight());
-        gainKnob.setBounds(faderCol.withSizeKeepingCentre(knobSize, knobSize));
+        volumeKnob.setBounds(faderCol);
 
         // --- pan ---
-        panLabel.setBounds(panCol.removeFromTop(compactLayout ? 14 : 18));
-        panSlider.setBounds(panCol.withSizeKeepingCentre(knobSize, knobSize));
+        panKnob.setBounds(panCol);
 
         // --- meter ---
         if (compactLayout)
@@ -190,28 +208,41 @@ namespace UI
     }
 
     //==============================================================================
-    void OutputSection::configureGainKnob(juce::Slider &slider, juce::Label &label)
+    void OutputSection::configureVolumeKnob(LabelledKnob &knob)
     {
+        knob.setNameLabelText("Volume");
+        knob.setValueFormatter(nullptr);
+        auto &slider = knob.getSlider();
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey.withAlpha(0.6f));
         slider.setRange(-60.0, 6.0, 0.1);
+        slider.setNumDecimalPlacesToDisplay(1);
+        slider.setTextValueSuffix(" dB");
         slider.setValue(0.0);
         slider.setDoubleClickReturnValue(true, 0.0);
-        label.setText("Volume", juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centred);
     }
 
-    void OutputSection::configurePanKnob(juce::Slider &slider, juce::Label &label)
+    void OutputSection::configurePanKnob(LabelledKnob &knob)
     {
+        knob.setNameLabelText("Pan");
+        knob.setValueFormatter(nullptr);
+        auto &slider = knob.getSlider();
         slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
         slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey.withAlpha(0.6f));
         slider.setRange(-1.0, 1.0, 0.01);
+        slider.setNumDecimalPlacesToDisplay(2);
         slider.setValue(0.0);
         slider.setDoubleClickReturnValue(true, 0.0);
-        label.setText("Pan", juce::dontSendNotification);
-        label.setJustificationType(juce::Justification::centred);
+        slider.textFromValueFunction = [](double v)
+        {
+            return juce::String(v, 2);
+        };
+        slider.valueFromTextFunction = [](const juce::String &text)
+        {
+            return juce::jlimit(-1.0, 1.0, text.getDoubleValue());
+        };
     }
 
 } // namespace UI

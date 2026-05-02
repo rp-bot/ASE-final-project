@@ -2,6 +2,8 @@ target_sources("${PROJECT_NAME}"
     PRIVATE
         Widgets/LabeledPanel.h
         Widgets/LabeledPanel.cpp
+        Widgets/LabelledKnob.h
+        Widgets/LabelledKnob.cpp
         Widgets/CursorJoystick2D.h
         Widgets/CursorJoystick2D.cpp
         Widgets/EnvelopeGraphEditor.h

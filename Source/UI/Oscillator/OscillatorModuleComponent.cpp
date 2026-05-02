@@ -15,37 +15,133 @@ constexpr std::array<const char*, UI::OscillatorModuleComponent::ampParams> kAmp
 {
     "Attack", "Decay", "Sustain", "Release", "Level", "Vel"
 };
+
+/** Slider text decimals after APVTS attachment (matches sensible edit precision; avoids long float tails). */
+constexpr int synthKnobDecimalPlaces (int synthParamIndex) noexcept
+{
+    switch (synthParamIndex)
+    {
+        case 3: return 0; // coarse: integer semitones
+        default: return 2; // level, detune, fine, pan (0.01 steps)
+    }
+}
+
+constexpr int filterKnobDecimalPlaces (int filterParamIndex) noexcept
+{
+    return filterParamIndex == 0 ? 0 : 2; // cutoff Hz vs 0–1 style params
+}
+
+constexpr int ampKnobDecimalPlaces (int ampParamIndex) noexcept
+{
+    if (ampParamIndex == 0 || ampParamIndex == 1 || ampParamIndex == 3)
+        return 3; // attack / decay / release: 0.001 s steps
+
+    return 2;
+}
+
+juce::String formatNumericValue (double value, int decimals)
+{
+    if (std::abs (value) < 0.0000001)
+        value = 0.0;
+
+    return juce::String (value, decimals);
+}
+
+void applyNumericTextFormatting (juce::Slider& slider, int decimals)
+{
+    slider.textFromValueFunction = [decimals] (double value)
+    {
+        return formatNumericValue (value, decimals);
+    };
+}
 }
 
 namespace UI
 {
+void OscillatorModuleComponent::TabLookAndFeel::drawButtonBackground (juce::Graphics& g,
+                                                                      juce::Button& button,
+                                                                      const juce::Colour& /*backgroundColour*/,
+                                                                      bool shouldDrawButtonAsHighlighted,
+                                                                      bool shouldDrawButtonAsDown)
+{
+    const auto bounds = button.getLocalBounds().toFloat();
+    const bool selected = isTabSelected != nullptr && isTabSelected (button);
+
+    if (selected)
+    {
+        g.setColour (accent);
+        g.drawLine (bounds.getX() + 1.0f,
+                    bounds.getBottom() - 1.5f,
+                    bounds.getRight() - 1.0f,
+                    bounds.getBottom() - 1.5f,
+                    2.0f);
+    }
+
+    if (shouldDrawButtonAsHighlighted || shouldDrawButtonAsDown)
+    {
+        g.setColour (accent.withAlpha (0.1f));
+        g.fillRoundedRectangle (bounds.reduced (1.0f, 0.0f), 2.0f);
+    }
+}
+
+void OscillatorModuleComponent::TabLookAndFeel::drawButtonText (juce::Graphics& g,
+                                                                juce::TextButton& textButton,
+                                                                bool shouldDrawButtonAsHighlighted,
+                                                                bool shouldDrawButtonAsDown)
+{
+    const bool selected = isTabSelected != nullptr && isTabSelected (textButton);
+    auto col = selected ? accent.brighter (0.28f) : juce::Colours::lightgrey.withAlpha (0.55f);
+
+    if (shouldDrawButtonAsHighlighted)
+        col = col.brighter (0.12f);
+
+    if (shouldDrawButtonAsDown)
+        col = col.brighter (0.08f);
+
+    g.setFont (getTextButtonFont (textButton, textButton.getHeight()));
+    g.setColour (col);
+    g.drawFittedText (textButton.getButtonText(),
+                      textButton.getLocalBounds().reduced (2, 0),
+                      juce::Justification::centred,
+                      1);
+}
+
+juce::Font OscillatorModuleComponent::TabLookAndFeel::getTextButtonFont (juce::TextButton&, int buttonHeight)
+{
+    juce::ignoreUnused (buttonHeight);
+    return juce::Font (10.0f);
+}
+
 OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueTreeState& apvts,
                                                       int cornerIndex,
                                                       const juce::String& titleText,
                                                       juce::Colour accentColour)
     : corner (cornerIndex), accent (accentColour)
 {
-    titleLabel.setText (titleText, juce::dontSendNotification);
-    titleLabel.setJustificationType (juce::Justification::centredLeft);
-    titleLabel.setColour (juce::Label::textColourId, accent.brighter (0.3f));
-    addAndMakeVisible (titleLabel);
+    moduleTitle_ = titleText;
 
-    auto styleTab = [this] (juce::TextButton& b)
+    tabLookAndFeel.setAccent (accent);
+    tabLookAndFeel.setTabSelectedPredicate ([this] (const juce::Button& b)
     {
-        b.setColour (juce::TextButton::buttonColourId, accent.withAlpha (0.12f));
-        b.setColour (juce::TextButton::buttonOnColourId, accent.withAlpha (0.4f));
-        b.setColour (juce::TextButton::textColourOffId, juce::Colours::lightgrey);
-        b.setColour (juce::TextButton::textColourOnId, juce::Colours::white);
-    };
-    styleTab (tabSynth);
-    styleTab (tabFilter);
-    styleTab (tabAmp);
+        if (&b == &tabSynth)
+            return activePage == Page::Synth;
+        if (&b == &tabFilter)
+            return activePage == Page::Filter;
+        if (&b == &tabAmp)
+            return activePage == Page::Amp;
+
+        return false;
+    });
+
     tabSynth.onClick = [this] { setPage (Page::Synth); };
     tabFilter.onClick = [this] { setPage (Page::Filter); };
     tabAmp.onClick = [this] { setPage (Page::Amp); };
-    addAndMakeVisible (tabSynth);
-    addAndMakeVisible (tabFilter);
-    addAndMakeVisible (tabAmp);
+
+    for (auto* tab : { &tabSynth, &tabFilter, &tabAmp })
+    {
+        tab->setLookAndFeel (&tabLookAndFeel);
+        addAndMakeVisible (*tab);
+    }
 
     waveformSelector.addItem ("Sine", 1);
     waveformSelector.addItem ("Saw", 2);
@@ -75,55 +171,69 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
         std::make_unique<ComboBoxAttachment> (apvts, getSynthParameterId (2), waveformSelector);
     updateWaveformPreviewFromSelector();
 
+    static constexpr std::array<const char*, synthParams> kSynthNames
+    {
+        "Level", "Detune", "Wave", "Coarse", "Fine", "Pan"
+    };
+
     for (int paramIndex : kSynthKnobIndices)
     {
-        auto& slider = synthSliders[static_cast<size_t> (paramIndex)];
-        auto& label = synthLabels[static_cast<size_t> (paramIndex)];
-        static constexpr std::array<const char*, synthParams> kSynthNames
-        {
-            "Level", "Detune", "Wave", "Coarse", "Fine", "Pan"
-        };
-        configureRotarySlider (slider, label, kSynthNames[static_cast<size_t> (paramIndex)]);
-        slider.setColour (juce::Slider::rotarySliderOutlineColourId, accent.withAlpha (0.25f));
-        slider.setColour (juce::Slider::rotarySliderFillColourId, accent.withAlpha (0.9f));
-        label.setColour (juce::Label::textColourId, juce::Colours::whitesmoke.withAlpha (0.9f));
-        addChildComponent (slider);
-        addChildComponent (label);
+        auto& knob = synthKnobs[static_cast<size_t> (paramIndex)];
+        configureRotaryKnob (knob, kSynthNames[static_cast<size_t> (paramIndex)]);
+        knob.getSlider().setColour (juce::Slider::rotarySliderOutlineColourId, accent.withAlpha (0.25f));
+        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId, accent.withAlpha (0.9f));
+        knob.getNameLabel().setColour (juce::Label::textColourId, juce::Colours::whitesmoke.withAlpha (0.9f));
+        knob.getValueLabel().setColour (juce::Label::textColourId, juce::Colours::whitesmoke.withAlpha (0.9f));
+        addChildComponent (knob);
 
         synthAttachments[static_cast<size_t> (paramIndex)] =
-            std::make_unique<SliderAttachment> (apvts, getSynthParameterId (paramIndex), slider);
+            std::make_unique<SliderAttachment> (apvts, getSynthParameterId (paramIndex), knob.getSlider());
+        const int decimals = synthKnobDecimalPlaces (paramIndex);
+        knob.getSlider().setNumDecimalPlacesToDisplay (decimals);
+        applyNumericTextFormatting (knob.getSlider(), decimals);
+        knob.refreshValueText();
     }
 
     for (int i = 0; i < filterParams; ++i)
     {
-        configureRotarySlider (filterSliders[static_cast<size_t> (i)], filterLabels[static_cast<size_t> (i)],
-                               kFilterNames[static_cast<size_t> (i)]);
-        filterSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderOutlineColourId,
-                                                          accent.withAlpha (0.25f));
-        filterSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderFillColourId,
-                                                          accent.withAlpha (0.9f));
-        filterLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
-                                                         juce::Colours::whitesmoke.withAlpha (0.9f));
-        addChildComponent (filterSliders[static_cast<size_t> (i)]);
-        addChildComponent (filterLabels[static_cast<size_t> (i)]);
+        auto& knob = filterKnobs[static_cast<size_t> (i)];
+        configureRotaryKnob (knob, kFilterNames[static_cast<size_t> (i)]);
+        knob.getSlider().setColour (juce::Slider::rotarySliderOutlineColourId,
+                                   accent.withAlpha (0.25f));
+        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId,
+                                   accent.withAlpha (0.9f));
+        knob.getNameLabel().setColour (juce::Label::textColourId,
+                                      juce::Colours::whitesmoke.withAlpha (0.9f));
+        knob.getValueLabel().setColour (juce::Label::textColourId,
+                                       juce::Colours::whitesmoke.withAlpha (0.9f));
+        addChildComponent (knob);
         filterAttachments[static_cast<size_t> (i)] =
-            std::make_unique<SliderAttachment> (apvts, getFilterParameterId (i), filterSliders[static_cast<size_t> (i)]);
+            std::make_unique<SliderAttachment> (apvts, getFilterParameterId (i), knob.getSlider());
+        const int decimals = filterKnobDecimalPlaces (i);
+        knob.getSlider().setNumDecimalPlacesToDisplay (decimals);
+        applyNumericTextFormatting (knob.getSlider(), decimals);
+        knob.refreshValueText();
     }
 
     for (int i = 0; i < ampParams; ++i)
     {
-        configureRotarySlider (ampSliders[static_cast<size_t> (i)], ampLabels[static_cast<size_t> (i)],
-                               kAmpNames[static_cast<size_t> (i)]);
-        ampSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderOutlineColourId,
-                                                      accent.withAlpha (0.25f));
-        ampSliders[static_cast<size_t> (i)].setColour (juce::Slider::rotarySliderFillColourId,
-                                                       accent.withAlpha (0.9f));
-        ampLabels[static_cast<size_t> (i)].setColour (juce::Label::textColourId,
-                                                      juce::Colours::whitesmoke.withAlpha (0.9f));
-        addChildComponent (ampSliders[static_cast<size_t> (i)]);
-        addChildComponent (ampLabels[static_cast<size_t> (i)]);
+        auto& knob = ampKnobs[static_cast<size_t> (i)];
+        configureRotaryKnob (knob, kAmpNames[static_cast<size_t> (i)]);
+        knob.getSlider().setColour (juce::Slider::rotarySliderOutlineColourId,
+                                   accent.withAlpha (0.25f));
+        knob.getSlider().setColour (juce::Slider::rotarySliderFillColourId,
+                                   accent.withAlpha (0.9f));
+        knob.getNameLabel().setColour (juce::Label::textColourId,
+                                      juce::Colours::whitesmoke.withAlpha (0.9f));
+        knob.getValueLabel().setColour (juce::Label::textColourId,
+                                       juce::Colours::whitesmoke.withAlpha (0.9f));
+        addChildComponent (knob);
         ampAttachments[static_cast<size_t> (i)] =
-            std::make_unique<SliderAttachment> (apvts, getAmpParameterId (i), ampSliders[static_cast<size_t> (i)]);
+            std::make_unique<SliderAttachment> (apvts, getAmpParameterId (i), knob.getSlider());
+        const int decimals = ampKnobDecimalPlaces (i);
+        knob.getSlider().setNumDecimalPlacesToDisplay (decimals);
+        applyNumericTextFormatting (knob.getSlider(), decimals);
+        knob.refreshValueText();
     }
 
     setPage (Page::Synth);
@@ -131,6 +241,9 @@ OscillatorModuleComponent::OscillatorModuleComponent (juce::AudioProcessorValueT
 
 OscillatorModuleComponent::~OscillatorModuleComponent()
 {
+    tabSynth.setLookAndFeel (nullptr);
+    tabFilter.setLookAndFeel (nullptr);
+    tabAmp.setLookAndFeel (nullptr);
     waveformSelector.setLookAndFeel (nullptr);
 }
 
@@ -140,6 +253,24 @@ void OscillatorModuleComponent::paint (juce::Graphics& g)
     g.fillRect (getLocalBounds().reduced (1));
     g.setColour (accent.withAlpha (0.7f));
     g.drawRect (getLocalBounds(), 1);
+
+    const float ms = juce::jlimit (0.0f, 1.0f,
+                                   (static_cast<float> (getWidth()) - 280.0f) / (384.0f - 280.0f));
+    const int innerPad = 2 + juce::roundToInt (2.0f * ms);
+    constexpr int tabStripH = 14;
+    const auto tabArea = getLocalBounds().reduced (innerPad, 0).withHeight (tabStripH).translated (0, 1);
+    const int tabLaneW = juce::jlimit (150, 210, juce::roundToInt (static_cast<float> (tabArea.getWidth()) * 0.52f));
+    const int tabLaneX = tabArea.getX() + (tabArea.getWidth() - tabLaneW) / 2;
+    const auto tabRailArea = tabArea;
+    const auto titleArea = tabArea.withTrimmedRight (juce::jmin (tabLaneW, tabArea.getWidth() - 72));
+
+    // Subtle rail keeps tab text visually separate from knob labels.
+    g.setColour (juce::Colours::black.withAlpha (0.2f));
+    g.fillRoundedRectangle (tabRailArea.toFloat().reduced (1.0f, 0.0f), 2.0f);
+
+    g.setColour (accent.withAlpha (0.72f));
+    g.setFont (juce::Font (9.5f));
+    g.drawText (moduleTitle_, titleArea.reduced (4, 0), juce::Justification::centredLeft, true);
 }
 
 void OscillatorModuleComponent::resized()
@@ -148,27 +279,39 @@ void OscillatorModuleComponent::resized()
     // Natural module width at default window size is ~384 px; minimum is ~280 px.
     const float ms = juce::jlimit (0.0f, 1.0f,
         (static_cast<float> (getWidth()) - 280.0f) / (384.0f - 280.0f));
-    const int innerPad  = 2 + juce::roundToInt (2.0f * ms); // 2..4, was fixed 4
-    const int headerGap = 2 + juce::roundToInt (2.0f * ms); // 2..4, was fixed 4
+    const int innerPad = 2 + juce::roundToInt (2.0f * ms); // 2..4, was fixed 4
+    constexpr int tabStripH = 14;
+    constexpr int contentTopInset = 16;
+    const int tabLaneW = juce::jlimit (150, 210, juce::roundToInt (static_cast<float> (getWidth()) * 0.52f));
+
+    // Slim tab strip overlaps the top border; knobs use full inner height.
+    auto tabArea = getLocalBounds().reduced (innerPad, 0).withHeight (tabStripH).translated (0, 1);
+    auto tabRight = juce::Rectangle<int> (tabArea.getX() + (tabArea.getWidth() - tabLaneW) / 2,
+                                          tabArea.getY(),
+                                          tabLaneW,
+                                          tabArea.getHeight());
+
+    const int interTab = 8;
+    const int tabW = juce::jmax (38, (tabRight.getWidth() - (interTab * 2)) / 3);
+    tabSynth.setBounds (tabRight.removeFromLeft (tabW));
+    tabRight.removeFromLeft (interTab);
+    tabFilter.setBounds (tabRight.removeFromLeft (tabW));
+    tabRight.removeFromLeft (interTab);
+    tabAmp.setBounds (tabRight.removeFromLeft (tabW));
 
     auto inner = getLocalBounds().reduced (innerPad);
-    auto header = inner.removeFromTop (22);
-    titleLabel.setBounds (header.removeFromLeft (juce::jmin (88, header.getWidth() / 2)));
-    header.removeFromLeft (6);
-    const int tabW = juce::jmin (52, (header.getWidth() - 12) / 3);
-    tabSynth.setBounds (header.removeFromLeft (tabW));
-    header.removeFromLeft (4);
-    tabFilter.setBounds (header.removeFromLeft (tabW));
-    header.removeFromLeft (4);
-    tabAmp.setBounds (header.removeFromLeft (tabW));
-
-    inner.removeFromTop (headerGap);
+    inner.removeFromTop (contentTopInset);
     if (activePage == Page::Synth)
         layoutSynthPage (inner);
     else if (activePage == Page::Filter)
         layoutFilterPage (inner);
     else
         layoutAmpPage (inner);
+
+    // Tabs overlap the top of the knob area; keep them hit-testable and visible on top.
+    tabSynth.toFront (false);
+    tabFilter.toFront (false);
+    tabAmp.toFront (false);
 }
 
 void OscillatorModuleComponent::setPage (Page page)
@@ -181,22 +324,13 @@ void OscillatorModuleComponent::setPage (Page page)
     waveformSelector.setVisible (synth);
     waveformPreview.setVisible (synth);
     for (int paramIndex : kSynthKnobIndices)
-    {
-        synthSliders[static_cast<size_t> (paramIndex)].setVisible (synth);
-        synthLabels[static_cast<size_t> (paramIndex)].setVisible (synth);
-    }
+        synthKnobs[static_cast<size_t> (paramIndex)].setVisible (synth);
 
     for (int i = 0; i < filterParams; ++i)
-    {
-        filterSliders[static_cast<size_t> (i)].setVisible (filt);
-        filterLabels[static_cast<size_t> (i)].setVisible (filt);
-    }
+        filterKnobs[static_cast<size_t> (i)].setVisible (filt);
 
     for (int i = 0; i < ampParams; ++i)
-    {
-        ampSliders[static_cast<size_t> (i)].setVisible (amp);
-        ampLabels[static_cast<size_t> (i)].setVisible (amp);
-    }
+        ampKnobs[static_cast<size_t> (i)].setVisible (amp);
 
     refreshTabColours();
     resized();
@@ -204,16 +338,9 @@ void OscillatorModuleComponent::setPage (Page page)
 
 void OscillatorModuleComponent::refreshTabColours()
 {
-    auto apply = [this] (juce::TextButton& b, bool selected)
-    {
-        b.setColour (juce::TextButton::buttonColourId,
-                     selected ? accent.withAlpha (0.38f) : accent.withAlpha (0.12f));
-        b.setColour (juce::TextButton::textColourOffId,
-                     selected ? juce::Colours::white : juce::Colours::lightgrey);
-    };
-    apply (tabSynth, activePage == Page::Synth);
-    apply (tabFilter, activePage == Page::Filter);
-    apply (tabAmp, activePage == Page::Amp);
+    tabSynth.repaint();
+    tabFilter.repaint();
+    tabAmp.repaint();
 }
 
 void OscillatorModuleComponent::layoutSynthPage (juce::Rectangle<int> area)
@@ -242,9 +369,7 @@ void OscillatorModuleComponent::layoutSynthPage (juce::Rectangle<int> area)
         if (index < knobCount - 1)
             area.removeFromLeft (knobGap);
 
-        auto sliderArea = knobArea.removeFromTop (juce::jmax (32, knobArea.getHeight() - 14));
-        synthSliders[static_cast<size_t> (paramIndex)].setBounds (sliderArea);
-        synthLabels[static_cast<size_t> (paramIndex)].setBounds (knobArea);
+        synthKnobs[static_cast<size_t> (paramIndex)].setBounds (knobArea);
     }
 }
 
@@ -260,9 +385,7 @@ void OscillatorModuleComponent::layoutFilterPage (juce::Rectangle<int> area)
         auto cell = area.removeFromLeft (cellW);
         if (i < n - 1)
             area.removeFromLeft (gap);
-        auto sliderArea = cell.removeFromTop (juce::jmax (32, cell.getHeight() - 14));
-        filterSliders[static_cast<size_t> (i)].setBounds (sliderArea);
-        filterLabels[static_cast<size_t> (i)].setBounds (cell);
+        filterKnobs[static_cast<size_t> (i)].setBounds (cell);
     }
 }
 
@@ -278,9 +401,7 @@ void OscillatorModuleComponent::layoutAmpPage (juce::Rectangle<int> area)
         auto cell = area.removeFromLeft (cellW);
         if (i < n - 1)
             area.removeFromLeft (gap);
-        auto sliderArea = cell.removeFromTop (juce::jmax (28, cell.getHeight() - 12));
-        ampSliders[static_cast<size_t> (i)].setBounds (sliderArea);
-        ampLabels[static_cast<size_t> (i)].setBounds (cell);
+        ampKnobs[static_cast<size_t> (i)].setBounds (cell);
     }
 }
 
@@ -311,12 +432,13 @@ juce::String OscillatorModuleComponent::getAmpParameterId (int paramIndex) const
     return ParameterIDs::cornerAmpById (corner, paramIndex);
 }
 
-void OscillatorModuleComponent::configureRotarySlider (juce::Slider& slider, juce::Label& label, const juce::String& text)
+void OscillatorModuleComponent::configureRotaryKnob (LabelledKnob& knob, const juce::String& text)
 {
+    knob.setNameLabelText (text);
+    knob.setValueFormatter (nullptr);
+    auto& slider = knob.getSlider();
     slider.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
     slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-    label.setText (text, juce::dontSendNotification);
-    label.setJustificationType (juce::Justification::centred);
 }
 
 void OscillatorModuleComponent::updateWaveformPreviewFromSelector()

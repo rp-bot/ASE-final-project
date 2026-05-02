@@ -1,4 +1,5 @@
 #pragma once
+#include "UI/Widgets/LabelledKnob.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 
@@ -25,18 +26,16 @@ namespace UI
     private:
         void timerCallback() override;
 
-        static void configureGainKnob(juce::Slider &slider, juce::Label &label);
-        static void configurePanKnob(juce::Slider &slider, juce::Label &label);
+        static void configureVolumeKnob(LabelledKnob &knob);
+        static void configurePanKnob(LabelledKnob &knob);
 
         juce::AudioProcessorValueTreeState *apvtsPtr{nullptr};
         std::function<void()> onResetEngineHardOff_;
 
         // Controls
-        juce::Slider gainKnob;
-        juce::Slider panSlider;
+        LabelledKnob volumeKnob;
+        LabelledKnob panKnob;
         juce::TextButton resetEngineButton{"Reset Engine"};
-        juce::Label faderLabel;
-        juce::Label panLabel;
 
         std::unique_ptr<SliderAttachment> gainAttachment;
         std::unique_ptr<SliderAttachment> panAttachment;
