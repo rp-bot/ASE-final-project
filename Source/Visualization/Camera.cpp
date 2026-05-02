@@ -53,6 +53,18 @@ namespace Visualization
         updateCartesianFromSpherical();
     }
 
+    void Camera::setRadius(float radius)
+    {
+        radius_ = std::clamp(radius, kMinRadius, kMaxRadius);
+        updateCartesianFromSpherical();
+    }
+
+    void Camera::setTarget(const glm::vec3& t)
+    {
+        target_ = t;
+        updateCartesianFromSpherical();
+    }
+
     void Camera::updateCartesianFromSpherical()
     {
         const float x = radius_ * std::cos(elevation_) * std::cos(azimuth_);

@@ -124,6 +124,11 @@ void VolumetricSynthAudioProcessor::setGuiCursorPosition (glm::vec3 position) no
     atomicGuiState.setCursorPosition (position);
 }
 
+void VolumetricSynthAudioProcessor::setGuiCubeRotation (glm::quat worldFromLocal) noexcept
+{
+    atomicGuiState.setCubeRotation (worldFromLocal);
+}
+
 void VolumetricSynthAudioProcessor::setGuiTrajectoryActive (bool active) noexcept
 {
     atomicGuiState.setTrajectoryActive (active);

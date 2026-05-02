@@ -1,6 +1,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <array>
 
 namespace Utils
@@ -28,6 +29,13 @@ namespace Utils
      * Overload using glm::vec3.
      */
     std::array<float, CUBE_CORNERS> trilinearWeights(glm::vec3 position);
+
+    /**
+     * Converts a cursor stored in axis-aligned global/world-normalized [0,1]^3 (offset from cube
+     * center mapped as (position+1)/2 per world axis, no cube rotation) into local [0,1]^3 blend
+     * coordinates for trilinear weights. worldFromLocal rotates local cube axes into world.
+     */
+    glm::vec3 globalUnitToLocalBlendUnit(glm::vec3 globalUnit, glm::quat worldFromLocal);
 
     /**
      * Clamp position to unit cube [0, 1]^3.

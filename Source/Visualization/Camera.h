@@ -18,6 +18,9 @@ namespace Visualization
 
         void orbit(float deltaX, float deltaY);
         void zoom(float delta);
+        void setRadius(float radius);
+
+        void setTarget(const glm::vec3& t);
 
     private:
         void updateCartesianFromSpherical();

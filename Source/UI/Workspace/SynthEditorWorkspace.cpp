@@ -103,7 +103,18 @@ SynthEditorWorkspace::SynthEditorWorkspace (VolumetricSynthAudioProcessor& proce
         renderer3D_.setCornerColours (cornerColours);
     }
 
-    renderer3D_.setCursorFromUnitPosition (processorRef.getGuiCursorPosition());
+    auto& apvtsCursor = processorRef.getParameterManager().getAPVTS();
+    auto* pcx = apvtsCursor.getRawParameterValue (ParameterIDs::cursorX);
+    auto* pcy = apvtsCursor.getRawParameterValue (ParameterIDs::cursorY);
+    auto* pcz = apvtsCursor.getRawParameterValue (ParameterIDs::cursorZ);
+    lastSyncedCursorGlobal_ = glm::vec3 (
+        pcx != nullptr ? pcx->load() : 0.5f,
+        pcy != nullptr ? pcy->load() : 0.5f,
+        pcz != nullptr ? pcz->load() : 0.5f);
+
+    renderer3D_.setCursorFromGlobalUnitPosition (lastSyncedCursorGlobal_);
+    processorRef.setGuiCursorPosition (lastSyncedCursorGlobal_);
+    processorRef.setGuiCubeRotation (renderer3D_.getCubeRotationQuat ());
 }
 
 SynthEditorWorkspace::~SynthEditorWorkspace()
@@ -189,7 +200,49 @@ void SynthEditorWorkspace::resized()
 
 void SynthEditorWorkspace::tick()
 {
-    renderer3D_.setCursorFromUnitPosition (processorRef.getGuiCursorPosition());
+    auto& apvts = processorRef.getParameterManager().getAPVTS();
+
+    processorRef.setGuiCubeRotation (renderer3D_.getCubeRotationQuat());
+
+    auto* px = apvts.getRawParameterValue (ParameterIDs::cursorX);
+    auto* py = apvts.getRawParameterValue (ParameterIDs::cursorY);
+    auto* pz = apvts.getRawParameterValue (ParameterIDs::cursorZ);
+    const glm::vec3 uFromApvts (
+        px != nullptr ? px->load() : 0.5f,
+        py != nullptr ? py->load() : 0.5f,
+        pz != nullptr ? pz->load() : 0.5f);
+
+    const bool spinActive = renderer3D_.isSpinActive();
+
+    if (! spinActive && glm::distance (uFromApvts, lastSyncedCursorGlobal_) > 1.0e-4f)
+    {
+        lastSyncedCursorGlobal_ = uFromApvts;
+        renderer3D_.setCursorFromGlobalUnitPosition (uFromApvts);
+        processorRef.setGuiCursorPosition (uFromApvts);
+    }
+    else
+    {
+        const glm::vec3 uFromView = renderer3D_.getCursorAsGlobalUnitPosition();
+        if (glm::distance (uFromView, lastSyncedCursorGlobal_) > 1.0e-4f)
+        {
+            lastSyncedCursorGlobal_ = uFromView;
+            processorRef.setGuiCursorPosition (uFromView);
+            const bool shouldWriteParams = ! spinActive
+                                           || (renderer3D_.hasActiveDrag() && ! renderer3D_.isAltSpinDragging());
+            if (shouldWriteParams)
+                updateCursorParametersFromPosition (uFromView);
+        }
+    }
+
+    const auto* zeroGParam = apvts.getRawParameterValue (ParameterIDs::cubeZeroG);
+    const bool zeroGEnabled = (zeroGParam != nullptr) && (zeroGParam->load() > 0.5f);
+    renderer3D_.setZeroGravity (zeroGEnabled);
+
+    if (const auto* zoomParam = apvts.getRawParameterValue (ParameterIDs::cameraZoom))
+        renderer3D_.setCameraZoom (zoomParam->load());
+
+    if (const auto* gizmoParam = apvts.getRawParameterValue (ParameterIDs::gizmoVisible))
+        renderer3D_.setGizmoVisible (gizmoParam->load() > 0.5f);
 
     topBar->setMeterLevels (
         processorRef.getSynthEngine().getMeterLevelLeft(),
@@ -215,11 +268,14 @@ void SynthEditorWorkspace::mouseDown (const juce::MouseEvent& event)
         renderer3D_.mouseDown (event, vpBounds);
         const bool shiftDown = event.mods.isShiftDown()
                                || juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
-        if (! shiftDown)
+        const bool altDown = event.mods.isAltDown()
+                             || juce::ModifierKeys::getCurrentModifiersRealtime().isAltDown();
+        if (! shiftDown && ! altDown)
         {
-            const auto newCursor = renderer3D_.getCursorAsUnitPosition();
+            const auto newCursor = renderer3D_.getCursorAsGlobalUnitPosition ();
             processorRef.setGuiCursorPosition (newCursor);
             updateCursorParametersFromPosition (newCursor);
+            lastSyncedCursorGlobal_ = newCursor;
         }
     }
     else
@@ -235,9 +291,13 @@ void SynthEditorWorkspace::mouseDrag (const juce::MouseEvent& event)
     {
         renderer3D_.mouseDrag (event, vpBounds);
 
-        const auto newCursor = renderer3D_.getCursorAsUnitPosition();
+        const auto newCursor = renderer3D_.getCursorAsGlobalUnitPosition ();
         processorRef.setGuiCursorPosition (newCursor);
-        updateCursorParametersFromPosition (newCursor);
+        const bool altDown = event.mods.isAltDown()
+                             || juce::ModifierKeys::getCurrentModifiersRealtime().isAltDown();
+        if (! altDown)
+            updateCursorParametersFromPosition (newCursor);
+        lastSyncedCursorGlobal_ = newCursor;
     }
 }
 
