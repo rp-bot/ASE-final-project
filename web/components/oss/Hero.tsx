@@ -1,7 +1,7 @@
 "use client";
 
 import { ParallaxCard } from "../ParallaxCard";
-import { PluginWindow } from "../PluginWindow";
+import { HeroPluginScreenshot } from "../HeroPluginScreenshot";
 import { ossCopy } from "@/content/opensource";
 
 export function Hero() {
@@ -121,7 +121,7 @@ export function Hero() {
 
           <ParallaxCard className="relative">
             <div className="relative">
-              <PluginWindow variant="oss" />
+              <HeroPluginScreenshot variant="oss" />
               {/* hand-drawn callout */}
               <div
                 className="absolute -left-6 top-8 hidden font-mono-accent text-[11px] md:block"

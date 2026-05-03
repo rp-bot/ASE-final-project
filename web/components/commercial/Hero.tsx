@@ -1,7 +1,7 @@
 "use client";
 
 import { ParallaxCard } from "../ParallaxCard";
-import { PluginWindow } from "../PluginWindow";
+import { HeroPluginScreenshot } from "../HeroPluginScreenshot";
 import { commercialCopy } from "@/content/commercial";
 
 export function Hero() {
@@ -80,7 +80,7 @@ export function Hero() {
           </div>
 
           <ParallaxCard className="relative">
-            <PluginWindow variant="commercial" />
+            <HeroPluginScreenshot variant="commercial" />
             <div
               className="mt-4 flex items-baseline justify-between font-mono-accent text-[10px] uppercase tracking-[0.2em]"
               style={{ color: "var(--color-ink-soft)" }}
