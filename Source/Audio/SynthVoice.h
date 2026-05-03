@@ -42,7 +42,9 @@ namespace Audio
 
         std::array<std::unique_ptr<DSP::Oscillator>, 8> m_oscillators;
         std::array<juce::dsp::StateVariableTPTFilter<float>, 8> m_filters;
+        std::array<juce::dsp::StateVariableTPTFilter<float>, 8> m_filtersStage2;
         std::array<juce::dsp::FirstOrderTPTFilter<float>, 8> m_firstOrderFilters;
+        std::array<juce::dsp::FirstOrderTPTFilter<float>, 8> m_firstOrderFiltersStage2;
         std::array<juce::LinearSmoothedValue<float>, 8> m_cutoffSmoothers;
         std::array<bool, 8> m_useOnePolePrev{};
         DSP::TrilinearMixer8 m_mixer;
