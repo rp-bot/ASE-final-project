@@ -113,8 +113,9 @@ jobs:
             cd "$ROOT"
             7z a -tzip "$ARCHIVE" VST3 Standalone
           elif [ "${{ runner.os }}" = "macOS" ]; then
+            # ditto -c -k accepts only one source root; zip preserves bundles reliably here.
             cd "$ROOT"
-            ditto -c -k --sequesterRsrc --keepParent VST3 AU Standalone "$ARCHIVE"
+            zip -r -y "$ARCHIVE" VST3 AU Standalone
           else
             cd "$ROOT"
             zip -r "$ARCHIVE" VST3 Standalone
