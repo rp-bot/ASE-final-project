@@ -30,7 +30,7 @@ defaults:
 
 jobs:
   build:
-    name: ${{ matrix.label }} (${{ env.BUILD_TYPE }})
+    name: ${{ matrix.label }} (Release)
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
