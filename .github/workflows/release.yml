@@ -24,6 +24,8 @@ permissions:
 env:
   BUILD_TYPE: Release
   BUILD_DIR: build
+  SCCACHE_GHA_ENABLED: "true"
+  SCCACHE_CACHE_MULTIARCH: "1"
   # JUCE CMake: <PluginTarget>_artefacts/<Config>/ (PLUGIN target name == project target)
   ARTEFACT_REL: VolumetricSynth_artefacts/Release
 
@@ -52,6 +54,9 @@ jobs:
       # MSVC + Ninja (Windows)
       - uses: ilammy/msvc-dev-cmd@v1
         if: runner.os == 'Windows'
+
+      - name: Enable sccache (compile cache)
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Install Ninja (Windows)
         if: runner.os == 'Windows'
@@ -89,6 +94,8 @@ jobs:
           cmake -S . -B "${BUILD_DIR}" \
             -G Ninja \
             -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
             ${EXTRA_CMAKE_ARGS}
 
       - name: Build plugin binaries
