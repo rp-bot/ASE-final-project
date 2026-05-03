@@ -1,4 +1,4 @@
-# Unsigned artefacts on every push to `develop`, plus GitHub Releases on version tags (e.g. v0.1.0).
+# Unsigned artefacts on push to `main` / `develop`, plus GitHub Releases on version tags (e.g. v0.1.0).
 # Add codesign/notarize later via secrets — keep this workflow green first.
 
 name: Release
@@ -6,6 +6,7 @@ name: Release
 on:
   push:
     branches:
+      - main
       - develop
     tags:
       - "v*"
