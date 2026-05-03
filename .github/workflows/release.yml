@@ -3,6 +3,8 @@
 
 name: Release
 
+run-name: "Release (${{ github.ref_name }})"
+
 on:
   push:
     branches:
@@ -156,9 +158,12 @@ jobs:
         working-directory: upload
         run: sha256sum -- * > SHA256SUMS.txt
 
+      # Stable tags like v5.0.0 → prerelease false + make_latest true → GitHub shows “Latest”.
+      # Prerelease tags (e.g. v1.0.0-beta.1) stay prerelease and never replace Latest.
       - uses: softprops/action-gh-release@v2
         with:
           files: upload/*
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ contains(github.ref_name, '-') == false }}
