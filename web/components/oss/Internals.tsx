@@ -59,7 +59,7 @@ export function Internals() {
               letterSpacing: "-0.03em",
             }}
           >
-            <span className="sketch-underline">Real algorithms.</span>
+            <span className="sketch-underline">Tested algorithms.</span>
             <br />
             Read the source.
           </h2>

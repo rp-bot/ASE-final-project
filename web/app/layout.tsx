@@ -1,30 +1,12 @@
 import type { Metadata } from "next";
 import {
-  Bebas_Neue,
-  Cormorant_Garamond,
   DM_Sans,
   IBM_Plex_Sans,
-  Fraunces,
-  Inter,
   JetBrains_Mono,
-  Manrope,
   Space_Grotesk,
 } from "next/font/google";
 import { EditionProvider } from "@/lib/edition";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  variable: "--font-fraunces",
-  display: "swap",
-  axes: ["opsz", "SOFT"],
-});
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -35,19 +17,6 @@ const spaceGrotesk = Space_Grotesk({
 const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",
-  display: "swap",
-});
-
-const bebas = Bebas_Neue({
-  subsets: ["latin"],
-  variable: "--font-bebas",
-  display: "swap",
-  weight: "400",
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ["latin"],
-  variable: "--font-cormorant",
   display: "swap",
 });
 
@@ -62,12 +31,6 @@ const ibmPlexSans = IBM_Plex_Sans({
   variable: "--font-ibm-plex-sans",
   display: "swap",
   weight: ["400", "500", "600"],
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -86,7 +49,7 @@ export default function RootLayout({
       lang="en"
       data-edition="commercial"
       data-studio-theme="studio-3"
-      className={`${inter.variable} ${fraunces.variable} ${spaceGrotesk.variable} ${jetbrains.variable} ${bebas.variable} ${cormorant.variable} ${dmSans.variable} ${ibmPlexSans.variable} ${manrope.variable}`}
+      className={`${spaceGrotesk.variable} ${jetbrains.variable} ${dmSans.variable} ${ibmPlexSans.variable}`}
     >
       <body>
         <EditionProvider>{children}</EditionProvider>

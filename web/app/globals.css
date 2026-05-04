@@ -13,9 +13,9 @@
   --color-accent-3: #b8932a;
   --color-hairline: rgba(26, 20, 10, 0.14);
 
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-fraunces);
-  --font-mono: var(--font-jetbrains);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-display: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-sans);
 
   --radius-card: 14px;
 }
@@ -33,9 +33,9 @@ html[data-edition="commercial"] {
   --color-accent-3: #b8932a;
   --color-hairline: rgba(26, 20, 10, 0.14);
 
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-ibm-plex-sans);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-sans);
 }
 
 /* ---------------- STUDIO VARIANTS: five unique commercial looks ---------------- */
@@ -51,9 +51,9 @@ html[data-edition="commercial"][data-studio-theme="studio-1"] {
   --color-accent-3: #b8932a;
   --color-hairline: rgba(26, 20, 10, 0.14);
 
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-ibm-plex-sans);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-sans);
 }
 
 html[data-edition="commercial"][data-studio-theme="studio-2"] {
@@ -68,9 +68,9 @@ html[data-edition="commercial"][data-studio-theme="studio-2"] {
   --color-accent-3: #facc15;
   --color-hairline: rgba(230, 237, 243, 0.2);
 
-  --font-display: var(--font-bebas);
-  --font-sans: var(--font-manrope);
-  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-ibm-plex-sans);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-sans);
 }
 
 html[data-edition="commercial"][data-studio-theme="studio-3"] {
@@ -85,9 +85,9 @@ html[data-edition="commercial"][data-studio-theme="studio-3"] {
   --color-accent-3: #c4b5fd;
   --color-hairline: rgba(245, 236, 255, 0.22);
 
-  --font-display: var(--font-space-grotesk);
-  --font-sans: var(--font-manrope);
-  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-ibm-plex-sans);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-sans);
 }
 
 html[data-edition="commercial"][data-studio-theme="studio-4"] {
@@ -102,9 +102,9 @@ html[data-edition="commercial"][data-studio-theme="studio-4"] {
   --color-accent-3: #b7791f;
   --color-hairline: rgba(24, 32, 18, 0.16);
 
-  --font-display: var(--font-space-grotesk);
+  --font-display: var(--font-ibm-plex-sans);
   --font-sans: var(--font-ibm-plex-sans);
-  --font-mono: var(--font-jetbrains);
+  --font-mono: var(--font-ibm-plex-sans);
 }
 
 html[data-edition="commercial"][data-studio-theme="studio-5"] {
@@ -119,9 +119,9 @@ html[data-edition="commercial"][data-studio-theme="studio-5"] {
   --color-accent-3: #f97316;
   --color-hairline: rgba(255, 233, 214, 0.22);
 
-  --font-display: var(--font-fraunces);
-  --font-sans: var(--font-manrope);
-  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-ibm-plex-sans);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-sans);
 }
 
 /* ---------------- OSS: cool graph paper + hacker sketch ---------------- */
@@ -137,9 +137,9 @@ html[data-edition="oss"] {
   --color-accent-3: #f43f5e;
   --color-hairline: rgba(10, 10, 10, 0.12);
 
-  --font-display: var(--font-space-grotesk);
-  --font-sans: var(--font-jetbrains);
-  --font-mono: var(--font-jetbrains);
+  --font-display: var(--font-ibm-plex-sans);
+  --font-sans: var(--font-ibm-plex-sans);
+  --font-mono: var(--font-ibm-plex-sans);
 }
 
 @layer base {
@@ -160,7 +160,7 @@ html[data-edition="oss"] {
     color: var(--color-bg-2);
   }
   h1, h2, h3, h4 {
-    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
     letter-spacing: -0.01em;
   }
 }
@@ -169,7 +169,7 @@ html[data-edition="oss"] {
   .text-balance { text-wrap: balance; }
   .text-pretty { text-wrap: pretty; }
 
-  .font-display { font-family: var(--font-display), ui-serif, serif; }
+  .font-display { font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif; }
   .font-mono-accent {
     font-family: var(--font-mono), ui-monospace, monospace;
     letter-spacing: 0.02em;
