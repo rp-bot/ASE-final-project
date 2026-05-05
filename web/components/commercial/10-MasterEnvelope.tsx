@@ -2,7 +2,7 @@ export function MasterEnvelope() {
   return (
     <section id="master-envelope" className="relative px-6 py-12 md:py-16">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-6 md:mb-8">
+        <div className="mb-6 text-right md:mb-8">
           <div
             className="font-mono-accent text-[10px] uppercase tracking-[0.24em]"
             style={{ color: "var(--color-accent)" }}
@@ -20,7 +20,7 @@ export function MasterEnvelope() {
             </p>
           </div>
           <div className="md:col-span-7 md:col-start-6">
-            <div className="mx-auto w-full max-w-sm overflow-hidden rounded-[2px] bg-black md:ml-auto md:mr-0">
+            <div className="ml-auto w-full max-w-sm overflow-hidden rounded-[2px] bg-black">
               <video
                 src="/images/master_envelope.mp4"
                 autoPlay

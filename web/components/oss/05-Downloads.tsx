@@ -44,7 +44,7 @@ export function Downloads() {
         >
           Download. Free.<br />
           <span style={{ color: "var(--color-accent-2)" }}>GPLv3.</span>{" "}
-          <span style={{ color: "var(--color-accent-3)" }}>Fund it</span> if you love it.
+
         </h2>
 
         <div className="mt-14 grid gap-3 md:grid-cols-3">
@@ -93,7 +93,7 @@ export function Downloads() {
         </div>
 
         {/* or install via CLI */}
-        <div
+        {/* <div
           className="mt-6 overflow-x-auto border p-5 font-mono-accent text-[13px]"
           style={{
             borderColor: "rgba(255,255,255,0.12)",
@@ -107,8 +107,8 @@ export function Downloads() {
           <br />
           <span style={{ color: "var(--color-accent-2)" }}>$</span> curl -L get.vvs.audio | sh
           <span style={{ color: "rgba(255,255,255,0.4)" }}> # or this</span>
-        </div>
-
+        </div> */}
+{/* 
         <div
           className="mt-24 mb-10 flex items-end justify-between gap-6 border-t pt-10"
           style={{ borderColor: "rgba(255,255,255,0.12)" }}
@@ -140,9 +140,9 @@ export function Downloads() {
             Donations buy time. Time ships releases. No tiers, no paywalls, no feature
             gating — tip what you can, when you can.
           </div>
-        </div>
+        </div> */}
 
-        <div className="grid gap-3 md:grid-cols-3">
+        {/* <div className="grid gap-3 md:grid-cols-3">
           {donationTiers.map((tier) => (
             <article
               key={tier.name}
@@ -202,7 +202,7 @@ export function Downloads() {
               </a>
             </article>
           ))}
-        </div>
+        </div> */}
 
         <a
           href={ossCopy.repoUrl}

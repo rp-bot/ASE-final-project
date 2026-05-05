@@ -2,16 +2,22 @@ import { Downloads } from "./05-Downloads";
 import { Footer } from "./07-Footer";
 import { Hero } from "./01-Hero";
 import { Internals } from "./04-Internals";
+import { FullPluginInteraction } from "./08-FullPluginInteraction";
+import { MasterEnvelope } from "./10-MasterEnvelope";
+import { MasterFilter } from "./11-MasterFilter";
 import { Readme } from "./02-Readme";
-import { Showcase } from "./03-Showcase";
 import { Specs } from "./06-Specs";
+import { ThreeDInteraction } from "./09-ThreeDInteraction";
 
 export function OssLayout() {
   return (
     <>
       <Hero />
       <Readme />
-      <Showcase />
+      <FullPluginInteraction />
+      <ThreeDInteraction />
+      <MasterEnvelope />
+      <MasterFilter />
       <Internals />
       <Downloads />
       <Specs />

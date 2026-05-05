@@ -42,8 +42,6 @@ export const donationLinks = {
 
 export const ossCopy = {
   heroBadge: "v1.0 — Open Source · GPLv3",
-  heroSubtitle:
-    "The full synthesizer, source and all, under GPLv3. No tiers. No trials. Free forever — and funded by the people who play through it.",
   heroPrimary: { label: "Download free", href: "#download" },
   heroSecondary: { label: "Star on GitHub", href: "#github" },
   licenseNote: "GPLv3 · Source on GitHub · Donations optional but loved",

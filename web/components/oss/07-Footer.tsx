@@ -36,12 +36,12 @@ export function Footer() {
             className="flex flex-wrap gap-5 font-mono-accent text-[11px] uppercase tracking-[0.18em]"
             style={{ color: "var(--color-ink-soft)" }}
           >
-            <a href="#features" className="hover:text-[var(--color-accent-2)]">features</a>
-            <a href="#showcase" className="hover:text-[var(--color-accent-2)]">screenshots</a>
-            <a href="#algorithms" className="hover:text-[var(--color-accent-2)]">dsp</a>
-            <a href="#pricing" className="hover:text-[var(--color-accent-2)]">download</a>
-            <a href="#specs" className="hover:text-[var(--color-accent-2)]">specs</a>
-            <a href={ossCopy.repoUrl} className="hover:text-[var(--color-accent-2)]">repo</a>
+            <a href="#features" className="hover:text-accent-2">features</a>
+            <a href="#full-plugin-interaction" className="hover:text-accent-2">videos</a>
+            <a href="#algorithms" className="hover:text-accent-2">dsp</a>
+            <a href="#pricing" className="hover:text-accent-2">download</a>
+            <a href="#specs" className="hover:text-accent-2">specs</a>
+            <a href={ossCopy.repoUrl} className="hover:text-accent-2">repo</a>
           </nav>
         </div>
       </div>

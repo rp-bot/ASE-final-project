@@ -3,6 +3,7 @@
 import { ParallaxCard } from "../ParallaxCard";
 import { HeroPluginScreenshot } from "../HeroPluginScreenshot";
 import { ossCopy } from "@/content/opensource";
+import { FaGithub } from "react-icons/fa";
 
 export function Hero() {
   return (
@@ -39,25 +40,20 @@ export function Hero() {
                 letterSpacing: "-0.04em",
               }}
             >
-              A cube of sound.
+              Move through sound,
               <br />
               <span className="sketch-underline" style={{ color: "var(--color-accent)" }}>
-                Free
+                not menus.
               </span>{" "}
-              and open.
+              
             </h1>
 
-            <p
-              className="mt-8 max-w-xl text-[17px] leading-[1.55] font-mono-accent"
-              style={{ color: "var(--color-ink-soft)" }}
-            >
-              {ossCopy.heroSubtitle}
-            </p>
+           
 
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <a
                 href={ossCopy.heroPrimary.href}
-                className="inline-flex items-center gap-2 px-5 py-3 font-mono-accent text-sm transition-transform hover:translate-y-[-1px]"
+                className="inline-flex items-center gap-2 px-5 py-3 font-mono-accent text-sm transition-transform hover:-translate-y-px"
                 style={{
                   background: "var(--color-ink)",
                   color: "var(--color-bg-2)",
@@ -68,14 +64,17 @@ export function Hero() {
               </a>
               <a
                 href={ossCopy.repoUrl}
-                className="inline-flex items-center gap-2 border px-5 py-3 font-mono-accent text-sm transition-colors hover:bg-[var(--color-ink)] hover:text-[var(--color-bg-2)]"
+                className="inline-flex items-center gap-2 border px-5 py-3 font-mono-accent text-sm transition-colors hover:bg-ink"
                 style={{
                   borderColor: "var(--color-ink)",
                   color: "var(--color-ink)",
                   borderRadius: "2px",
                 }}
+                onMouseEnter={e => { e.currentTarget.style.color = "#fff"; }}
+                onMouseLeave={e => { e.currentTarget.style.color = "var(--color-ink)"; }}
               >
-                <GithubIcon /> {ossCopy.heroSecondary.label}
+         
+                <FaGithub aria-hidden size={14} /> {ossCopy.heroSecondary.label}
               </a>
               <div
                 className="flex items-center gap-3 font-mono-accent text-xs"
@@ -89,7 +88,7 @@ export function Hero() {
               </div>
             </div>
 
-            <div
+            {/* <div
               className="mt-10 grid max-w-md grid-cols-3 gap-3 font-mono-accent text-xs"
               style={{ color: "var(--color-ink-soft)" }}
             >
@@ -116,14 +115,14 @@ export function Hero() {
                   <div className="mt-1 uppercase tracking-[0.18em] text-[10px]">{label}</div>
                 </div>
               ))}
-            </div>
+            </div> */}
           </div>
 
           <ParallaxCard className="relative">
             <div className="relative">
               <HeroPluginScreenshot variant="oss" />
               {/* hand-drawn callout */}
-              <div
+              {/* <div
                 className="absolute -left-6 top-8 hidden font-mono-accent text-[11px] md:block"
                 style={{ color: "var(--color-accent-3)" }}
               >
@@ -138,25 +137,17 @@ export function Hero() {
                   <path d="M68 14 L76 18 L68 22" stroke="currentColor" strokeWidth="1.4" fill="none" />
                 </svg>
                 &lt;-- drag the cursor
-              </div>
-              <div
+              </div> */}
+              {/* <div
                 className="absolute -right-4 bottom-10 hidden max-w-[180px] rotate-[3deg] font-mono-accent text-[11px] leading-tight md:block"
                 style={{ color: "var(--color-accent)" }}
               >
                 8 wavetables at the<br />corners. trilinear<br />interpolation between.
-              </div>
+              </div> */}
             </div>
           </ParallaxCard>
         </div>
       </div>
     </section>
-  );
-}
-
-function GithubIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 .5C5.6.5.5 5.6.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.6-1.3-1.6-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2.9-.3 1.9-.4 2.9-.4s2 .1 2.9.4c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.2c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.6 18.4.5 12 .5z" />
-    </svg>
   );
 }

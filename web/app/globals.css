@@ -220,6 +220,70 @@ html[data-edition="oss"] {
     background-size: 100% 6px;
     padding-bottom: 4px;
   }
+
+  /* Commercial hero: ambient 3D space backdrop */
+  .hero-stars {
+    background-color: transparent;
+    background-image:
+      radial-gradient(
+        circle at center,
+        color-mix(in srgb, var(--color-ink) 18%, transparent) 0 1px,
+        transparent 1.5px
+      ),
+      radial-gradient(
+        circle at center,
+        color-mix(in srgb, var(--color-ink) 11%, transparent) 0 0.5px,
+        transparent 1.2px
+      );
+    background-size: 36px 36px, 64px 64px;
+    background-position: 0 0, 12px 18px;
+    mask-image: radial-gradient(ellipse 55% 50% at 50% 42%, transparent 0%, black 72%);
+    -webkit-mask-image: radial-gradient(ellipse 55% 50% at 50% 42%, transparent 0%, black 72%);
+    animation: hero-stars-drift 60s linear infinite;
+  }
+
+  .hero-floor {
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--color-ink) 7%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-ink) 7%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 80px 80px;
+    transform: perspective(900px) rotateX(62deg);
+    transform-origin: 50% 100%;
+    mask-image: linear-gradient(to top, black 0%, transparent 85%);
+    -webkit-mask-image: linear-gradient(to top, black 0%, transparent 85%);
+  }
+
+  .hero-vignette {
+    background: radial-gradient(
+      ellipse 70% 60% at 30% 45%,
+      var(--color-bg) 0%,
+      transparent 65%
+    );
+    pointer-events: none;
+  }
+}
+
+@keyframes hero-stars-drift {
+  from {
+    background-position: 0 0, 12px 18px;
+  }
+  to {
+    background-position: 200px 0, -188px 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stars {
+    animation: none;
+  }
 }
 
 @keyframes slow-pulse {

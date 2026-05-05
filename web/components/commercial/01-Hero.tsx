@@ -3,11 +3,12 @@
 import { ParallaxCard } from "../ParallaxCard";
 import { HeroPluginScreenshot } from "../HeroPluginScreenshot";
 import { commercialCopy } from "@/content/commercial";
+import { HeroBackdrop } from "./HeroBackdrop";
 
 export function Hero() {
   return (
     <section className="relative overflow-hidden px-6 pt-32 pb-20 md:pt-44 md:pb-28">
-      <div className="absolute inset-0 paper-grain -z-10" aria-hidden />
+      <HeroBackdrop />
 
       <div className="mx-auto max-w-7xl">
         {/* Magazine meta line */}
