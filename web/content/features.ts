@@ -142,9 +142,10 @@ export const algorithms: Algorithm[] = [
 
 export const specs = [
   { label: "Formats", value: "VST3 · AU · AAX" },
-  { label: "Platforms", value: "Windows 10+ · macOS 12+" },
+  { label: "Platforms", value: "Windows 10+ · macOS 12+ · Linux" },
   { label: "Polyphony", value: "16 voices" },
-  { label: "Oscillators per voice", value: "8 (wavetable + VA)" },
-  { label: "Filters", value: "Two filters: lowpass, highpass, bandpass, notch" },
+  { label: "Oscillators per voice", value: "8 (wavetable)" },
+  { label: "Filters", value: "lowpass, with resonance control" },
   { label: "Graphics", value: "OpenGL 3.3+ (hybrid render)" },
+  {label:"LFO", value: "Coming soon..."},
 ];

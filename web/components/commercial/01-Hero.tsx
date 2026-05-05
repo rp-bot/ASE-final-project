@@ -33,10 +33,10 @@ export function Hero() {
                 letterSpacing: "-0.03em",
               }}
             >
-              Fly through
+              Move through sound,
               <br />
               <em style={{ color: "var(--color-accent)", fontStyle: "italic" }}>
-                a cube of sound.
+                not menus.
               </em>
             </h1>
 
@@ -47,7 +47,7 @@ export function Hero() {
               <p>{commercialCopy.heroSubtitle}</p>
             </div>
 
-            <div className="mt-12 flex flex-wrap items-center gap-5">
+            {/* <div className="mt-12 flex flex-wrap items-center gap-5">
               <a
                 href={commercialCopy.heroPrimary.href}
                 className="group inline-flex items-center gap-3 px-7 py-3.5 text-sm font-medium tracking-wide transition-transform hover:translate-y-[-2px]"
@@ -69,25 +69,25 @@ export function Hero() {
               >
                 {commercialCopy.heroSecondary.label}
               </a>
-            </div>
+            </div> */}
 
-            <div
+            {/* <div
               className="mt-8 font-mono-accent text-[11px] uppercase tracking-[0.18em]"
               style={{ color: "var(--color-ink-dim)" }}
             >
               {commercialCopy.licenseNote}
-            </div>
+            </div> */}
           </div>
 
           <ParallaxCard className="relative">
             <HeroPluginScreenshot variant="commercial" />
-            <div
+            {/* <div
               className="mt-4 flex items-baseline justify-between font-mono-accent text-[10px] uppercase tracking-[0.2em]"
               style={{ color: "var(--color-ink-soft)" }}
             >
               <span>Fig. 01 — The Glass Cube</span>
               <span>8 sources · smooth blend · realtime</span>
-            </div>
+            </div> */}
           </ParallaxCard>
         </div>
       </div>
@@ -110,8 +110,8 @@ export function Hero() {
               <span>Immersive</span>
               <span style={{ color: "var(--color-accent)" }}>·</span>
               <span>Eight timbres</span>
-              <span style={{ color: "var(--color-accent)" }}>·</span>
-              <span>One cursor</span>
+              {/* <span style={{ color: "var(--color-accent)" }}>·</span> */}
+              {/* <span>One cursor</span> */}
               <span style={{ color: "var(--color-accent)" }}>·</span>
               <span>Sixteen voices</span>
               <span style={{ color: "var(--color-accent)" }}>·</span>

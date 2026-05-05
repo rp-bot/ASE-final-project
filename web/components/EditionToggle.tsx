@@ -31,7 +31,7 @@ export function EditionToggle({ className = "" }: { className?: string }) {
             role="tab"
             aria-selected={active}
             onClick={() => setEdition(opt.id)}
-            className="relative z-10 px-4 py-1.5 transition-colors"
+            className="relative z-10 px-4 py-1.5 transition-colors cursor-pointer"
             style={{
               color: active ? "var(--color-bg-2)" : "var(--color-ink-soft)",
             }}

@@ -40,8 +40,7 @@ export const tiers: CommercialTier[] = [
 
 export const commercialCopy = {
   heroBadge: "v1.0 — Commercial Edition",
-  heroSubtitle:
-    "A volumetric instrument for modern sound design: 8 sources in a 3D cube, smoothly blended as you move. One-time license with lifetime minor updates.",
+  heroSubtitle: "A vector synthesizer built in 3D space.",
   heroPrimary: { label: "Buy license", href: "#pricing" },
   heroSecondary: { label: "Download 14-day trial", href: "#trial" },
   licenseNote:

@@ -7,12 +7,12 @@ export function Specs() {
         <div className="flex items-end justify-between gap-6 border-b pb-6"
              style={{ borderColor: "var(--color-hairline)" }}>
           <div>
-            <div
+            {/* <div
               className="font-mono-accent text-[11px] uppercase tracking-[0.3em]"
               style={{ color: "var(--color-ink-soft)" }}
             >
               Technical ledger
-            </div>
+            </div> */}
             <h2
               className="mt-4 font-display"
               style={{
@@ -25,12 +25,12 @@ export function Specs() {
               Specification.
             </h2>
           </div>
-          <div
+          {/* <div
             className="hidden font-mono-accent text-[10px] uppercase tracking-[0.24em] md:block"
             style={{ color: "var(--color-ink-dim)" }}
           >
             Plate III
-          </div>
+          </div> */}
         </div>
 
         <dl className="grid grid-cols-1 md:grid-cols-2">

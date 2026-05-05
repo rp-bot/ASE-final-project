@@ -7,7 +7,7 @@ export function Footer() {
       style={{ background: "var(--color-bg-3)" }}
     >
       <div className="mx-auto max-w-6xl">
-        <div
+        {/* <div
           className="font-display text-balance"
           style={{
             fontSize: "clamp(2.4rem, 5vw, 4.2rem)",
@@ -21,7 +21,7 @@ export function Footer() {
           <em style={{ color: "var(--color-accent)", fontStyle: "italic" }}>
             It's what you become while using it.
           </em>
-        </div>
+        </div> */}
 
         <div
           className="mt-16 flex flex-wrap items-center justify-between gap-6 border-t pt-8 font-mono-accent text-[11px] uppercase tracking-[0.24em]"
@@ -30,8 +30,8 @@ export function Footer() {
           <div>{commercialCopy.footerNote}</div>
           <nav className="flex flex-wrap gap-6">
             <a href="#features">Features</a>
-            <a href="#showcase">Interface</a>
-            <a href="#algorithms">Engineering</a>
+            <a href="#full-plugin-interaction">Interaction</a>
+            <a href="#master-envelope">Envelope</a>
             <a href="#pricing">Licensing</a>
             <a href="#specs">Specs</a>
             <a href="#">Press</a>
