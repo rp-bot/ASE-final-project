@@ -9,6 +9,9 @@ namespace Audio
 {
     namespace
     {
+        /** Output headroom applied to per-voice signal before summing voices. */
+        constexpr float kHeadroomGain = 0.89f;
+
         void blendAmpAtCursor(const ParameterSnapshot &snap, float &attack, float &decay, float &sustain,
                               float &release, float &level, float &velSens) noexcept
         {
@@ -123,6 +126,11 @@ namespace Audio
         m_mixer.prepare(sampleRate);
         m_envelope.prepare(sampleRate);
         m_envelope.setADSR(0.01f, 0.1f, 0.7f, 0.3f);
+
+        // Cursor movement can change the blended amp level and velocity sensitivity while a note is held.
+        // Smooth the resulting per-note gain so cursor jumps don't create clicks.
+        m_noteGainSmoother.reset(sampleRate, 0.02);
+        m_noteGainSmoother.setCurrentAndTargetValue(1.0f);
     }
 
     bool SynthVoice::canPlaySound(juce::SynthesiserSound *sound)
@@ -141,6 +149,12 @@ namespace Audio
         m_blendedVelSens = juce::jlimit(0.0f, 1.0f, vs);
         m_envelope.setADSR(juce::jmax(0.0005f, a), juce::jmax(0.0005f, d), juce::jlimit(0.0f, 1.0f, s),
                            juce::jmax(0.0005f, r));
+
+        // Update smoothed per-note gain target based on current cursor-blended level and velocity sensitivity.
+        const float velScale =
+            juce::jlimit(0.0f, 1.0f, (1.0f - m_blendedVelSens) + m_blendedVelSens * m_currentVelocity);
+        m_currentNoteGainBase = kHeadroomGain * velScale * m_blendedAmpLevel;
+        m_noteGainSmoother.setTargetValue(m_currentNoteGainBase);
     }
 
     void SynthVoice::startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound * /*sound*/,
@@ -171,6 +185,8 @@ namespace Audio
         }
 
         applyAmpEnvelopeFromSnapshot();
+        // Start new notes from the current target to avoid smoothing from a previous note's gain.
+        m_noteGainSmoother.setCurrentAndTargetValue(m_currentNoteGainBase);
         m_envelope.noteOn();
     }
 
@@ -306,16 +322,14 @@ namespace Audio
         m_mixer.processBlock(m_oscillatorOutputs, m_mixerOutput, 0, numSamples, cursor, pan);
 
         const int numChannels = juce::jmin(outputBuffer.getNumChannels(), 2);
-        constexpr float kHeadroomGain = 0.89f;
-        const float velScale =
-            juce::jlimit(0.0f, 1.0f, (1.0f - m_blendedVelSens) + m_blendedVelSens * m_currentVelocity);
 
         for (int s = 0; s < numSamples; ++s)
         {
             const float envVal = m_envelope.processSample();
+            const float baseGain = m_noteGainSmoother.getNextValue();
             const float mixedL = m_mixerOutput.getSample(0, s);
             const float mixedR = m_mixerOutput.getNumChannels() > 1 ? m_mixerOutput.getSample(1, s) : mixedL;
-            const float gain = kHeadroomGain * envVal * velScale * m_blendedAmpLevel;
+            const float gain = envVal * baseGain;
 
             const float outL = mixedL * gain;
             const float outR = mixedR * gain;
