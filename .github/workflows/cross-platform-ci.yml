@@ -11,6 +11,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SCCACHE_GHA_ENABLED: "true"
+  SCCACHE_CACHE_MULTIARCH: "1"
+
 jobs:
   build-and-test:
     name: ${{ matrix.os }} / ${{ matrix.config }}
@@ -24,6 +28,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+
+      - name: Enable sccache (compile cache)
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Install Linux build dependencies
         if: runner.os == 'Linux'
@@ -51,7 +61,11 @@ jobs:
           if [ "${{ runner.os }}" = "macOS" ]; then
             EXTRA_CMAKE_ARGS="-DUSE_JUCE_DEVELOP=ON"
           fi
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} ${EXTRA_CMAKE_ARGS}
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            ${EXTRA_CMAKE_ARGS}
 
       - name: Build tests target
         run: >

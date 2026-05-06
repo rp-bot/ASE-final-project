@@ -120,15 +120,16 @@ float shadowFactor(vec4 posLightSpace, vec3 normal, vec3 lightDir)
 
     vec2 texelSize = 1.0 / vec2(textureSize(uShadowMap, 0));
     float shadow = 0.0;
-    for (int x = -1; x <= 1; ++x)
+    // Wider PCF for blurrier shadow-map edges.
+    for (int x = -3; x <= 3; ++x)
     {
-        for (int y = -1; y <= 1; ++y)
+        for (int y = -3; y <= 3; ++y)
         {
             float closestDepth = texture(uShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += (currentDepth - bias > closestDepth) ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
+    shadow /= 49.0;
     return shadow;
 }
 
@@ -638,13 +639,13 @@ void main()
             glUniform3f(glGetUniformLocation(litShader_, "uBaseColor"), 0.93f, 0.93f, 0.94f);
             glUniform1f(glGetUniformLocation(litShader_, "uAlpha"), 1.0f);
             glUniform1i(glGetUniformLocation(litShader_, "uUseBlobShadow"), 1);
-            glUniform1f(glGetUniformLocation(litShader_, "uShadowStrength"), 0.72f);
+            glUniform1f(glGetUniformLocation(litShader_, "uShadowStrength"), 0.22f);
             glUniform3fv(glGetUniformLocation(litShader_, "uCursorWorldPos"), 1, glm::value_ptr(cursorPositionCube_));
             glUniform1f(glGetUniformLocation(litShader_, "uPlaneY"), gridY);
-            glUniform1f(glGetUniformLocation(litShader_, "uBlobRadiusBase"), 0.18f);
+            glUniform1f(glGetUniformLocation(litShader_, "uBlobRadiusBase"), 0.20f);
             glUniform1f(glGetUniformLocation(litShader_, "uBlobRadiusPerHeight"), 0.55f);
-            glUniform1f(glGetUniformLocation(litShader_, "uBlobSoftness"), 0.20f);
-            glUniform1f(glGetUniformLocation(litShader_, "uBlobStrength"), 0.48f);
+            glUniform1f(glGetUniformLocation(litShader_, "uBlobSoftness"), 0.9f);
+            glUniform1f(glGetUniformLocation(litShader_, "uBlobStrength"), 0.14f);
             glUniform1i(glGetUniformLocation(litShader_, "uCubePulseMode"), 0);
             glDrawArrays(GL_TRIANGLES, 0, 6);
 
