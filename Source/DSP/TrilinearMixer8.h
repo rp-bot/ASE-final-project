@@ -33,5 +33,7 @@ namespace DSP
 
     private:
         std::array<float, 8> m_gains{};
+        std::array<juce::LinearSmoothedValue<float>, 8> m_gainSmoothers{};
+        bool m_isPrepared = false;
     };
 }

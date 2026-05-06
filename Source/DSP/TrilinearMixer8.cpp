@@ -3,18 +3,39 @@
 
 namespace DSP
 {
+    namespace
+    {
+        /** Short cursor-to-gain ramp to avoid clicks when moving between corners. */
+        constexpr double kCursorGainSmoothingSeconds = 0.01;
+    }
+
     TrilinearMixer8::TrilinearMixer8()
     {
         m_gains = Utils::trilinearWeights(0.5f, 0.5f, 0.5f);
+        for (size_t i = 0; i < m_gainSmoothers.size(); ++i)
+            m_gainSmoothers[i].setCurrentAndTargetValue(m_gains[i]);
     }
 
-    void TrilinearMixer8::prepare(double /*sampleRate*/)
+    void TrilinearMixer8::prepare(double sampleRate)
     {
+        for (size_t i = 0; i < m_gainSmoothers.size(); ++i)
+        {
+            m_gainSmoothers[i].reset(sampleRate, kCursorGainSmoothingSeconds);
+            m_gainSmoothers[i].setCurrentAndTargetValue(m_gains[i]);
+        }
+        m_isPrepared = true;
     }
 
     void TrilinearMixer8::updateGainsFromPosition(float x, float y, float z)
     {
         m_gains = Utils::trilinearWeights(x, y, z);
+        for (size_t i = 0; i < m_gainSmoothers.size(); ++i)
+        {
+            if (m_isPrepared)
+                m_gainSmoothers[i].setTargetValue(m_gains[i]);
+            else
+                m_gainSmoothers[i].setCurrentAndTargetValue(m_gains[i]);
+        }
     }
 
     void TrilinearMixer8::updateGainsFromPosition(glm::vec3 position)
@@ -45,7 +66,7 @@ namespace DSP
             return;
 
         const glm::vec3 pos = Utils::clampToUnitCube(cursor);
-        m_gains = Utils::trilinearWeights(pos);
+        updateGainsFromPosition(pos);
 
         for (int s = 0; s < numSamples; ++s)
         {
@@ -58,7 +79,7 @@ namespace DSP
                 float gL = 1.0f;
                 float gR = 1.0f;
                 stereoPanGains(pan[static_cast<size_t>(i)], gL, gR);
-                const float w = m_gains[static_cast<size_t>(i)] * inputPointers[i][s];
+                const float w = m_gainSmoothers[static_cast<size_t>(i)].getNextValue() * inputPointers[i][s];
                 sumL += w * gL;
                 sumR += w * gR;
             }
@@ -81,7 +102,7 @@ namespace DSP
             return;
 
         const glm::vec3 pos = Utils::clampToUnitCube(cursor);
-        m_gains = Utils::trilinearWeights(pos);
+        updateGainsFromPosition(pos);
 
         const int outChans = juce::jmin(outputBuffer.getNumChannels(), 2);
         for (int s = 0; s < numSamples; ++s)
@@ -94,7 +115,7 @@ namespace DSP
                 float gL = 1.0f;
                 float gR = 1.0f;
                 stereoPanGains(pan[static_cast<size_t>(i)], gL, gR);
-                const float w = m_gains[static_cast<size_t>(i)] * inputBuffer.getSample(i, idx);
+                const float w = m_gainSmoothers[static_cast<size_t>(i)].getNextValue() * inputBuffer.getSample(i, idx);
                 sumL += w * gL;
                 sumR += w * gR;
             }
