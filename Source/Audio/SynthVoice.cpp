@@ -44,16 +44,8 @@ namespace Audio
             return juce::jmap(juce::jlimit(0.0f, 1.0f, q01), 0.5f, 2.2f);
         }
 
-        /** Normalized resonance at or below this uses a cheaper first-order lowpass (no peaking). */
-        constexpr float kOnePoleResonanceNormMax = 0.32f;
-
         /** Fewer setCutoffFrequency calls; smoother still advances every sample. */
         constexpr int kFilterCutoffSubBlockSamples = 4;
-
-        bool useOnePoleForResonance(float resonanceNorm) noexcept
-        {
-            return resonanceNorm <= kOnePoleResonanceNormMax;
-        }
 
         template <typename Filter>
         void processDrivenWithFilterSubBlocks(Filter &filtStage1, Filter &filtStage2,
@@ -74,6 +66,46 @@ namespace Audio
                     dest[s + i] = filtStage2.processSample(0, stage1);
                     if (i < chunk - 1)
                         (void)smoother.getNextValue();
+                }
+                s += chunk;
+            }
+        }
+
+        void processDrivenWithFilterSubBlocksResonant(
+            juce::dsp::StateVariableTPTFilter<float> &filtStage1,
+            juce::dsp::StateVariableTPTFilter<float> &filtStage2,
+            juce::LinearSmoothedValue<float> &cutoffSmoother,
+            juce::LinearSmoothedValue<float> &resonanceSmoother,
+            const float *oscRaw,
+            float *dest,
+            int numSamples,
+            float level,
+            float driveMul,
+            int subBlockSize)
+        {
+            int s = 0;
+            while (s < numSamples)
+            {
+                const int chunk = juce::jmin(subBlockSize, numSamples - s);
+                const auto cutoff = cutoffSmoother.getNextValue();
+                const auto resonanceNorm = resonanceSmoother.getNextValue();
+                const auto resonanceMapped = resonanceFromNormalized(resonanceNorm);
+
+                filtStage1.setCutoffFrequency(cutoff);
+                filtStage2.setCutoffFrequency(cutoff);
+                filtStage1.setResonance(resonanceMapped);
+                filtStage2.setResonance(resonanceMapped);
+
+                for (int i = 0; i < chunk; ++i)
+                {
+                    const float driven = DSP::fastTanh(oscRaw[s + i] * level * driveMul);
+                    const auto stage1 = filtStage1.processSample(0, driven);
+                    dest[s + i] = filtStage2.processSample(0, stage1);
+                    if (i < chunk - 1)
+                    {
+                        (void)cutoffSmoother.getNextValue();
+                        (void)resonanceSmoother.getNextValue();
+                    }
                 }
                 s += chunk;
             }
@@ -121,6 +153,8 @@ namespace Audio
             m_firstOrderFiltersStage2[i].setType(juce::dsp::FirstOrderTPTFilterType::lowpass);
             m_cutoffSmoothers[i].reset(sampleRate, 0.02);
             m_cutoffSmoothers[i].setCurrentAndTargetValue(4000.0f);
+            m_resonanceSmoothers[i].reset(sampleRate, 0.02);
+            m_resonanceSmoothers[i].setCurrentAndTargetValue(0.2f);
         }
 
         m_mixer.prepare(sampleRate);
@@ -181,6 +215,7 @@ namespace Audio
                 const auto &o = m_snapshot->osc[i];
                 const float fc = keyTrackedCutoffHz(o.filterCutoffHz, o.filterKeyTrack, m_midiNote);
                 m_cutoffSmoothers[i].setCurrentAndTargetValue(fc);
+                m_resonanceSmoothers[i].setCurrentAndTargetValue(juce::jlimit(0.0f, 1.0f, o.filterResonance));
             }
         }
 
@@ -261,11 +296,7 @@ namespace Audio
                 const auto &o = m_snapshot->osc[i];
                 const float fc = keyTrackedCutoffHz(o.filterCutoffHz, o.filterKeyTrack, m_midiNote);
                 m_cutoffSmoothers[i].setTargetValue(fc);
-                if (!useOnePoleForResonance(o.filterResonance))
-                {
-                    m_filters[i].setResonance(resonanceFromNormalized(o.filterResonance));
-                    m_filtersStage2[i].setResonance(resonanceFromNormalized(o.filterResonance));
-                }
+                m_resonanceSmoothers[i].setTargetValue(juce::jlimit(0.0f, 1.0f, o.filterResonance));
             }
         }
 
@@ -299,24 +330,9 @@ namespace Audio
 
             float *const dest = m_oscillatorOutputs.getWritePointer(static_cast<int>(i));
             auto &smoother = m_cutoffSmoothers[i];
-
-            const bool useOnePole =
-                m_snapshot != nullptr && useOnePoleForResonance(m_snapshot->osc[i].filterResonance);
-            if (useOnePole != m_useOnePolePrev[i])
-            {
-                m_filters[i].reset();
-                m_filtersStage2[i].reset();
-                m_firstOrderFilters[i].reset();
-                m_firstOrderFiltersStage2[i].reset();
-                m_useOnePolePrev[i] = useOnePole;
-            }
-
-            if (useOnePole)
-                processDrivenWithFilterSubBlocks(m_firstOrderFilters[i], m_firstOrderFiltersStage2[i], smoother,
-                                                 oscRaw, dest, numSamples, level, driveMul, kFilterCutoffSubBlockSamples);
-            else
-                processDrivenWithFilterSubBlocks(m_filters[i], m_filtersStage2[i], smoother, oscRaw, dest, numSamples,
-                                                 level, driveMul, kFilterCutoffSubBlockSamples);
+            auto &resSmoother = m_resonanceSmoothers[i];
+            processDrivenWithFilterSubBlocksResonant(m_filters[i], m_filtersStage2[i], smoother, resSmoother, oscRaw,
+                                                     dest, numSamples, level, driveMul, kFilterCutoffSubBlockSamples);
         }
 
         m_mixer.processBlock(m_oscillatorOutputs, m_mixerOutput, 0, numSamples, cursor, pan);
