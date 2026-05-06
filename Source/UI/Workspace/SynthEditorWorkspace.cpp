@@ -214,7 +214,9 @@ void SynthEditorWorkspace::tick()
 
     const bool spinActive = renderer3D_.isSpinActive();
 
-    if (! spinActive && glm::distance (uFromApvts, lastSyncedCursorGlobal_) > 1.0e-4f)
+    // Slider / joystick / host automation: always push into the GL view and atomic state, even
+    // while the cube is spinning. Otherwise `isSpinActive()` blocks this path and controls feel dead.
+    if (glm::distance (uFromApvts, lastSyncedCursorGlobal_) > 1.0e-4f)
     {
         lastSyncedCursorGlobal_ = uFromApvts;
         renderer3D_.setCursorFromGlobalUnitPosition (uFromApvts);

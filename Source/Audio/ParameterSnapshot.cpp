@@ -46,7 +46,12 @@ namespace Audio
 
         if (guiState != nullptr)
         {
-            const glm::vec3 global = guiState->getCursorPosition();
+            // Prefer APVTS for global cursor coordinates: sliders, joystick, automation, and
+            // setValue updates write here immediately via RawParameterValue. Atomic GUI state can
+            // lag one message-thread delivery behind if parameterChanged/sync runs asynchronously.
+            const glm::vec3 global { readFloat (apvts, ParameterIDs::cursorX, 0.5f),
+                                     readFloat (apvts, ParameterIDs::cursorY, 0.5f),
+                                     readFloat (apvts, ParameterIDs::cursorZ, 0.5f) };
             out.cursor = Utils::globalUnitToLocalBlendUnit (global, guiState->getCubeRotation());
             out.trajectoryActive = guiState->isTrajectoryActive();
         }
