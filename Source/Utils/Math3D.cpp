@@ -26,6 +26,16 @@ namespace Utils
         return trilinearWeights(position.x, position.y, position.z);
     }
 
+    glm::vec3 globalUnitToLocalBlendUnit(glm::vec3 globalUnit, glm::quat worldFromLocal)
+    {
+        const glm::vec3 g = clampToUnitCube(globalUnit);
+        const glm::vec3 w{ 2.f * g.x - 1.f, 2.f * g.y - 1.f, 2.f * g.z - 1.f };
+        const glm::mat3 R = glm::mat3_cast(glm::normalize(worldFromLocal));
+        const glm::vec3 localLin = glm::transpose(R) * w;
+        const glm::vec3 c = 0.5f * (localLin + 1.f);
+        return clampToUnitCube(c);
+    }
+
     glm::vec3 clampToUnitCube(glm::vec3 position)
     {
         return glm::clamp(position, 0.f, 1.f);

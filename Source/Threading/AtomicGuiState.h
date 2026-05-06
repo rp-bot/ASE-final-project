@@ -2,14 +2,18 @@
 
 #include <atomic>
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include "Parameters/ParameterCorners.h"
 
 namespace Threading
 {
     /**
-     * Lock-free state for 3D cursor position and trajectory mode.
+     * Lock-free state for 3D cursor and cube orientation.
      * Written by the message thread (Editor); read by the audio thread.
-     * All coordinates are in [0, 1] for the unit cube.
+     *
+     * Cursor is normalized [0,1]^3 in world/global axes relative to cube center (not co-rotated
+     * with the cube). Audio derives local blend coords via Utils::globalUnitToLocalBlendUnit.
+     * Cube quaternion maps local cube space to world (same convention as Visualization::Renderer3D).
      */
     class AtomicGuiState
     {
@@ -25,16 +29,22 @@ namespace Threading
         // ---- Writers (message thread only) ----
         void setCursorPosition (float x, float y, float z);
         void setCursorPosition (glm::vec3 position);
+        void setCubeRotation (glm::quat worldFromLocal) noexcept;
         void setTrajectoryActive (bool active);
 
         // ---- Readers (audio thread safe) ----
         glm::vec3 getCursorPosition() const;
+        glm::quat getCubeRotation() const noexcept;
         bool isTrajectoryActive() const;
 
     private:
         std::atomic<float> m_cursorX;
         std::atomic<float> m_cursorY;
         std::atomic<float> m_cursorZ;
+        std::atomic<float> m_cubeQw { 1.0f };
+        std::atomic<float> m_cubeQx { 0.0f };
+        std::atomic<float> m_cubeQy { 0.0f };
+        std::atomic<float> m_cubeQz { 0.0f };
         std::atomic<bool>  m_trajectoryActive;
 
         struct AtomicCorner

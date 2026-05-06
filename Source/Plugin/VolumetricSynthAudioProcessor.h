@@ -63,8 +63,10 @@ public:
     ParameterManager& getParameterManager() { return parameterManager; }
 
     // ---- GUI state bridge (message thread write / audio thread read) ----
+    /** Cursor normalized [0,1]^3 in global/world axes (matches APVTS cursorX/Y/Z). */
     void setGuiCursorPosition (float x, float y, float z) noexcept;
     void setGuiCursorPosition (glm::vec3 position) noexcept;
+    void setGuiCubeRotation (glm::quat worldFromLocal) noexcept;
     void setGuiTrajectoryActive (bool active) noexcept;
 
     glm::vec3 getGuiCursorPosition() const noexcept;

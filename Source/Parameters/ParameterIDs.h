@@ -8,6 +8,10 @@ namespace ParameterIDs
     inline const juce::String cursorY { "CURSOR_Y" };
     inline const juce::String cursorZ { "CURSOR_Z" };
 
+    inline const juce::String cubeZeroG { "CUBE_ZERO_G" };
+    inline const juce::String cameraZoom { "CAMERA_ZOOM" };
+    inline const juce::String gizmoVisible { "GIZMO_VISIBLE" };
+
     // Stub per-corner controls for UI wiring (corner 0-7).
     inline juce::String cornerLevel (int cornerIndex)   { return "CORNER" + juce::String (cornerIndex) + "_LEVEL"; }
     inline juce::String cornerDetune (int cornerIndex)  { return "CORNER" + juce::String (cornerIndex) + "_DETUNE"; }

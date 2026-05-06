@@ -9,7 +9,7 @@ namespace Visualization
     {
         constexpr float kMinRadius = 1.0f;
         constexpr float kMaxRadius = 20.0f;
-        constexpr float kMinElevation = -1.2f;
+        constexpr float kMinElevation = 0.f;
         constexpr float kMaxElevation = 1.2f;
         constexpr float kOrbitSensitivity = 0.005f;
         constexpr float kZoomSensitivity = 0.5f;
@@ -34,6 +34,11 @@ namespace Visualization
         return glm::perspective(glm::radians(fovDegrees_), aspect, nearPlane, farPlane);
     }
 
+    glm::vec3 Camera::getForward() const
+    {
+        return glm::normalize(target_ - position_);
+    }
+
     void Camera::orbit(float deltaX, float deltaY)
     {
         azimuth_ += deltaX * kOrbitSensitivity;
@@ -48,6 +53,18 @@ namespace Visualization
         updateCartesianFromSpherical();
     }
 
+    void Camera::setRadius(float radius)
+    {
+        radius_ = std::clamp(radius, kMinRadius, kMaxRadius);
+        updateCartesianFromSpherical();
+    }
+
+    void Camera::setTarget(const glm::vec3& t)
+    {
+        target_ = t;
+        updateCartesianFromSpherical();
+    }
+
     void Camera::updateCartesianFromSpherical()
     {
         const float x = radius_ * std::cos(elevation_) * std::cos(azimuth_);
@@ -57,4 +74,3 @@ namespace Visualization
         position_ = glm::vec3(x, y, z) + target_;
     }
 }
-

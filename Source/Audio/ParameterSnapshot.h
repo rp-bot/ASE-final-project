@@ -40,7 +40,7 @@ namespace Audio
         float ampVelSens = 0.5f;
     };
 
-    /** Single audio-thread snapshot: cursor/trajectory from AtomicGuiState; osc params from APVTS atomics. */
+    /** Single audio-thread snapshot: cursor is local [0,1]^3 blend coords for trilinear (derived from global + cube rotation); osc params from APVTS. */
     struct ParameterSnapshot
     {
         glm::vec3 cursor { 0.5f, 0.5f, 0.5f };
