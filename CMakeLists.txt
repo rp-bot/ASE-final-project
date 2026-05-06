@@ -172,7 +172,8 @@ target_compile_definitions("${PROJECT_NAME}"
         # JUCE_WEB_BROWSER and JUCE_USE_CURL would be on by default, but you might not need them.
         JUCE_WEB_BROWSER=0  # If you remove this, add `NEEDS_WEB_BROWSER TRUE` to the `juce_add_plugin` call
         JUCE_USE_CURL=0     # If you remove this, add `NEEDS_CURL TRUE` to the `juce_add_plugin` call
-        JUCE_VST3_CAN_REPLACE_VST2=0)
+        JUCE_VST3_CAN_REPLACE_VST2=0
+        JUCE_DISPLAY_SPLASH_SCREEN=0)   # Hide bottom-right “Made with JUCE” branding (GPLv3 or paid JUCE licence)
 
 # If your target needs extra binary assets, you can add them here.
 # NOTE: Conversion to binary-data happens when the target is built.
