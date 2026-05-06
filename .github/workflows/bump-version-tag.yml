@@ -1,0 +1,68 @@
+# Bumps project(VERSION …) in CMakeLists.txt, commits, pushes tag vX.Y.Z.
+# The tag push triggers release.yml → binaries + GitHub Release (with “Latest” for stable tags).
+
+name: Bump version & tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which part of semver to increment (current version read from CMakeLists.txt)
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bump-version-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump-and-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump CMake version and create tag
+        env:
+          BUMP: ${{ inputs.bump }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if ! grep -qE '^project\(VolumetricSynth VERSION [0-9]+\.[0-9]+\.[0-9]+\)' CMakeLists.txt; then
+            echo "Could not find project(VolumetricSynth VERSION x.y.z) in CMakeLists.txt"
+            exit 1
+          fi
+          VER=$(grep -E '^project\(VolumetricSynth VERSION [0-9]+\.[0-9]+\.[0-9]+\)' CMakeLists.txt | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          IFS=. read -r MA MI PA <<< "$VER"
+          case "$BUMP" in
+            patch) PA=$((PA + 1)) ;;
+            minor) MI=$((MI + 1)); PA=0 ;;
+            major) MA=$((MA + 1)); MI=0; PA=0 ;;
+            *) echo "Invalid bump"; exit 1 ;;
+          esac
+          NEW="${MA}.${MI}.${PA}"
+          TAG="v${NEW}"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists."
+            exit 1
+          fi
+
+          sed -i "s/^project(VolumetricSynth VERSION ${VER})/project(VolumetricSynth VERSION ${NEW})/" CMakeLists.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CMakeLists.txt
+          git commit -m "chore: bump version to ${TAG}"
+          git tag -a "$TAG" -m "Release ${TAG}"
+          git push origin "HEAD:${BRANCH}"
+          git push origin "$TAG"

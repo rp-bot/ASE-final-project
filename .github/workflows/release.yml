@@ -1,0 +1,176 @@
+# Unsigned artefacts on push to `main` / `develop`, plus GitHub Releases on version tags (e.g. v0.1.0).
+# Add codesign/notarize later via secrets — keep this workflow green first.
+
+name: Release
+
+run-name: "Release (${{ github.ref_name }})"
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  BUILD_TYPE: Release
+  BUILD_DIR: build
+  SCCACHE_GHA_ENABLED: "true"
+  SCCACHE_CACHE_MULTIARCH: "1"
+  # JUCE CMake: <PluginTarget>_artefacts/<Config>/ (PLUGIN target name == project target)
+  ARTEFACT_REL: VolumetricSynth_artefacts/Release
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: ${{ matrix.label }} (Release)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            label: macOS
+          - os: windows-latest
+            label: Windows
+          - os: ubuntu-latest
+            label: Linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # MSVC + Ninja (Windows)
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+
+      - name: Enable sccache (compile cache)
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Install Ninja (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ninja --no-progress -y
+
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build \
+            libasound2-dev \
+            libfreetype6-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev
+
+      - name: Configure CMake
+        run: |
+          set -euo pipefail
+          EXTRA_CMAKE_ARGS=""
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            EXTRA_CMAKE_ARGS="-DUSE_JUCE_DEVELOP=ON"
+          fi
+          cmake -S . -B "${BUILD_DIR}" \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE="${BUILD_TYPE}" \
+            -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+            ${EXTRA_CMAKE_ARGS}
+
+      - name: Build plugin binaries
+        run: cmake --build "${BUILD_DIR}" --config "${BUILD_TYPE}" --parallel
+
+      # Single-config Ninja: artefacts under ${BUILD_DIR}/${ARTEFACT_REL}
+      - name: Package (${{ matrix.label }})
+        id: pack
+        run: |
+          set -euo pipefail
+          ROOT="${BUILD_DIR}/${ARTEFACT_REL}"
+          if [ ! -d "$ROOT" ]; then
+            echo "Missing artefact root: $ROOT"
+            ls -la "${BUILD_DIR}" || true
+            exit 1
+          fi
+          TAG="${GITHUB_REF_NAME}"
+          [ -z "$TAG" ] && TAG="${{ github.sha }}"
+
+          ARCHIVE="${GITHUB_WORKSPACE}/VolumetricSynth-${TAG}-${{ matrix.label }}.zip"
+
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            # Paths relative to $ROOT keeps a clean layout inside the zip.
+            cd "$ROOT"
+            7z a -tzip "$ARCHIVE" VST3 Standalone
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            # ditto -c -k accepts only one source root; zip preserves bundles reliably here.
+            cd "$ROOT"
+            zip -r -y "$ARCHIVE" VST3 AU Standalone
+          else
+            cd "$ROOT"
+            zip -r "$ARCHIVE" VST3 Standalone
+          fi
+
+          echo "path=$ARCHIVE" >> "$GITHUB_OUTPUT"
+          ls -lah "$ARCHIVE"
+
+      - name: Upload artefact (${{ matrix.label }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: volumetric-${{ matrix.label }}-${{ github.ref_name }}
+          path: ${{ steps.pack.outputs.path }}
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: volumetric-*-*
+
+      - name: Flatten for upload (keep one zip per platform)
+        run: |
+          set -euo pipefail
+          mkdir -p upload
+          find dist -type f \( -name '*.zip' \) -print0 | while IFS= read -r -d '' f; do
+            cp -v "$f" "upload/$(basename "$f")"
+          done
+          ls -la upload
+
+      - name: Generate SHA256 checksums
+        working-directory: upload
+        run: sha256sum -- * > SHA256SUMS.txt
+
+      # Stable tags like v5.0.0 → prerelease false + make_latest true → GitHub shows “Latest”.
+      # Prerelease tags (e.g. v1.0.0-beta.1) stay prerelease and never replace Latest.
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: upload/*
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ contains(github.ref_name, '-') == false }}
