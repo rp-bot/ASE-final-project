@@ -5,7 +5,6 @@
 namespace UI
 {
 CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvts)
-    : apvtsPtr (&apvts)
 {
     configureSectionLabel (sceneSectionLabel_, "SCENE");
     configureSectionLabel (cursorSectionLabel_, "CURSOR");
@@ -20,29 +19,11 @@ CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvt
     configureCursorKnob (xKnob, "X");
     configureCursorKnob (yKnob, "Y");
     configureCursorKnob (zKnob, "Z");
-    configureHeightSlider (heightSlider, heightLabel, "Height");
     configureSolidToggleButton (gizmoButton_);
     configureSolidToggleButton (zeroGButton_);
 
-    xKnob.getSlider().onValueChange = [this] { updateCursorFromControls(); };
-    yKnob.getSlider().onValueChange = [this]
-    {
-        if (syncingEngineY_)
-            return;
-        syncEngineYControls (static_cast<float> (yKnob.getSlider().getValue()), false);
-        updateCursorFromControls();
-    };
-    zKnob.getSlider().onValueChange = [this] { updateCursorFromControls(); };
-    heightSlider.onValueChange = [this]
-    {
-        if (syncingEngineY_)
-            return;
-        syncEngineYControls (static_cast<float> (heightSlider.getValue()), true);
-        updateCursorFromControls();
-    };
-
     xyJoystick.setXYSliders (&xKnob.getSlider(), &zKnob.getSlider());
-    xyJoystick.setScrollSlider (&heightSlider);
+    xyJoystick.setScrollSlider (&yKnob.getSlider());
 
     addAndMakeVisible (sceneSectionLabel_);
     addAndMakeVisible (zoomLabel_);
@@ -54,8 +35,6 @@ CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvt
     addAndMakeVisible (xKnob);
     addAndMakeVisible (yKnob);
     addAndMakeVisible (zKnob);
-    addAndMakeVisible (heightLabel);
-    addAndMakeVisible (heightSlider);
 
     addAndMakeVisible (zeroGButton_);
 
@@ -84,68 +63,6 @@ CenterControlPanel::CenterControlPanel (juce::AudioProcessorValueTreeState& apvt
     applyUnitDisplay (xKnob);
     applyUnitDisplay (yKnob);
     applyUnitDisplay (zKnob);
-
-    apvts.addParameterListener (ParameterIDs::cursorX, this);
-    apvts.addParameterListener (ParameterIDs::cursorY, this);
-    apvts.addParameterListener (ParameterIDs::cursorZ, this);
-    updateReadoutFromParams();
-}
-
-CenterControlPanel::~CenterControlPanel()
-{
-    if (apvtsPtr != nullptr)
-    {
-        apvtsPtr->removeParameterListener (ParameterIDs::cursorX, this);
-        apvtsPtr->removeParameterListener (ParameterIDs::cursorY, this);
-        apvtsPtr->removeParameterListener (ParameterIDs::cursorZ, this);
-    }
-}
-
-void CenterControlPanel::parameterChanged (const juce::String& parameterID, float /*newValue*/)
-{
-    if (parameterID == ParameterIDs::cursorX || parameterID == ParameterIDs::cursorY || parameterID == ParameterIDs::cursorZ)
-    {
-        updateReadoutFromParams();
-        return;
-    }
-
-}
-
-void CenterControlPanel::syncEngineYControls (float normalizedY, bool fromHeightSlider)
-{
-    syncingEngineY_ = true;
-    if (fromHeightSlider)
-        yKnob.getSlider().setValue (static_cast<double> (normalizedY), juce::dontSendNotification);
-    else
-        heightSlider.setValue (static_cast<double> (normalizedY), juce::dontSendNotification);
-    syncingEngineY_ = false;
-}
-
-void CenterControlPanel::updateReadoutFromParams()
-{
-    if (apvtsPtr == nullptr)
-        return;
-    auto* py = apvtsPtr->getRawParameterValue (ParameterIDs::cursorY);
-    const float y = (py != nullptr) ? py->load() : 0.5f;
-    syncEngineYControls (y, true);
-    xyJoystick.repaint();
-}
-
-void CenterControlPanel::setCursorChangedCallback (CursorChangedCallback callback)
-{
-    onCursorChanged = std::move (callback);
-}
-
-void CenterControlPanel::setCursorPosition (float x, float y, float z)
-{
-    xKnob.getSlider().setValue (x, juce::dontSendNotification);
-    yKnob.getSlider().setValue (y, juce::dontSendNotification);
-    zKnob.getSlider().setValue (z, juce::dontSendNotification);
-    syncingEngineY_ = true;
-    heightSlider.setValue (y, juce::dontSendNotification);
-    syncingEngineY_ = false;
-    updateCursorFromControls();
-    xyJoystick.repaint();
 }
 
 void CenterControlPanel::paint (juce::Graphics& g)
@@ -191,7 +108,6 @@ void CenterControlPanel::resized()
         zoomSlider_.setBounds (topRow);
         zeroGButton_.setBounds (zeroGArea.withSizeKeepingCentre (juce::jmin (zeroGArea.getWidth(), 88), 22));
         gizmoButton_.setBounds (gizmoArea.withSizeKeepingCentre (juce::jmin (gizmoArea.getWidth(), 84), 22));
-
     }
 
     {
@@ -202,16 +118,8 @@ void CenterControlPanel::resized()
         auto knobRow = cursorArea.removeFromBottom (juce::jmax (66, juce::roundToInt (cursorArea.getHeight() * 0.26f)));
         cursorArea.removeFromBottom (4);
 
-        auto joystickArea = cursorArea;
-        constexpr int heightColumnWidth = 52;
-        joystickArea.removeFromRight (8);
-        auto heightColumn = cursorArea.removeFromRight (heightColumnWidth);
-        const int side = juce::jmin (joystickArea.getWidth(), joystickArea.getHeight());
-        xyJoystick.setBounds (joystickArea.withSizeKeepingCentre (side, side));
-
-        auto labelH = juce::jmin (18, heightColumn.getHeight() / 4);
-        heightLabel.setBounds (heightColumn.removeFromTop (labelH));
-        heightSlider.setBounds (heightColumn);
+        const int side = juce::jmin (cursorArea.getWidth(), cursorArea.getHeight());
+        xyJoystick.setBounds (cursorArea.withSizeKeepingCentre (side, side));
 
         const int knobGap = 8;
         const int knobW = (knobRow.getWidth() - knobGap * 2) / 3;
@@ -227,7 +135,6 @@ void CenterControlPanel::resized()
         knobRow.removeFromLeft (knobGap);
         placeCompactKnob (knobRow, zKnob);
     }
-
 }
 
 void CenterControlPanel::configureCursorKnob (LabelledKnob& knob, const juce::String& text)
@@ -249,15 +156,6 @@ void CenterControlPanel::configureCursorKnob (LabelledKnob& knob, const juce::St
     {
         return juce::jlimit (0.0, 1.0, textIn.trim().getDoubleValue());
     };
-}
-
-void CenterControlPanel::configureHeightSlider (juce::Slider& slider, juce::Label& label, const juce::String& text)
-{
-    slider.setRange (0.0, 1.0, 0.001);
-    slider.setSliderStyle (juce::Slider::LinearVertical);
-    slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-    label.setText (text, juce::dontSendNotification);
-    label.setJustificationType (juce::Justification::centred);
 }
 
 void CenterControlPanel::configureSolidToggleButton (juce::Button& button)
@@ -282,15 +180,5 @@ void CenterControlPanel::configureSceneSlider (juce::Slider& slider)
     slider.setRange (1.0, 20.0, 0.01);
     slider.setSliderStyle (juce::Slider::LinearHorizontal);
     slider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-}
-
-void CenterControlPanel::updateCursorFromControls()
-{
-    const float x = static_cast<float> (xKnob.getSlider().getValue());
-    const float engineY = static_cast<float> (heightSlider.getValue());
-    const float engineZ = static_cast<float> (zKnob.getSlider().getValue());
-
-    if (onCursorChanged)
-        onCursorChanged (x, engineY, engineZ);
 }
 } // namespace UI
