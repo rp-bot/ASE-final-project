@@ -51,7 +51,7 @@ export const ossCopy = {
 };
 
 export const downloadPlatforms = [
-  { os: "Windows", formats: ["VST3", "AAX"], href: "#dl-win" },
-  { os: "macOS", formats: ["VST3", "AU", "AAX"], href: "#dl-mac" },
+  { os: "Windows", formats: ["VST3"], href: "#dl-win" },
+  { os: "macOS", formats: ["VST3", "AU"], href: "#dl-mac" },
   { os: "Linux", formats: ["VST3"], href: "#dl-linux" },
 ];

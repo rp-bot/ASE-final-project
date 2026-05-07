@@ -47,14 +47,12 @@ export function Readme() {
             >
               ## What this thing <span style={{ color: "var(--color-accent-2)" }}>actually does</span>
             </h2>
-            <p
+            {/* <p
               className="mt-6 max-w-2xl text-[15px] leading-relaxed font-mono-accent"
               style={{ color: "var(--color-ink-soft)" }}
             >
-              &gt; The 2D XY pad has served its forty years. This is what replaces it —
-              &gt; eight wavetables at the corners of a cube, a cursor that moves in three
-              &gt; dimensions, and open DSP you can inspect and extend. Source is yours.
-            </p>
+              &gt; The 2D XY pad has served its forty years. This is what replaces it.
+            </p> */}
 
             <ul className="mt-12 grid gap-5 md:grid-cols-2">
               {ossFeatures.map((f, i) => (

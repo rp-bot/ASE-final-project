@@ -3,7 +3,7 @@ import { commercialCopy } from "@/content/commercial";
 export function Footer() {
   return (
     <footer
-      className="relative px-6 pt-20 pb-10"
+      className="relative px-6 pt-10 pb-10"
       style={{ background: "var(--color-bg-3)" }}
     >
       <div className="mx-auto max-w-6xl">
@@ -24,7 +24,7 @@ export function Footer() {
         </div> */}
 
         <div
-          className="mt-16 flex flex-wrap items-center justify-between gap-6 border-t pt-8 font-mono-accent text-[11px] uppercase tracking-[0.24em]"
+          className="flex flex-wrap items-center justify-between gap-6 border-t pt-8 font-mono-accent text-[11px] uppercase tracking-[0.24em]"
           style={{ borderColor: "var(--color-hairline)", color: "var(--color-ink-soft)" }}
         >
           <div>{commercialCopy.footerNote}</div>

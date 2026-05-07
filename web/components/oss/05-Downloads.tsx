@@ -3,6 +3,8 @@ import {
   downloadPlatforms,
   ossCopy,
 } from "@/content/opensource";
+import { FaApple, FaLinux, FaWindows } from "react-icons/fa6";
+import type { IconType } from "react-icons";
 
 const platformLabels: Record<string, string> = {
   kofi: "ko-fi",
@@ -13,6 +15,12 @@ const platformHrefs: Record<string, string> = {
   kofi: "https://ko-fi.com/",
   sponsors: "https://github.com/sponsors/",
   bmac: "https://buymeacoffee.com/",
+};
+
+const osIcons: Record<string, IconType> = {
+  Windows: FaWindows,
+  macOS: FaApple,
+  Linux: FaLinux,
 };
 
 export function Downloads() {
@@ -59,11 +67,19 @@ export function Downloads() {
                 background: "rgba(255,255,255,0.03)",
               }}
             >
-              <div
-                className="font-mono-accent text-[11px] uppercase tracking-[0.24em]"
-                style={{ color: "var(--color-accent-2)" }}
-              >
-                {p.os}
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const OsIcon = osIcons[p.os];
+                  return OsIcon ? (
+                    <OsIcon className="text-base" style={{ color: "var(--color-accent-2)" }} />
+                  ) : null;
+                })()}
+                <div
+                  className="font-mono-accent text-[11px] uppercase tracking-[0.24em]"
+                  style={{ color: "var(--color-accent-2)" }}
+                >
+                  {p.os}
+                </div>
               </div>
               <div
                 className="mt-4 flex items-baseline gap-2"
@@ -206,7 +222,7 @@ export function Downloads() {
 
         <a
           href={ossCopy.repoUrl}
-          className="mt-6 flex flex-wrap items-center justify-between gap-4 border p-5 font-mono-accent text-sm transition-colors hover:border-[var(--color-accent-2)]"
+          className="mt-6 flex flex-wrap items-center justify-between gap-4 border p-5 font-mono-accent text-sm transition-colors hover:border-accent-2"
           style={{
             borderColor: "rgba(255,255,255,0.12)",
             borderRadius: "3px",

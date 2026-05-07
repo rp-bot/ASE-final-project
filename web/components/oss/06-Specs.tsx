@@ -1,11 +1,35 @@
 import { specs } from "@/content/features";
+import { FaApple, FaLinux, FaWindows } from "react-icons/fa6";
 
 export function Specs() {
+  const renderValue = (label: string, value: string) => {
+    if (label !== "Platforms") {
+      return value;
+    }
+
+    return (
+      <span className="flex flex-wrap items-center gap-4">
+        <span className="inline-flex items-center gap-1.5">
+          <FaWindows className="text-[0.95rem]" />
+          Windows 10+
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <FaApple className="text-[0.95rem]" />
+          macOS 12+
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <FaLinux className="text-[0.95rem]" />
+          Linux
+        </span>
+      </span>
+    );
+  };
+
   return (
     <section id="specs" className="relative px-6 py-24 md:py-32">
       <div className="mx-auto max-w-6xl">
         <div
-          className="overflow-hidden border bg-[var(--color-bg-2)]"
+          className="overflow-hidden border bg-bg-2"
           style={{ borderColor: "var(--color-hairline)", borderRadius: "4px" }}
         >
           <div
@@ -49,7 +73,7 @@ export function Specs() {
                       color: "var(--color-ink)",
                     }}
                   >
-                    {s.value}
+                    {renderValue(s.label, s.value)}
                   </td>
                 </tr>
               ))}

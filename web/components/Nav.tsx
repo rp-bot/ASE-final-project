@@ -26,7 +26,7 @@ export function Nav() {
             className="font-mono-accent text-[10px] uppercase tracking-[0.26em]"
             style={{ color: "var(--color-ink-soft)" }}
           >
-            {edition === "commercial" ? "Studio Edition" : "Open Source · GPLv3"}
+            {edition === "commercial" ? "Volumetric Vector Synthesizer" : "Volumetric Vector Synthesizer · GPLv3"}
           </span>
         </a>
         <EditionToggle />
