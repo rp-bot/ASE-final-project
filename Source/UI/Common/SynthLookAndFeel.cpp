@@ -97,13 +97,37 @@ void SynthLookAndFeel::drawRotarySlider (juce::Graphics& g,
         const juce::Colour fillColour =
             slider.findColour (juce::Slider::rotarySliderFillColourId);
 
-        juce::Path filled;
-        filled.addCentredArc (cx, cy, (arcOuter + arcInner) * 0.5f, (arcOuter + arcInner) * 0.5f,
-                              0.0f, rotaryStartAngle, valueAngle, true);
-        g.setColour (fillColour);
-        g.strokePath (filled, juce::PathStrokeType (arcThickness,
-                                                    juce::PathStrokeType::curved,
-                                                    juce::PathStrokeType::rounded));
+        float fillStartAngle = rotaryStartAngle;
+        float fillEndAngle = valueAngle;
+        bool shouldDrawFill = true;
+
+        const double minValue = slider.getMinimum();
+        const double maxValue = slider.getMaximum();
+        const bool crossesZero = minValue < 0.0 && maxValue > 0.0;
+        const double range = maxValue - minValue;
+        const bool zeroIsCentered = range > 0.0 && std::abs ((maxValue + minValue) / range) < 1.0e-6;
+
+        if (crossesZero && zeroIsCentered)
+        {
+            const float zeroProportional = static_cast<float> (slider.valueToProportionOfLength (0.0));
+            const float zeroAngle = rotaryStartAngle + zeroProportional * (rotaryEndAngle - rotaryStartAngle);
+            fillStartAngle = juce::jmin (zeroAngle, valueAngle);
+            fillEndAngle = juce::jmax (zeroAngle, valueAngle);
+
+            if (std::abs (slider.getValue()) <= 1.0e-9)
+                shouldDrawFill = false;
+        }
+
+        if (shouldDrawFill && std::abs (fillEndAngle - fillStartAngle) > 1.0e-6f)
+        {
+            juce::Path filled;
+            filled.addCentredArc (cx, cy, (arcOuter + arcInner) * 0.5f, (arcOuter + arcInner) * 0.5f,
+                                  0.0f, fillStartAngle, fillEndAngle, true);
+            g.setColour (fillColour);
+            g.strokePath (filled, juce::PathStrokeType (arcThickness,
+                                                        juce::PathStrokeType::curved,
+                                                        juce::PathStrokeType::rounded));
+        }
     }
 
     // ── Disc body ────────────────────────────────────────────────────────────
