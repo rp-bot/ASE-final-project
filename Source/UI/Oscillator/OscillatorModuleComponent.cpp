@@ -552,7 +552,15 @@ void OscillatorModuleComponent::WaveformPreviewComponent::paint (juce::Graphics&
         switch (waveformIndex)
         {
             case 0: sample = std::sin (phase); break;
-            case 1: sample = (2.0f * t) - 1.0f; break;
+            case 1:
+            {
+                // Render two teeth so the vertical reset between cycles is visible.
+                // A single saw cycle from -1 to +1 would otherwise look identical
+                // to one slope of the triangle wave (a plain diagonal line).
+                const auto p = (t * 2.0f) - std::floor (t * 2.0f);
+                sample = (2.0f * p) - 1.0f;
+                break;
+            }
             case 2: sample = (t < 0.5f) ? 1.0f : -1.0f; break;
             case 3: sample = (2.0f * std::abs (2.0f * t - 1.0f)) - 1.0f; break;
             default: sample = std::sin (phase); break;

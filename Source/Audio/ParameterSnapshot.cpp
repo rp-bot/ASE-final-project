@@ -26,12 +26,6 @@ namespace Audio
             if (auto* raw = apvts.getRawParameterValue (id))
             {
                 const float v = raw->load();
-                if (v >= 0.0f && v <= 1.0f + 1.0e-3f)
-                {
-                    const int idx =
-                        static_cast<int> (std::lround (v * static_cast<float> (numChoices - 1)));
-                    return juce::jlimit (0, numChoices - 1, idx);
-                }
                 return juce::jlimit (0, numChoices - 1, static_cast<int> (std::lround (v)));
             }
             return fallback;
