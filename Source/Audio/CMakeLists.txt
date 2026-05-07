@@ -1,0 +1,12 @@
+target_sources("${PROJECT_NAME}"
+    PRIVATE
+        ParameterSnapshot.h
+        ParameterSnapshot.cpp
+        SynthEngine.h
+        SynthEngine.cpp
+        VoiceManager.h
+        VoiceManager.cpp
+        SynthSound.h
+        SynthSound.cpp
+        SynthVoice.h
+        SynthVoice.cpp)
