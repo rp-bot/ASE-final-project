@@ -16,7 +16,7 @@ export function MasterEnvelope() {
               Shape contour and response with a dedicated envelope performance view.
             </p>
             <p className="leading-relaxed text-start border-l-4 border-accent pl-4 my-8">
-              You can select the oscillators to apply the envelope to.
+            Toggle corresponding oscillator buttons to adjust multiple oscillator envelopes at once.
             </p>
           </div>
           <div className="md:col-span-7 md:col-start-6">

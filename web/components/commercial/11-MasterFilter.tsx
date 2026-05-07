@@ -29,7 +29,7 @@ export function MasterFilter() {
               Fine-tune tone shaping from a compact filter-focused control perspective.
             </p>
             <p className="leading-relaxed text-start border-l-4 border-accent pl-4 my-8">
-              Similar to the envelope, you can select the oscillators to apply the filter to.
+           Similar to the envelope, you can toggle corresponding oscillator buttons to adjust multiple oscillator filters at once.
             </p>
             <p className="leading-relaxed text-start border-l-4 border-accent pl-4 my-8">
               You can control the drive of the filter to add some distortion.

@@ -65,7 +65,7 @@ export const ossFeatures: Feature[] = [
     accent: "cyan",
   },
   {
-    title: "Dual filters + mod matrix",
+    title: "Dual filters",
     body:
       "Two configurable filters per voice (LP / HP / BP / Notch, 12 / 24 dB/oct). XYZ, radial distance, spherical angle, and trajectory-LFO sources routable to any filter or oscillator parameter.",
     accent: "magenta",
