@@ -9,6 +9,7 @@
 
 ## Quick Links
 
+- [Latest Release](https://github.com/rp-bot/ASE-final-project/releases/latest)
 - [Motivation](#motivation)
 - [Applications & Target Users](#applications--target-users)
 - [Description](#description)
@@ -96,6 +97,35 @@ cmake --build build --target VolumetricSynth_Tests --config Release
 
 - `VST3` and `Standalone` on all supported platforms
 - `AU` on macOS
+
+### How to Use
+
+#### Main Controls
+
+- **Move the camera view**: Hold `Shift` and drag in the 3D view.
+- **Spin the cube**: Hold `Option` (macOS) / `Alt` (Windows/Linux) and spin.
+  Turn on **Zero G Mode** to keep the cube spinning continuously.
+- **Move the 3D cursor**:
+  - Use the gizmo to move along a single axis or within a plane.
+  - Turn off the gizmo for free movement.
+- **2D joystick and XYZ knobs**:
+  - Use the 2D joystick to move the cursor on a plane.
+  - Use the XYZ knobs for precise cursor position control.
+
+#### Oscillators, Envelopes, and Filters
+
+- There are **8 oscillators**.
+- Each oscillator pane has top tabs to switch between oscillator, envelope, and
+  filter controls for that oscillator.
+- You can also control multiple envelopes or filters at once with the
+  **master controls**.
+- Use the color selectors to the right of each editor to choose which
+  oscillator(s) receive those envelope/filter parameter changes.
+
+#### Safety / Auto-Mute
+
+- If gain clips beyond `+10 dB`, the plugin enters **auto-mute**, which essentially turns off the audio engine and disallows any input.
+- Click **Reset Audio Engine** at the top-right to continue using the plugin.
 
 ---
 
