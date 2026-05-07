@@ -32,7 +32,7 @@ export function MasterFilter() {
            Similar to the envelope, you can toggle corresponding oscillator buttons to adjust multiple oscillator filters at once.
             </p>
             <p className="leading-relaxed text-start border-l-4 border-accent pl-4 my-8">
-              You can control the drive of the filter to add some distortion.
+            Add distortion by adjusting drive of filter
             </p>
           </div>
         </div>
