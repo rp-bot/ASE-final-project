@@ -25,13 +25,10 @@ namespace Audio
                 return fallback;
             if (auto* raw = apvts.getRawParameterValue (id))
             {
+                // AudioParameterChoice stores the choice index directly as a float
+                // (0..numChoices-1), so just round and clamp. Do NOT treat values in
+                // [0,1] as normalized: that would alias index 1 to (numChoices - 1).
                 const float v = raw->load();
-                if (v >= 0.0f && v <= 1.0f + 1.0e-3f)
-                {
-                    const int idx =
-                        static_cast<int> (std::lround (v * static_cast<float> (numChoices - 1)));
-                    return juce::jlimit (0, numChoices - 1, idx);
-                }
                 return juce::jlimit (0, numChoices - 1, static_cast<int> (std::lround (v)));
             }
             return fallback;
