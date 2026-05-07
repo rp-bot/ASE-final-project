@@ -8,6 +8,7 @@ import { MasterFilter } from "./11-MasterFilter";
 import { Readme } from "./02-Readme";
 import { Specs } from "./06-Specs";
 import { ThreeDInteraction } from "./09-ThreeDInteraction";
+import { AudioSamples } from "../AudioSamples";
 
 export function OssLayout() {
   return (
@@ -18,9 +19,10 @@ export function OssLayout() {
       <ThreeDInteraction />
       <MasterEnvelope />
       <MasterFilter />
-      <Internals />
-      <Downloads />
+      {/* <Internals /> */}
+      <AudioSamples />
       <Specs />
+      <Downloads />
       <Footer />
     </>
   );

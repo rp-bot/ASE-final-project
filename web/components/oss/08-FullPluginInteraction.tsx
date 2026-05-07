@@ -32,7 +32,8 @@ export function FullPluginInteraction() {
           className="mx-auto mt-8 w-full max-w-4xl border-l-4 pl-4 text-start text-2xl leading-tight md:text-3xl"
           style={{ color: "var(--color-ink)", borderColor: "var(--color-accent-2)" }}
         >
-          Easy control of 8 oscillators and one 3D cursor.
+          8 corner oscillators are mixed by cursor XYZ via trilinear interpolation with unity-sum weights.
+          GUI cursor and trajectory state are transported lock-free into the audio-thread parameter snapshot.
         </p>
       </div>
     </section>

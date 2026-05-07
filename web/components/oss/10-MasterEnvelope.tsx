@@ -20,13 +20,13 @@ export function MasterEnvelope() {
               className="my-4 border-l-4 pl-4 text-start text-xl leading-relaxed md:text-2xl"
               style={{ borderColor: "var(--color-accent-2)", color: "var(--color-ink)" }}
             >
-              Shape contour and response with a dedicated envelope view.
+              Master envelope exposes 6 parameters: Attack, Decay, Sustain, Release, Level, and Velocity sensitivity.
             </p>
             <p
               className="my-4 border-l-4 pl-4 text-start text-xl leading-relaxed md:text-2xl"
               style={{ borderColor: "var(--color-accent-2)", color: "var(--color-ink)" }}
             >
-              Select exactly which oscillators the envelope should affect.
+              8 per-oscillator link toggles gate master writes; enabled corners receive propagated ADSR/value updates.
             </p>
           </div>
           <div className="md:col-span-7 md:col-start-6">

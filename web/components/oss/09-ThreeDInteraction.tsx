@@ -32,19 +32,19 @@ export function ThreeDInteraction() {
               className="my-4 border-l-4 pl-4 text-start text-xl leading-relaxed md:text-2xl"
               style={{ borderColor: "var(--color-accent-2)", color: "var(--color-ink)" }}
             >
-              The 3D view lets you control the scene, cube, and cursor.
+              OpenGL 3.3+ renders the cube and cursor while JUCE keeps 2D controls in the same editor.
             </p>
             <p
               className="my-4 border-l-4 pl-4 text-start text-xl leading-relaxed md:text-2xl"
               style={{ borderColor: "var(--color-accent-2)", color: "var(--color-ink)" }}
             >
-              You can drive angular velocity in gravity mode or in zero-G.
+              CURSOR_X/Y/Z are normalized 0..1 parameters, mirrored by both joystick input and dedicated X/Y/Z knobs.
             </p>
             <p
               className="my-4 border-l-4 pl-4 text-start text-xl leading-relaxed md:text-2xl"
               style={{ borderColor: "var(--color-accent-2)", color: "var(--color-ink)" }}
             >
-              Pick a vertical plane and move the cursor with the joystick.
+              Scene controls are APVTS-attached: camera zoom (1.0..20.0), gizmo visibility, and cube zero-G mode.
             </p>
           </div>
         </div>

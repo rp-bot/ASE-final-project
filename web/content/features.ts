@@ -65,23 +65,29 @@ export const ossFeatures: Feature[] = [
     accent: "cyan",
   },
   {
-    title: "Dual filters",
+    title: "per oscillator and master filter and envelope",
     body:
-      "Two configurable filters per voice (LP / HP / BP / Notch, 12 / 24 dB/oct). XYZ, radial distance, spherical angle, and trajectory-LFO sources routable to any filter or oscillator parameter.",
+      "Per oscillator filter and envelope allow you to adjust the filter and envelope parameters for each voice individually. Master filter and envelope allow you to adjust the filter and envelope parameters for all voices at once.",
     accent: "magenta",
   },
   {
-    title: "Hybrid 2D/3D rendering",
+    title: "Hybrid 2D/3D cube and cursor rendering",
     body:
-      "OpenGL 3.3+ context attached to the top-level editor — single context, no Z-order fights. 3D cube + visualizers on the GPU; knobs and controls on JUCE's native path.",
+      "The plugin editor runs an OpenGL 3.3+ context for real 3D rendering of the cube and cursor, while UI controls remain on JUCE's native vector path. No Z-ordering issues—3D visuals and 2D knobs coexist seamlessly in the interface.",
     accent: "cyan",
   },
   {
-    title: "Readable DSP, in the open",
+    title: "Spinning cube and interactive motion",
     body:
-      "C++17 throughout, organized under /Source/DSP. Lock-free audio ↔ GUI via juce::AbstractFifo. Contribution friendly — issues tagged `good-first-issue` kept fresh.",
-    accent: "magenta",
+      "The 3D cube spins freely on its axis and responds to user input; you can control the cube’s angular velocity and move the cursor throughout 3D space, directly shaping sound with physical gestures.",
+    accent: "cyan",
   },
+  // {
+  //   // title: "Readable DSP, in the open",
+  //   // body:
+  //   //   "C++17 throughout, organized under /Source/DSP. Lock-free audio ↔ GUI via juce::AbstractFifo. Contribution friendly — issues tagged `good-first-issue` kept fresh.",
+  //   // accent: "magenta",
+  // },
 ];
 
 /** Studio / commercial — three results-focused highlights, paired with diagrams. */
@@ -141,11 +147,35 @@ export const algorithms: Algorithm[] = [
 ];
 
 export const specs = [
-  { label: "Formats", value: "VST3 · AU · AAX" },
+  { label: "Formats", value: "VST3 · AU" },
   { label: "Platforms", value: "Windows 10+ · macOS 12+ · Linux" },
   { label: "Polyphony", value: "16 voices" },
   { label: "Oscillators per voice", value: "8 (wavetable)" },
   { label: "Filters", value: "lowpass, with resonance control" },
   { label: "Graphics", value: "OpenGL 3.3+ (hybrid render)" },
   {label:"LFO", value: "Coming soon..."},
+];
+
+export type AudioSample = {
+  title: string;
+  file: string;
+};
+
+export const audioSamples: AudioSample[] = [
+  {
+    title: "Sample 01",
+    file: "/audio/s1.mp3",
+  },
+  {
+    title: "Sample 02",
+    file: "/audio/s2.mp3",
+  },
+  {
+    title: "Sample 03",
+    file: "/audio/s3.mp3",
+  },
+  {
+    title: "Sample 04",
+    file: "/audio/s4.mp3",
+  },
 ];

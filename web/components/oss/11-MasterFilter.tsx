@@ -32,19 +32,19 @@ export function MasterFilter() {
               className="my-4 border-l-4 pl-4 text-start text-xl leading-relaxed md:text-2xl"
               style={{ borderColor: "var(--color-accent-2)", color: "var(--color-ink)" }}
             >
-              Fine-tune tone shaping with a focused filter control view.
+              Master filter controls Cutoff, Resonance, Key-track, and Drive with a live response editor.
             </p>
             <p
               className="my-4 border-l-4 pl-4 text-start text-xl leading-relaxed md:text-2xl"
               style={{ borderColor: "var(--color-accent-2)", color: "var(--color-ink)" }}
             >
-              Like the envelope, you can target specific oscillators.
+              8 oscillator link toggles route master filter changes only to selected corners.
             </p>
             <p
               className="my-4 border-l-4 pl-4 text-start text-xl leading-relaxed md:text-2xl"
               style={{ borderColor: "var(--color-accent-2)", color: "var(--color-ink)" }}
             >
-              Add character by adjusting filter drive for gentle distortion.
+              Enabling a toggle seeds that corner from current master values, including Drive saturation.
             </p>
           </div>
         </div>
