@@ -55,14 +55,6 @@ Planned scope:
 
 Dependencies (`JUCE` and `glm`) are fetched automatically by CMake.
 
-### Cross-Platform Build (Release)
-
-```bash
-git clone <your-fork-or-repo-url>
-cd ASE-final-project
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-```
 
 ### Platform-Specific Configure Commands
 
@@ -127,4 +119,5 @@ We welcome contributions from the community! Please read our detailed [CONTRIBUT
 
 ## License
 
-License details are to be finalized and will be added in a future update.
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+See [`COPYING`](COPYING) for the full license text.
