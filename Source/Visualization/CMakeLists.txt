@@ -13,5 +13,7 @@ target_sources("${PROJECT_NAME}"
         GroundGrid.h
         GroundGrid.cpp
         RayCaster.h
-        RayCaster.cpp)
+        RayCaster.cpp
+        TransformGizmo.h
+        TransformGizmo.cpp)
 

@@ -154,7 +154,7 @@ inline const std::array<juce::Colour, 8>& masterSectionOscColours()
         juce::Colour::fromRGB (230, 126, 34),
         juce::Colour::fromRGB (241, 196, 15),
         juce::Colour::fromRGB (46, 204, 113),
-        juce::Colour::fromRGB (26, 188, 156),
+        juce::Colour::fromRGB (64, 224, 208),
         juce::Colour::fromRGB (52, 152, 219),
         juce::Colour::fromRGB (155, 89, 182),
         juce::Colour::fromRGB (236, 112, 173)

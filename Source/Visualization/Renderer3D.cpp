@@ -1,9 +1,10 @@
 #include "Renderer3D.h"
 
+#include <cmath>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
-
 namespace Visualization
 {
     using namespace juce::gl;
@@ -12,6 +13,12 @@ namespace Visualization
     {
         // Light neutral background so future shadow work reads well.
         const juce::Colour sceneClearColour = juce::Colour::fromRGB(236, 238, 242);
+
+        constexpr float kGizmoScale = 0.18f; // world-size = camera.radius * kGizmoScale
+
+        constexpr float kAltRotRadPerPixel = 0.005f;
+        constexpr float kAngularDampingPerSec = 1.25f;
+        constexpr float kMaxPhysicsDtSec = 0.1f;
 
         constexpr const char* cursorVertSource = R"(#version 330 core
 layout(location = 0) in vec3 aPos;
@@ -113,15 +120,16 @@ float shadowFactor(vec4 posLightSpace, vec3 normal, vec3 lightDir)
 
     vec2 texelSize = 1.0 / vec2(textureSize(uShadowMap, 0));
     float shadow = 0.0;
-    for (int x = -1; x <= 1; ++x)
+    // Wider PCF for blurrier shadow-map edges.
+    for (int x = -3; x <= 3; ++x)
     {
-        for (int y = -1; y <= 1; ++y)
+        for (int y = -3; y <= 3; ++y)
         {
             float closestDepth = texture(uShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += (currentDepth - bias > closestDepth) ? 1.0 : 0.0;
         }
     }
-    shadow /= 9.0;
+    shadow /= 49.0;
     return shadow;
 }
 
@@ -166,11 +174,11 @@ void main()
     vec3 L = normalize(-uLightDir);
     float diff = max(dot(N, L), 0.0);
 
-    float shadow = 0.0;
+    float mapShadow = shadowFactor(vPosLightSpace, N, uLightDir) * clamp(uShadowStrength, 0.0, 1.0);
+    float blob = 0.0;
     if (uUseBlobShadow != 0)
-        shadow = blobShadow(vWorldPos);
-    else
-        shadow = shadowFactor(vPosLightSpace, N, uLightDir) * clamp(uShadowStrength, 0.0, 1.0);
+        blob = blobShadow(vWorldPos);
+    float shadow = max(mapShadow, blob);
 
     float ambient = 0.38;
     vec3 lit = uBaseColor * (ambient + (1.0 - shadow) * diff);
@@ -247,6 +255,7 @@ void main()
         cubeMesh_.initialise();
         groundGrid_.initialise();
         groundGrid_.setParams(/*radius*/ 10.0f, /*spacing*/ 0.5f, /*majorLineEvery*/ 4);
+        gizmo_.initialise();
 
         // Shadow shaders + lit shader.
         shadowDepthShader_ = linkProgram(shadowDepthVertSource, shadowDepthFragSource);
@@ -359,6 +368,10 @@ void main()
 
         rayCaster_.setCamera(&camera_);
 
+        cubeWorldCenter_ = glm::vec3(0.0f, kCubeElevation, 0.0f);
+        camera_.setTarget(cubeWorldCenter_);
+        cursorPositionCube_ = cubeWorldCenter_;
+
         // Default colours matching the editor modules (in case the editor doesn't set them).
         cornerColours_ = {
             glm::vec4(231.0f / 255.0f,  76.0f / 255.0f,  60.0f / 255.0f, 1.0f),
@@ -370,6 +383,113 @@ void main()
             glm::vec4(155.0f / 255.0f,  89.0f / 255.0f, 182.0f / 255.0f, 1.0f),
             glm::vec4(236.0f / 255.0f, 112.0f / 255.0f, 173.0f / 255.0f, 1.0f),
         };
+    }
+
+    namespace
+    {
+        /** Ray vs plane (planePoint, planeNormal); ray direction must be unit. */
+        bool intersectRayPlane(const Ray& ray, const glm::vec3& planePoint,
+                               const glm::vec3& planeNormal, glm::vec3& outPoint)
+        {
+            const float denom = glm::dot(ray.direction, planeNormal);
+            if (std::abs(denom) < 1e-6f)
+                return false;
+            const float t = glm::dot(planePoint - ray.origin, planeNormal) / denom;
+            if (t < 0.0f)
+                return false;
+            outPoint = ray.origin + t * ray.direction;
+            return true;
+        }
+
+        /** planeNormal must be unit. Removes drift along the view axis after AABB clamp. */
+        void projectOntoPlane(glm::vec3& p, const glm::vec3& planePoint, const glm::vec3& planeNormal)
+        {
+            p -= glm::dot(p - planePoint, planeNormal) * planeNormal;
+        }
+
+    }
+
+    glm::mat3 Renderer3D::getCubeRotationMat() const
+    {
+        return glm::mat3_cast(glm::normalize(cubeRotation_));
+    }
+
+    Ray Renderer3D::worldRayToCubeLocal(const Ray& worldRay) const
+    {
+        const glm::mat3 invR = glm::transpose(getCubeRotationMat());
+        Ray local;
+        local.origin = invR * (worldRay.origin - cubeWorldCenter_);
+        local.direction = glm::normalize(invR * worldRay.direction);
+        return local;
+    }
+
+    void Renderer3D::integrateCubePhysics(float dtSec)
+    {
+        if (dtSec <= 0.0f)
+            return;
+
+        if (! zeroGravity_.load(std::memory_order_relaxed))
+        {
+            const float damp = std::exp(-kAngularDampingPerSec * dtSec);
+            angularVelocity_ *= damp;
+        }
+
+        const float speed = glm::length(angularVelocity_);
+        if (speed < 1e-7f)
+        {
+            angularVelocity_ = glm::vec3(0.0f);
+            return;
+        }
+
+        const glm::vec3 axis = angularVelocity_ / speed;
+        const float angle = speed * dtSec;
+        const glm::quat dq = glm::angleAxis(angle, axis);
+        cubeRotation_ = glm::normalize(dq * cubeRotation_);
+    }
+
+    glm::vec3 Renderer3D::cameraRightForSpin() const
+    {
+        const glm::vec3 fwd = glm::normalize(camera_.getForward());
+        const glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
+        glm::vec3 right = glm::cross(fwd, worldUp);
+        if (glm::length(right) < 1e-4f)
+            right = glm::vec3(1.0f, 0.0f, 0.0f);
+        else
+            right = glm::normalize(right);
+        return right;
+    }
+
+    void Renderer3D::applyAltSpinFromPixelDelta(const glm::vec2& deltaPixels)
+    {
+        const float yaw = kAltRotRadPerPixel * deltaPixels.x;
+        const float pitch = kAltRotRadPerPixel * deltaPixels.y;
+        const glm::vec3 up(0.0f, 1.0f, 0.0f);
+        const glm::vec3 right = cameraRightForSpin();
+        const glm::quat yawQ = glm::angleAxis(yaw, up);
+        const glm::quat pitchQ = glm::angleAxis(-pitch, right);
+        cubeRotation_ = glm::normalize(pitchQ * yawQ * cubeRotation_);
+    }
+
+    void Renderer3D::clampWorldCursorToCubeOnViewPlane(glm::vec3& p,
+                                                       const glm::vec3& planePoint,
+                                                       const glm::vec3& planeNormal)
+    {
+        const auto minB = cubeMesh_.getMinBounds();
+        const auto maxB = cubeMesh_.getMaxBounds();
+        const glm::mat3 R = getCubeRotationMat();
+        const glm::mat3 invR = glm::transpose(R);
+        for (int i = 0; i < 16; ++i)
+        {
+            glm::vec3 local = invR * (p - cubeWorldCenter_);
+            local.x = std::clamp(local.x, minB.x, maxB.x);
+            local.y = std::clamp(local.y, minB.y, maxB.y);
+            local.z = std::clamp(local.z, minB.z, maxB.z);
+            p = cubeWorldCenter_ + R * local;
+            const float d = glm::dot(p - planePoint, planeNormal);
+            if (std::abs(d) <= 1e-5f)
+                break;
+            p -= d * planeNormal;
+        }
     }
 
     void Renderer3D::shutdown()
@@ -390,6 +510,7 @@ void main()
         groundGrid_.shutdown();
         cubeMesh_.shutdown();
         scene_.shutdown();
+        gizmo_.shutdown();
     }
 
     void Renderer3D::render(int width, int height)
@@ -410,6 +531,15 @@ void main()
             glViewport(0, 0, width, height);
         glEnable(GL_DEPTH_TEST);
 
+        const double nowMs = juce::Time::getMillisecondCounterHiRes();
+        if (lastRenderTimeMs_ > 0.0)
+        {
+            float dt = static_cast<float>((nowMs - lastRenderTimeMs_) * 0.001);
+            dt = std::min(dt, kMaxPhysicsDtSec);
+            integrateCubePhysics(dt);
+        }
+        lastRenderTimeMs_ = nowMs;
+
         const auto view = camera_.getViewMatrix();
         const auto proj = camera_.getProjectionMatrix(static_cast<float>(w),
                                                       static_cast<float>(h));
@@ -417,15 +547,15 @@ void main()
         // Models for solid cube + plane (used for shadows).
         const auto minB = cubeMesh_.getMinBounds();
         const auto maxB = cubeMesh_.getMaxBounds();
-        const glm::vec3 cubeCenter = 0.5f * (minB + maxB);
         const glm::vec3 cubeHalfExtents = 0.5f * (maxB - minB);
         const glm::mat4 cubeModel =
-            glm::translate(glm::mat4(1.0f), cubeCenter) *
+            glm::translate(glm::mat4(1.0f), cubeWorldCenter_) *
+            glm::mat4_cast(glm::normalize(cubeRotation_)) *
             glm::scale(glm::mat4(1.0f), cubeHalfExtents);
 
         // Plane under the cube (also aligns with the grid).
-        const float gridY = minB.y - 0.001f;
-        const glm::vec3 centerXZ{ cubeCenter.x, 0.0f, cubeCenter.z };
+        const float gridY = kGroundY - 0.001f;
+        const glm::vec3 centerXZ{ cubeWorldCenter_.x, 0.0f, cubeWorldCenter_.z };
         const float planeExtent = 12.0f;
         const glm::mat4 planeModel =
             glm::translate(glm::mat4(1.0f), glm::vec3(centerXZ.x, gridY, centerXZ.z)) *
@@ -434,8 +564,8 @@ void main()
         // Directional light for shadows.
         const glm::vec3 lightDir = glm::normalize(glm::vec3(-0.55f, -1.0f, -0.35f));
         const float lightDistance = 10.0f;
-        const glm::vec3 lightPos = cubeCenter - lightDir * lightDistance;
-        const glm::mat4 lightView = glm::lookAt(lightPos, cubeCenter, glm::vec3(0.0f, 1.0f, 0.0f));
+        const glm::vec3 lightPos = cubeWorldCenter_ - lightDir * lightDistance;
+        const glm::mat4 lightView = glm::lookAt(lightPos, cubeWorldCenter_, glm::vec3(0.0f, 1.0f, 0.0f));
         const float lightOrtho = 8.0f;
         const glm::mat4 lightProj = glm::ortho(-lightOrtho, lightOrtho, -lightOrtho, lightOrtho, 0.1f, 30.0f);
         const glm::mat4 lightSpace = lightProj * lightView;
@@ -453,6 +583,11 @@ void main()
             glBindVertexArray(solidPlaneVao_);
             glUniformMatrix4fv(glGetUniformLocation(shadowDepthShader_, "uModel"), 1, GL_FALSE, glm::value_ptr(planeModel));
             glDrawArrays(GL_TRIANGLES, 0, 6);
+
+            // Cube casts to plane through shadow map.
+            glBindVertexArray(solidCubeVao_);
+            glUniformMatrix4fv(glGetUniformLocation(shadowDepthShader_, "uModel"), 1, GL_FALSE, glm::value_ptr(cubeModel));
+            glDrawArrays(GL_TRIANGLES, 0, 36);
 
             // Cursor sphere also casts a shadow.
             if (cursorSphereVao_ && cursorSphereIndexCount_ > 0)
@@ -483,8 +618,6 @@ void main()
                            /*gridY*/ gridY,
                            /*centerXZ*/ centerXZ);
 
-        scene_.render(view, proj);
-
         // 2) Lit solids with shadowing (ground plane + cube).
         if (litShader_ && shadowDepthTex_ && solidCubeVao_ && solidPlaneVao_)
         {
@@ -506,13 +639,13 @@ void main()
             glUniform3f(glGetUniformLocation(litShader_, "uBaseColor"), 0.93f, 0.93f, 0.94f);
             glUniform1f(glGetUniformLocation(litShader_, "uAlpha"), 1.0f);
             glUniform1i(glGetUniformLocation(litShader_, "uUseBlobShadow"), 1);
-            glUniform1f(glGetUniformLocation(litShader_, "uShadowStrength"), 0.0f);
+            glUniform1f(glGetUniformLocation(litShader_, "uShadowStrength"), 0.22f);
             glUniform3fv(glGetUniformLocation(litShader_, "uCursorWorldPos"), 1, glm::value_ptr(cursorPositionCube_));
             glUniform1f(glGetUniformLocation(litShader_, "uPlaneY"), gridY);
-            glUniform1f(glGetUniformLocation(litShader_, "uBlobRadiusBase"), 0.18f);
+            glUniform1f(glGetUniformLocation(litShader_, "uBlobRadiusBase"), 0.20f);
             glUniform1f(glGetUniformLocation(litShader_, "uBlobRadiusPerHeight"), 0.55f);
-            glUniform1f(glGetUniformLocation(litShader_, "uBlobSoftness"), 0.20f);
-            glUniform1f(glGetUniformLocation(litShader_, "uBlobStrength"), 0.48f);
+            glUniform1f(glGetUniformLocation(litShader_, "uBlobSoftness"), 0.9f);
+            glUniform1f(glGetUniformLocation(litShader_, "uBlobStrength"), 0.14f);
             glUniform1i(glGetUniformLocation(litShader_, "uCubePulseMode"), 0);
             glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -539,12 +672,14 @@ void main()
         }
 
         cubeMesh_.render(view, proj,
-                         static_cast<float>(juce::Time::getMillisecondCounterHiRes() * 0.001));
+                         static_cast<float>(juce::Time::getMillisecondCounterHiRes() * 0.001),
+                         cubeModel);
 
         // Corner spheres (depth tested, so they sit in 3D correctly)
         if (cursorShader_ && cursorSphereVao_ && cursorSphereIndexCount_ > 0)
         {
-            const glm::vec3 corners[8] = {
+            const glm::mat3 R = getCubeRotationMat();
+            const glm::vec3 cornersLocal[8] = {
                 { minB.x, minB.y, minB.z }, // 0
                 { maxB.x, minB.y, minB.z }, // 1
                 { minB.x, maxB.y, minB.z }, // 2
@@ -562,8 +697,9 @@ void main()
 
             for (int i = 0; i < 8; ++i)
             {
+                const glm::vec3 worldCorner = cubeWorldCenter_ + R * cornersLocal[i];
                 const glm::mat4 model = glm::scale(
-                    glm::translate(glm::mat4(1.0f), corners[i]),
+                    glm::translate(glm::mat4(1.0f), worldCorner),
                     glm::vec3(cornerSphereRadius, cornerSphereRadius, cornerSphereRadius));
                 glUniformMatrix4fv(glGetUniformLocation(cursorShader_, "uModel"), 1, GL_FALSE, glm::value_ptr(model));
                 glUniform4fv(glGetUniformLocation(cursorShader_, "uColor"), 1, glm::value_ptr(cornerColours_[static_cast<size_t>(i)]));
@@ -590,16 +726,27 @@ void main()
             glBindVertexArray(0);
             glUseProgram(0);
         }
+
+        // Transform gizmo — rendered last so it is always on top.
+        if (isGizmoVisible())
+        {
+            const float gs = camera_.getRadius() * kGizmoScale;
+            gizmo_.render(cursorPositionCube_, gs, view, proj, activePart_);
+        }
     }
 
     void Renderer3D::mouseDown(const juce::MouseEvent& e, const juce::Rectangle<int>& viewportBounds)
     {
         lastMousePosition_ = e.getPosition();
         isDragging_ = true;
+        const bool shiftDown = e.mods.isShiftDown()
+                               || juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
+        const bool altDown = e.mods.isAltDown()
+                             || juce::ModifierKeys::getCurrentModifiersRealtime().isAltDown();
 
         const int vpW = viewportBounds.getWidth();
         const int vpH = viewportBounds.getHeight();
-        if (vpW <= 0 || vpH <= 0 || e.mods.isShiftDown())
+        if (vpW <= 0 || vpH <= 0)
             return;
 
         const int relX = e.getPosition().x - viewportBounds.getX();
@@ -610,13 +757,43 @@ void main()
         const auto ray = rayCaster_.castRay(screenX, screenY,
                                             static_cast<float>(vpW),
                                             static_cast<float>(vpH));
-        glm::vec3 hitPoint{};
-        if (rayCaster_.intersectCube(ray,
+
+        if (altDown)
+        {
+            angularVelocity_ = glm::vec3(0.0f);
+            isAltSpinDragging_ = true;
+            lastAltDeltaPixels_ = glm::vec2(0.0f);
+            lastAltDragTimeMs_ = juce::Time::getMillisecondCounterHiRes();
+            lastAltDragIntervalMs_ = 16.0;
+            return;
+        }
+
+        // Gizmo hit-test takes priority over cube picking.
+        if (!shiftDown && isGizmoVisible())
+        {
+            const float gs   = camera_.getRadius() * kGizmoScale;
+            const auto  part = gizmo_.hitTest(ray, cursorPositionCube_, gs);
+
+            if (part != TransformGizmo::Part::None)
+            {
+                activePart_       = part;
+                dragCursorStart_  = cursorPositionCube_;
+                return;
+            }
+        }
+
+        if (shiftDown)
+            return;
+
+        // Default: move cursor to cube surface where the ray hits (local AABB, then world).
+        glm::vec3 localHit{};
+        const Ray localRay = worldRayToCubeLocal(ray);
+        if (rayCaster_.intersectCube(localRay,
                                     cubeMesh_.getMinBounds(),
                                     cubeMesh_.getMaxBounds(),
-                                    hitPoint))
+                                    localHit))
         {
-            cursorPositionCube_ = hitPoint;
+            cursorPositionCube_ = cubeWorldCenter_ + getCubeRotationMat() * localHit;
             clampCursorToCube();
         }
     }
@@ -626,7 +803,7 @@ void main()
         if (!isDragging_)
             return;
 
-        const auto pos = e.getPosition();
+        const auto pos   = e.getPosition();
         const auto delta = pos - lastMousePosition_;
         lastMousePosition_ = pos;
 
@@ -635,14 +812,46 @@ void main()
         if (vpW <= 0 || vpH <= 0)
             return;
 
-        if (e.mods.isShiftDown())
+        // ── Alt + drag: spin cube (stops existing spin on mouseDown) ───────────
+        if (isAltSpinDragging_)
+        {
+            const glm::vec2 d(static_cast<float>(delta.x), static_cast<float>(delta.y));
+            const double now = juce::Time::getMillisecondCounterHiRes();
+            if (lastAltDragTimeMs_ > 0.0)
+                lastAltDragIntervalMs_ = now - lastAltDragTimeMs_;
+            lastAltDragTimeMs_ = now;
+            lastAltDeltaPixels_ = d;
+            applyAltSpinFromPixelDelta(d);
+            return;
+        }
+
+        // ── Gizmo constrained drag ────────────────────────────────────────────
+        if (activePart_ != TransformGizmo::Part::None)
+        {
+            const int relX = pos.x - viewportBounds.getX();
+            const int relY = pos.y - viewportBounds.getY();
+            const float screenX = static_cast<float>(relX) / static_cast<float>(vpW);
+            const float screenY = static_cast<float>(relY) / static_cast<float>(vpH);
+
+            const auto ray = rayCaster_.castRay(screenX, screenY,
+                                                static_cast<float>(vpW),
+                                                static_cast<float>(vpH));
+            applyGizmoDrag(ray);
+            return;
+        }
+
+        // ── Camera orbit (Shift held) ─────────────────────────────────────────
+        const bool shiftDown = e.mods.isShiftDown()
+                               || juce::ModifierKeys::getCurrentModifiersRealtime().isShiftDown();
+        if (shiftDown)
         {
             camera_.orbit(static_cast<float>(delta.x),
                           static_cast<float>(delta.y));
+            return;
         }
-        else
+
+        // ── Free cursor drag on view-plane ────────────────────────────────────
         {
-            // Use position relative to viewport so ray cast matches GL viewport.
             const int relX = pos.x - viewportBounds.getX();
             const int relY = pos.y - viewportBounds.getY();
             const float screenX = static_cast<float>(relX) / static_cast<float>(vpW);
@@ -652,14 +861,27 @@ void main()
                                                 static_cast<float>(vpW),
                                                 static_cast<float>(vpH));
 
+            const glm::vec3 planeNormal = camera_.getForward();
+            const glm::vec3 planePoint  = cursorPositionCube_;
+            const auto minB = cubeMesh_.getMinBounds();
+            const auto maxB = cubeMesh_.getMaxBounds();
+
             glm::vec3 hitPoint{};
-            if (rayCaster_.intersectCube(ray,
-                                        cubeMesh_.getMinBounds(),
-                                        cubeMesh_.getMaxBounds(),
-                                        hitPoint))
+            if (intersectRayPlane(ray, planePoint, planeNormal, hitPoint))
             {
                 cursorPositionCube_ = hitPoint;
-                clampCursorToCube();
+                clampWorldCursorToCubeOnViewPlane(cursorPositionCube_, planePoint, planeNormal);
+            }
+            else
+            {
+                const Ray localRay = worldRayToCubeLocal(ray);
+                glm::vec3 localHit{};
+                if (rayCaster_.intersectCube(localRay, minB, maxB, localHit))
+                {
+                    cursorPositionCube_ = cubeWorldCenter_ + getCubeRotationMat() * localHit;
+                    projectOntoPlane(cursorPositionCube_, planePoint, planeNormal);
+                    clampWorldCursorToCubeOnViewPlane(cursorPositionCube_, planePoint, planeNormal);
+                }
             }
         }
     }
@@ -670,16 +892,122 @@ void main()
         camera_.zoom(wheel.deltaY);
     }
 
-    void Renderer3D::clampCursorToCube()
+    void Renderer3D::mouseUp(const juce::MouseEvent& /*e*/)
     {
-        const auto minB = cubeMesh_.getMinBounds();
-        const auto maxB = cubeMesh_.getMaxBounds();
-        cursorPositionCube_.x = std::clamp(cursorPositionCube_.x, minB.x, maxB.x);
-        cursorPositionCube_.y = std::clamp(cursorPositionCube_.y, minB.y, maxB.y);
-        cursorPositionCube_.z = std::clamp(cursorPositionCube_.z, minB.z, maxB.z);
+        if (isAltSpinDragging_)
+        {
+            float dt = static_cast<float>(lastAltDragIntervalMs_ * 0.001);
+            if (dt < 1.0e-4f)
+                dt = 1.0f / 60.0f;
+            const glm::vec3 up(0.0f, 1.0f, 0.0f);
+            const glm::vec3 right = cameraRightForSpin();
+            const float yawRate = (kAltRotRadPerPixel * lastAltDeltaPixels_.x) / dt;
+            const float pitchRate = (-kAltRotRadPerPixel * lastAltDeltaPixels_.y) / dt;
+            angularVelocity_ = up * yawRate + right * pitchRate;
+        }
+
+        isDragging_ = false;
+        isAltSpinDragging_ = false;
+        activePart_ = TransformGizmo::Part::None;
     }
 
-    glm::vec3 Renderer3D::unitToCube(const glm::vec3& unitPos) const
+    void Renderer3D::cancelInteraction() noexcept
+    {
+        isDragging_ = false;
+        isAltSpinDragging_ = false;
+        activePart_ = TransformGizmo::Part::None;
+    }
+
+    void Renderer3D::applyGizmoDrag(const Ray& ray)
+    {
+        // Helper: find the scalar position `s` along an axis through dragCursorStart_
+        // that is closest to the given ray.  Returns false if parallel.
+        auto closestOnAxis = [&](const glm::vec3& axisDir, float& s) -> bool {
+            const glm::vec3 m    = ray.origin - dragCursorStart_;
+            const float     e    = glm::dot(ray.direction, axisDir);
+            const float     f    = glm::dot(ray.direction, m);
+            const float     c    = glm::dot(axisDir, m);
+            const float     denom = 1.0f - e * e;
+            if (std::abs(denom) < 1e-6f) return false;
+            s = (c - e * f) / denom;
+            return true;
+        };
+
+        // Helper: intersect ray with the plane through dragCursorStart_ with given normal.
+        auto rayVsPlane = [&](const glm::vec3& n, glm::vec3& hit) -> bool {
+            const float denom = glm::dot(ray.direction, n);
+            if (std::abs(denom) < 1e-6f) return false;
+            const float t = glm::dot(dragCursorStart_ - ray.origin, n) / denom;
+            if (t < 0.0f) return false;
+            hit = ray.origin + t * ray.direction;
+            return true;
+        };
+
+        switch (activePart_)
+        {
+            case TransformGizmo::Part::None:
+                break;
+            case TransformGizmo::Part::AxisX:
+            {
+                float s = 0.0f;
+                if (closestOnAxis({ 1.f, 0.f, 0.f }, s))
+                    cursorPositionCube_ = { dragCursorStart_.x + s, dragCursorStart_.y, dragCursorStart_.z };
+                break;
+            }
+            case TransformGizmo::Part::AxisY:
+            {
+                float s = 0.0f;
+                if (closestOnAxis({ 0.f, 1.f, 0.f }, s))
+                    cursorPositionCube_ = { dragCursorStart_.x, dragCursorStart_.y + s, dragCursorStart_.z };
+                break;
+            }
+            case TransformGizmo::Part::AxisZ:
+            {
+                float s = 0.0f;
+                if (closestOnAxis({ 0.f, 0.f, 1.f }, s))
+                    cursorPositionCube_ = { dragCursorStart_.x, dragCursorStart_.y, dragCursorStart_.z + s };
+                break;
+            }
+            case TransformGizmo::Part::PlaneXY: // Z locked
+            {
+                glm::vec3 hit{};
+                if (rayVsPlane({ 0.f, 0.f, 1.f }, hit))
+                    cursorPositionCube_ = { hit.x, hit.y, dragCursorStart_.z };
+                break;
+            }
+            case TransformGizmo::Part::PlaneXZ: // Y locked
+            {
+                glm::vec3 hit{};
+                if (rayVsPlane({ 0.f, 1.f, 0.f }, hit))
+                    cursorPositionCube_ = { hit.x, dragCursorStart_.y, hit.z };
+                break;
+            }
+            case TransformGizmo::Part::PlaneYZ: // X locked
+            {
+                glm::vec3 hit{};
+                if (rayVsPlane({ 1.f, 0.f, 0.f }, hit))
+                    cursorPositionCube_ = { dragCursorStart_.x, hit.y, hit.z };
+                break;
+            }
+            default:
+                break;
+        }
+
+        clampCursorToCube();
+    }
+
+    void Renderer3D::clampCursorToCube()
+    {
+        glm::vec3 local = glm::transpose(getCubeRotationMat()) * (cursorPositionCube_ - cubeWorldCenter_);
+        const auto minB = cubeMesh_.getMinBounds();
+        const auto maxB = cubeMesh_.getMaxBounds();
+        local.x = std::clamp(local.x, minB.x, maxB.x);
+        local.y = std::clamp(local.y, minB.y, maxB.y);
+        local.z = std::clamp(local.z, minB.z, maxB.z);
+        cursorPositionCube_ = cubeWorldCenter_ + getCubeRotationMat() * local;
+    }
+
+    glm::vec3 Renderer3D::unitToLocalFromBounds(const glm::vec3& unitPos) const
     {
         const auto minB = cubeMesh_.getMinBounds();
         const auto maxB = cubeMesh_.getMaxBounds();
@@ -690,17 +1018,16 @@ void main()
         };
     }
 
-    glm::vec3 Renderer3D::cubeToUnit(const glm::vec3& cubePos) const
+    glm::vec3 Renderer3D::localToUnitFromBounds(const glm::vec3& localPos) const
     {
         const auto minB = cubeMesh_.getMinBounds();
         const auto maxB = cubeMesh_.getMaxBounds();
-
         const auto extent = maxB - minB;
 
         glm::vec3 result{
-            extent.x != 0.0f ? (cubePos.x - minB.x) / extent.x : 0.0f,
-            extent.y != 0.0f ? (cubePos.y - minB.y) / extent.y : 0.0f,
-            extent.z != 0.0f ? (cubePos.z - minB.z) / extent.z : 0.0f
+            extent.x != 0.0f ? (localPos.x - minB.x) / extent.x : 0.0f,
+            extent.y != 0.0f ? (localPos.y - minB.y) / extent.y : 0.0f,
+            extent.z != 0.0f ? (localPos.z - minB.z) / extent.z : 0.0f
         };
 
         result.x = std::clamp(result.x, 0.0f, 1.0f);
@@ -712,18 +1039,52 @@ void main()
 
     void Renderer3D::setCursorFromUnitPosition(const glm::vec3& unitPos)
     {
-        cursorPositionCube_ = unitToCube(unitPos);
+        const glm::vec3 local = unitToLocalFromBounds(unitPos);
+        cursorPositionCube_ = cubeWorldCenter_ + getCubeRotationMat() * local;
         clampCursorToCube();
     }
 
     glm::vec3 Renderer3D::getCursorAsUnitPosition() const
     {
-        return cubeToUnit(cursorPositionCube_);
+        const glm::vec3 local = glm::transpose(getCubeRotationMat()) * (cursorPositionCube_ - cubeWorldCenter_);
+        return localToUnitFromBounds(local);
+    }
+
+    void Renderer3D::setCursorFromGlobalUnitPosition(const glm::vec3& globalUnitPos)
+    {
+        const glm::vec3 worldOffset = unitToLocalFromBounds(globalUnitPos);
+        cursorPositionCube_ = cubeWorldCenter_ + worldOffset;
+        clampCursorToCube();
+    }
+
+    glm::vec3 Renderer3D::getCursorAsGlobalUnitPosition() const
+    {
+        return localToUnitFromBounds(cursorPositionCube_ - cubeWorldCenter_);
+    }
+
+    glm::quat Renderer3D::getCubeRotationQuat() const noexcept
+    {
+        return glm::normalize(cubeRotation_);
     }
 
     void Renderer3D::setCornerColours(const std::array<glm::vec4, 8>& colours)
     {
         cornerColours_ = colours;
+    }
+
+    void Renderer3D::setCameraZoom(float radius)
+    {
+        camera_.setRadius(radius);
+    }
+
+    float Renderer3D::getCameraZoom() const
+    {
+        return camera_.getRadius();
+    }
+
+    bool Renderer3D::isSpinActive() const noexcept
+    {
+        return isAltSpinDragging_ || glm::dot(angularVelocity_, angularVelocity_) > 1.0e-8f;
     }
 }
 

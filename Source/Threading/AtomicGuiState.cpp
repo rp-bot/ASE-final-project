@@ -80,6 +80,15 @@ void AtomicGuiState::setCursorPosition (glm::vec3 position)
     setCursorPosition (position.x, position.y, position.z);
 }
 
+void AtomicGuiState::setCubeRotation (glm::quat worldFromLocal) noexcept
+{
+    const glm::quat q = glm::normalize (worldFromLocal);
+    m_cubeQw.store (q.w, std::memory_order_relaxed);
+    m_cubeQx.store (q.x, std::memory_order_relaxed);
+    m_cubeQy.store (q.y, std::memory_order_relaxed);
+    m_cubeQz.store (q.z, std::memory_order_relaxed);
+}
+
 void AtomicGuiState::setTrajectoryActive (bool active)
 {
     m_trajectoryActive.store (active, std::memory_order_relaxed);
@@ -92,6 +101,15 @@ glm::vec3 AtomicGuiState::getCursorPosition() const
         m_cursorY.load (std::memory_order_relaxed),
         m_cursorZ.load (std::memory_order_relaxed)
     };
+}
+
+glm::quat AtomicGuiState::getCubeRotation() const noexcept
+{
+    return glm::quat (
+        m_cubeQw.load (std::memory_order_relaxed),
+        m_cubeQx.load (std::memory_order_relaxed),
+        m_cubeQy.load (std::memory_order_relaxed),
+        m_cubeQz.load (std::memory_order_relaxed));
 }
 
 bool AtomicGuiState::isTrajectoryActive() const

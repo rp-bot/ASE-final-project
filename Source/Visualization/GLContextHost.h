@@ -11,7 +11,7 @@ namespace Visualization
     {
     public:
         GLContextHost();
-        ~GLContextHost();
+        ~GLContextHost() override;
 
         void attachTo(juce::Component& component);
         void detach();

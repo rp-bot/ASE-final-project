@@ -22,6 +22,18 @@ public:
                                                                  "Cursor Z",
                                                                  juce::NormalisableRange<float> (0.0f, 1.0f, 0.001f),
                                                                  0.5f));
+
+        layout.add (std::make_unique<juce::AudioParameterBool> (ParameterIDs::cubeZeroG,
+                                                                "Zero G",
+                                                                false));
+
+        layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::cameraZoom,
+                                                                 "Camera Zoom",
+                                                                 juce::NormalisableRange<float> (1.0f, 20.0f, 0.01f),
+                                                                 5.0f));
+        layout.add (std::make_unique<juce::AudioParameterBool> (ParameterIDs::gizmoVisible,
+                                                                "Gizmo Visible",
+                                                                true));
         
         layout.add (std::make_unique<juce::AudioParameterFloat> (ParameterIDs::outputGain, 
                                                                 "Output Gain",

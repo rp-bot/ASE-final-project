@@ -4,6 +4,7 @@
 
 #include "../Parameters/ParameterIDs.h"
 #include "../Threading/AtomicGuiState.h"
+#include "../Utils/Math3D.h"
 #include <juce_audio_processors/juce_audio_processors.h>
 
 namespace Audio
@@ -41,16 +42,25 @@ namespace Audio
                                 const Threading::AtomicGuiState* guiState,
                                 ParameterSnapshot& out) noexcept
     {
+        const glm::quat identityWorldFromLocal (1.f, 0.f, 0.f, 0.f);
+
         if (guiState != nullptr)
         {
-            out.cursor = guiState->getCursorPosition();
+            // Prefer APVTS for global cursor coordinates: sliders, joystick, automation, and
+            // setValue updates write here immediately via RawParameterValue. Atomic GUI state can
+            // lag one message-thread delivery behind if parameterChanged/sync runs asynchronously.
+            const glm::vec3 global { readFloat (apvts, ParameterIDs::cursorX, 0.5f),
+                                     readFloat (apvts, ParameterIDs::cursorY, 0.5f),
+                                     readFloat (apvts, ParameterIDs::cursorZ, 0.5f) };
+            out.cursor = Utils::globalUnitToLocalBlendUnit (global, guiState->getCubeRotation());
             out.trajectoryActive = guiState->isTrajectoryActive();
         }
         else
         {
-            out.cursor = glm::vec3 (readFloat (apvts, ParameterIDs::cursorX, 0.5f),
-                                    readFloat (apvts, ParameterIDs::cursorY, 0.5f),
-                                    readFloat (apvts, ParameterIDs::cursorZ, 0.5f));
+            const glm::vec3 global { readFloat (apvts, ParameterIDs::cursorX, 0.5f),
+                                     readFloat (apvts, ParameterIDs::cursorY, 0.5f),
+                                     readFloat (apvts, ParameterIDs::cursorZ, 0.5f) };
+            out.cursor = Utils::globalUnitToLocalBlendUnit (global, identityWorldFromLocal);
             out.trajectoryActive = false;
         }
 

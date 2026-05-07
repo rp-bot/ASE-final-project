@@ -18,10 +18,11 @@ namespace Visualization
 
         constexpr const char* vertexShaderSource = R"(#version 330 core
 layout(location = 0) in vec3 aPosition;
+uniform mat4 uModel;
 uniform mat4 uView;
 uniform mat4 uProjection;
 void main() {
-    gl_Position = uProjection * uView * vec4(aPosition, 1.0);
+    gl_Position = uProjection * uView * uModel * vec4(aPosition, 1.0);
 }
 )";
         constexpr const char* fragmentShaderSource = R"(#version 330 core
@@ -108,7 +109,8 @@ void main() {
 
     void CubeMesh::render(const glm::mat4& viewMatrix,
                           const glm::mat4& projectionMatrix,
-                          float timeSec) const
+                          float timeSec,
+                          const glm::mat4& modelMatrix) const
     {
         if (vao_ == 0 || shaderProgram_ == 0)
             return;
@@ -119,8 +121,10 @@ void main() {
         }
 
         glUseProgram(shaderProgram_);
+        const GLint modelLoc = glGetUniformLocation(shaderProgram_, "uModel");
         const GLint viewLoc = glGetUniformLocation(shaderProgram_, "uView");
         const GLint projLoc = glGetUniformLocation(shaderProgram_, "uProjection");
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(modelMatrix));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(viewMatrix));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
         if (uTimeUniform_ >= 0)

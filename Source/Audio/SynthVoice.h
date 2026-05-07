@@ -46,6 +46,7 @@ namespace Audio
         std::array<juce::dsp::FirstOrderTPTFilter<float>, 8> m_firstOrderFilters;
         std::array<juce::dsp::FirstOrderTPTFilter<float>, 8> m_firstOrderFiltersStage2;
         std::array<juce::LinearSmoothedValue<float>, 8> m_cutoffSmoothers;
+        std::array<juce::LinearSmoothedValue<float>, 8> m_resonanceSmoothers;
         std::array<bool, 8> m_useOnePolePrev{};
         DSP::TrilinearMixer8 m_mixer;
         DSP::AmpEnvelope m_envelope;
@@ -60,6 +61,10 @@ namespace Audio
 
         float m_blendedAmpLevel = 1.0f;
         float m_blendedVelSens = 0.5f;
+
+        /** Smooths cursor-driven overall note gain to avoid clicks when moving the 3D cursor. */
+        juce::LinearSmoothedValue<float> m_noteGainSmoother;
+        float m_currentNoteGainBase = 1.0f;
 
         juce::AudioBuffer<float> m_oscillatorOutputs;
         juce::AudioBuffer<float> m_oscScratch;

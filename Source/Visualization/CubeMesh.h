@@ -17,7 +17,8 @@ namespace Visualization
         /** Wireframe edges; \p timeSec drives the same pulse as the translucent cube faces. */
         void render(const glm::mat4& viewMatrix,
                     const glm::mat4& projectionMatrix,
-                    float timeSec) const;
+                    float timeSec,
+                    const glm::mat4& modelMatrix = glm::mat4(1.0f)) const;
 
         void setBounds(const glm::vec3& minBounds,
                        const glm::vec3& maxBounds);
